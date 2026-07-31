@@ -70,8 +70,9 @@ export function createVehicle(def) {
     chassis.castShadow = true;
     root.add(chassis);
 
+    // Cabin / windshield face -Z (Three.js forward), matching projectile direction
     const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.55, 1.1), mat(accent));
-    cabin.position.set(0, 1.15, -0.15);
+    cabin.position.set(0, 1.15, 0.15);
     cabin.castShadow = true;
     root.add(cabin);
 
@@ -79,17 +80,17 @@ export function createVehicle(def) {
       new THREE.BoxGeometry(1.2, 0.35, 0.08),
       new THREE.MeshStandardMaterial({ color: 0x9ad7ff, transparent: true, opacity: 0.65, metalness: 0.4 }),
     );
-    glass.position.set(0, 1.2, 0.42);
+    glass.position.set(0, 1.2, -0.42);
     root.add(glass);
 
     const lightbar = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.18, 0.3), mat(0xffffff));
-    lightbar.position.set(0, 1.55, -0.1);
+    lightbar.position.set(0, 1.55, 0.1);
     root.add(lightbar);
     const blue = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, 0.22), mat(0x3b82f6));
-    blue.position.set(-0.22, 1.62, -0.1);
+    blue.position.set(-0.22, 1.62, 0.1);
     root.add(blue);
     const red = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, 0.22), mat(0xef4444));
-    red.position.set(0.22, 1.62, -0.1);
+    red.position.set(0.22, 1.62, 0.1);
     root.add(red);
     root.userData.sirens = [blue, red];
 
@@ -132,8 +133,15 @@ export function createVehicle(def) {
 
   if (!root.userData.muzzle) {
     root.userData.muzzle = new THREE.Object3D();
-    root.userData.muzzle.position.set(0.9, 1.0, -0.2);
+    root.userData.muzzle.position.set(0, 1.0, -1.6);
     root.add(root.userData.muzzle);
+  }
+  // Sub torpedo tube visual
+  if (def.type === 'submarine') {
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 10), mat(0x333333));
+    tube.rotation.x = Math.PI / 2;
+    tube.position.set(0, 0.85, -1.35);
+    root.add(tube);
   }
 
   const shadow = new THREE.Mesh(

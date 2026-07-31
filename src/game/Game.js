@@ -192,8 +192,10 @@ export class Game {
     this.predator.position.set(5, 0, -2);
     this.predator.userData.anim.state = 'chase';
     // Tuned for kids: normal missions resolve quickly; bosses last longer
-    this.predator.userData.hp = level.boss ? 140 : 70;
+    // Bosses soak more darts; normal missions stay kid-quick
+    this.predator.userData.hp = level.boss ? 180 : 70;
     this.predator.userData.maxHp = this.predator.userData.hp;
+    this.predator.userData.speed = (DINOSAURS[level.predator].role === 'predator' ? 7.5 : 6) * (level.boss ? 1.12 : 1);
     this.scene.add(this.predator);
 
     this.mother = createDinosaur(DINOSAURS[level.mother]);
@@ -208,6 +210,7 @@ export class Game {
     this.camera.lookAt(this.vehicle.position.x, 1.4, this.vehicle.position.z - 4);
 
     this.ui.showHud(`Protect ${DINOSAURS[level.baby].name}!`);
+    this.ui.updateNestCompass(false);
     this.ui.toast(level.boss ? 'Alarm! Boss dinosaur alert!' : 'Rescue mission started!');
     this.ui.showAim(false);
     this.audio.ui();
@@ -289,6 +292,7 @@ export class Game {
     }
     this._resolveBlockers();
     this._updateFireflies(dt);
+    this._updateWorldFX(dt);
   }
 
   _updateFireflies(dt) {
@@ -303,6 +307,30 @@ export class Game {
       ff.position.z = b.z + Math.cos(t * 1.4 + p) * 0.8;
       ff.material.opacity = 0.45 + Math.sin(t * 5 + p) * 0.35;
       ff.material.transparent = true;
+    }
+  }
+
+  _updateWorldFX(dt) {
+    const water = this.world?.userData?.waterMesh;
+    if (water) {
+      water.position.y = (this.level.water ? 0.4 : 0.08) + Math.sin(performance.now() * 0.002) * 0.06;
+      water.material.opacity = 0.5 + Math.sin(performance.now() * 0.0015) * 0.08;
+    }
+    const nestFX = this.world?.userData?.nestBeacon;
+    if (nestFX) {
+      const pulse = 0.55 + Math.sin(performance.now() * 0.005) * 0.35;
+      nestFX.beacon.material.emissiveIntensity = pulse;
+      nestFX.beaconRing.scale.setScalar(1 + Math.sin(performance.now() * 0.004) * 0.08);
+      nestFX.beaconRing.material.opacity = 0.35 + pulse * 0.35;
+    }
+    const bubbles = this.world?.userData?.bubbles;
+    if (bubbles) {
+      const t = performance.now() * 0.001;
+      for (const b of bubbles) {
+        b.position.y = b.userData.baseY + ((t * 0.7 + b.userData.phase) % 3);
+        if (b.position.y > b.userData.baseY + 2.8) b.userData.baseY = Math.random() * 2;
+        b.material.opacity = 0.25 + Math.sin(t * 3 + b.userData.phase) * 0.2;
+      }
     }
   }
 
@@ -427,6 +455,7 @@ export class Game {
       const dir = flee.multiplyScalar(0.55).add(toNest.multiplyScalar(0.45)).normalize();
       baby.position.addScaledVector(dir, baby.userData.speed * dt);
       baby.lookAt(baby.position.x + dir.x, baby.position.y, baby.position.z + dir.z);
+      baby.rotation.y += Math.PI;
       this._clamp(baby, 46);
     }
 
@@ -525,6 +554,12 @@ export class Game {
       }
       const nestDist = Math.hypot(baby.position.x - nest.x, baby.position.z - nest.z);
       this.ui.setMission(`Escort the baby to the nest! (${Math.max(0, nestDist - 3).toFixed(0)}m)`);
+      // Nest compass relative to camera-forward / vehicle heading
+      if (vehicle) {
+        const toNest = Math.atan2(nest.x - vehicle.position.x, nest.z - vehicle.position.z);
+        const rel = toNest - vehicle.rotation.y;
+        this.ui.updateNestCompass(true, -rel);
+      }
       // Complete when baby arrives — generous radius + short dwell
       if (nestDist < 3.5) {
         this._escortDwelling = (this._escortDwelling || 0) + dt;
@@ -594,11 +629,13 @@ export class Game {
       this._spawnSparks(this.baby.position.clone().setY(1.2), 0x62d26f, 12);
     }
     this.audio.win();
+    this.ui.updateNestCompass(false);
     this.ui.showResult({
       win: true,
       message: `Great work, Guard! +${this.missionScore} points`,
       stampName: stamp?.name || 'Stamp',
       stampColor: stamp ? `#${stamp.color.toString(16).padStart(6, '0')}` : undefined,
+      fact: stamp?.facts || DINOSAURS[this.level.predator]?.facts,
     });
     this.state = 'result';
   }
@@ -606,6 +643,7 @@ export class Game {
   _fail(message) {
     if (this.phase === PHASE.LOSE) return;
     this.phase = PHASE.LOSE;
+    this.ui.updateNestCompass(false);
     this.audio.lose();
     this.ui.showResult({ win: false, message });
     this.state = 'result';
@@ -619,7 +657,9 @@ export class Game {
     if (dist < 0.05) return;
     dir.normalize();
     actor.position.addScaledVector(dir, speed * dt);
+    // Dino meshes face +Z; lookAt aims -Z, so flip 180°
     actor.lookAt(actor.position.x + dir.x, actor.position.y, actor.position.z + dir.z);
+    actor.rotation.y += Math.PI;
     this._clamp(actor, 46);
     actor.userData.updateAnim(dt, true);
   }

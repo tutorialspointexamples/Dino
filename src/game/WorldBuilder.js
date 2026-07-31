@@ -68,6 +68,20 @@ export function buildWorld(level, scene) {
     }
   }
 
+  if (biome === 'swamp') {
+    for (let i = 0; i < 16; i++) {
+      const vine = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.08, rand(3, 6), 6),
+        new THREE.MeshStandardMaterial({ color: 0x2f5a22, roughness: 0.9 }),
+      );
+      const a = rand(0, Math.PI * 2);
+      const r = rand(10, 40);
+      vine.position.set(Math.cos(a) * r, vine.geometry.parameters[2] / 2, Math.sin(a) * r);
+      vine.rotation.z = rand(-0.4, 0.4);
+      group.add(vine);
+    }
+  }
+
   if (biome === 'cave') {
     for (let i = 0; i < 35; i++) {
       const crystal = new THREE.Mesh(
@@ -181,6 +195,24 @@ export function buildWorld(level, scene) {
       coral.position.set(Math.cos(a) * r, 0.2, Math.sin(a) * r);
       group.add(coral);
     }
+    const bubbles = [];
+    for (let i = 0; i < 24; i++) {
+      const b = new THREE.Mesh(
+        new THREE.SphereGeometry(rand(0.08, 0.2), 8, 6),
+        new THREE.MeshStandardMaterial({
+          color: 0xb6eaff,
+          transparent: true,
+          opacity: 0.45,
+          roughness: 0.2,
+        }),
+      );
+      b.position.set(rand(-25, 25), rand(0.5, 4), rand(-25, 25));
+      b.userData.baseY = b.position.y;
+      b.userData.phase = rand(0, Math.PI * 2);
+      group.add(b);
+      bubbles.push(b);
+    }
+    group.userData.bubbles = bubbles;
   }
 
   // Path ring markers
@@ -202,9 +234,32 @@ export function buildWorld(level, scene) {
   group.add(nest);
   group.userData.nestPos = nest.position.clone();
 
-  // Roadblocks / route obstacles (kid-friendly crates & rocks)
+  // Glowing nest beacon so kids can find the escort target
+  const beacon = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.15, 0.15, 3.2, 8),
+    new THREE.MeshStandardMaterial({
+      color: 0xf4c14b,
+      emissive: 0xf4c14b,
+      emissiveIntensity: 0.7,
+      transparent: true,
+      opacity: 0.85,
+    }),
+  );
+  beacon.position.set(0, 1.8, -16);
+  group.add(beacon);
+  const beaconRing = new THREE.Mesh(
+    new THREE.RingGeometry(2.2, 2.6, 24),
+    new THREE.MeshBasicMaterial({ color: 0x62d26f, transparent: true, opacity: 0.55, side: THREE.DoubleSide }),
+  );
+  beaconRing.rotation.x = -Math.PI / 2;
+  beaconRing.position.set(0, 0.12, -16);
+  group.add(beaconRing);
+  group.userData.nestBeacon = { beacon, beaconRing };
+
+  // Roadblocks / route obstacles — denser on boss / swamp routes
   const blockers = [];
-  for (let i = 0; i < 8; i++) {
+  const blockCount = level.boss ? 12 : biome === 'swamp' || biome === 'volcano' ? 10 : 8;
+  for (let i = 0; i < blockCount; i++) {
     const block = new THREE.Mesh(
       i % 2 === 0
         ? new THREE.BoxGeometry(rand(1.2, 2.2), rand(0.8, 1.6), rand(1.2, 2.2))
