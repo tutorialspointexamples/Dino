@@ -27,6 +27,7 @@ export class UI {
     this.$('btn-resume').onclick = () => this.game.resume();
     this.$('btn-quit').onclick = () => this.game.quitToHub();
     this.$('btn-result-continue').onclick = () => this.showHub();
+    this.$('btn-result-next')?.addEventListener('click', () => this.game.startNextMission());
     this.$('btn-mute').onclick = () => {
       const on = this.game.audio.toggle();
       this.$('btn-mute').textContent = on ? 'SND' : 'OFF';
@@ -173,7 +174,13 @@ export class UI {
     this.hideAll();
     this.$('screen-stamps').classList.remove('hidden');
     const stamps = this.game.save.stamps;
-    this.$('stamp-count').textContent = `${stamps.length} stamps`;
+    const total = Object.keys(DINOSAURS).length;
+    const pct = Math.round((stamps.length / Math.max(1, total)) * 100);
+    this.$('stamp-count').textContent = `${stamps.length}/${total} stamps`;
+    const bar = this.$('master-bar');
+    const pctEl = this.$('master-pct');
+    if (bar) bar.style.transform = `scaleX(${Math.max(0, Math.min(1, stamps.length / total))})`;
+    if (pctEl) pctEl.textContent = `${pct}% · ${pct >= 100 ? 'Dinosaur Master!' : 'Collect stamps'}`;
     const grid = this.$('stamp-grid');
     grid.innerHTML = '';
     Object.values(DINOSAURS).forEach((d) => {
@@ -221,7 +228,7 @@ export class UI {
     this.$('screen-pause').classList.add('hidden');
   }
 
-  showResult({ win, message, stampName, stampColor, fact }) {
+  showResult({ win, message, stampName, stampColor, fact, stars = 0, unlockText = '', hasNext = false }) {
     this.$('hud').classList.add('hidden');
     this.$('nest-compass')?.classList.add('hidden');
     this.hideCountdown();
@@ -230,6 +237,17 @@ export class UI {
     this.$('screen-result').classList.remove('hidden');
     this.$('result-title').textContent = win ? 'Rescue Complete!' : 'Mission Failed';
     this.$('result-msg').textContent = message;
+    const starsEl = this.$('result-stars');
+    if (starsEl) {
+      if (win && stars > 0) {
+        starsEl.classList.remove('hidden');
+        starsEl.querySelectorAll('[data-star]').forEach((s) => {
+          s.classList.toggle('lit', Number(s.dataset.star) <= stars);
+        });
+      } else {
+        starsEl.classList.add('hidden');
+      }
+    }
     const factEl = this.$('result-fact');
     if (win && fact) {
       factEl.textContent = fact;
@@ -247,6 +265,21 @@ export class UI {
     } else {
       stamp.classList.add('hidden');
     }
+    const unlockEl = this.$('result-unlock');
+    if (unlockEl) {
+      if (win && unlockText) {
+        unlockEl.textContent = unlockText;
+        unlockEl.classList.remove('hidden');
+      } else {
+        unlockEl.classList.add('hidden');
+      }
+    }
+    const nextBtn = this.$('btn-result-next');
+    if (nextBtn) {
+      nextBtn.classList.toggle('hidden', !(win && hasNext));
+    }
+    const cont = this.$('btn-result-continue');
+    if (cont) cont.className = win && hasNext ? 'btn' : 'btn primary';
   }
 
   updateNestCompass(show, angleRad = 0) {

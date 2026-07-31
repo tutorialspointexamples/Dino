@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { DINOSAURS, LEVELS, VEHICLES } from './data.js';
-import { loadSave, writeSave, markCleared } from './Save.js';
+import { loadSave, writeSave, markCleared, isVehicleUnlocked } from './Save.js';
 import { createDinosaur } from './DinosaurFactory.js';
 import { createVehicle } from './VehicleFactory.js';
 import { buildWorld, createProjectile, createSpark, createTrailPuff } from './WorldBuilder.js';
@@ -55,6 +55,10 @@ export class Game {
     this._floaters = [];
     this._countdownStep = 3;
     this._celebrateT = 0;
+    this._squealCooldown = 0;
+    this._eggsCollected = 0;
+    this._lastStars = 0;
+    this._chargeTelegraph = null;
     this.world = null;
     this.vehicle = null;
     this.baby = null;
@@ -113,6 +117,10 @@ export class Game {
     this.ui.hideCountdown();
     this.ui.hideCrewCallout();
     this.ui.setAlarmRing(false);
+    this._clearChargeTelegraph();
+    this._eggsCollected = 0;
+    this._squealCooldown = 0;
+    this.audio.stopAmbient();
   }
 
   _buildTitleDiorama() {
@@ -261,7 +269,10 @@ export class Game {
     this.ui.showAim(false);
     this.audio.alarm();
     this.audio.countdown();
+    this.audio.startAmbient();
     if (level.boss) this.audio.roar();
+    this._eggsCollected = 0;
+    this._attachChargeTelegraph();
     // First-clear tutorial for rainforest
     if (level.id === 'rainforest' && !this.save.cleared.includes('rainforest')) {
       this.ui.showTutorial('Drive close to the big dino, then FIRE. Mother will help — escort baby to the glowing nest!');
@@ -302,8 +313,96 @@ export class Game {
   quitToHub() {
     this.paused = false;
     this.ui.hidePause();
+    this.audio.stopAmbient();
     this.showTitleScene();
     this.ui.showHub();
+  }
+
+  startNextMission() {
+    if (!this.level) {
+      this.ui.showHub();
+      return;
+    }
+    const idx = LEVELS.findIndex((l) => l.id === this.level.id);
+    const next = LEVELS[idx + 1];
+    if (!next) {
+      this.ui.showHub();
+      return;
+    }
+    const unlocked = this.save.cleared.includes(this.level.id);
+    if (!unlocked && idx >= 0) {
+      this.ui.showHub();
+      return;
+    }
+    this.ui.openVehiclePick(next);
+  }
+
+  _attachChargeTelegraph() {
+    this._clearChargeTelegraph();
+    if (!this.predator) return;
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(1.6, 2.05, 28),
+      new THREE.MeshBasicMaterial({
+        color: 0xe85d4c,
+        transparent: true,
+        opacity: 0,
+        side: THREE.DoubleSide,
+      }),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.08;
+    this.predator.add(ring);
+    this._chargeTelegraph = ring;
+  }
+
+  _clearChargeTelegraph() {
+    if (this._chargeTelegraph) {
+      this._chargeTelegraph.parent?.remove(this._chargeTelegraph);
+      this._chargeTelegraph = null;
+    }
+  }
+
+  _updateChargeTelegraph(dt) {
+    const ring = this._chargeTelegraph;
+    if (!ring || !this.predator) return;
+    const charging = this.phase === PHASE.HEADBUTT;
+    const target = charging ? 0.85 : 0;
+    ring.material.opacity = THREE.MathUtils.lerp(ring.material.opacity, target, 1 - Math.pow(0.02, dt));
+    if (charging) {
+      const pulse = 1 + Math.sin(performance.now() * 0.02) * 0.12;
+      ring.scale.setScalar(pulse);
+      // Wind-up glow on predator body
+      const body = this.predator.userData?.parts?.body;
+      if (body?.material) {
+        body.material.emissive = body.material.emissive || new THREE.Color(0x000000);
+        body.material.emissive.setHex(0xe85d4c);
+        body.material.emissiveIntensity = 0.35 + Math.sin(performance.now() * 0.025) * 0.25;
+      }
+    } else {
+      const body = this.predator.userData?.parts?.body;
+      if (body?.material?.emissiveIntensity != null) {
+        body.material.emissiveIntensity = THREE.MathUtils.lerp(body.material.emissiveIntensity, 0.05, 0.1);
+      }
+    }
+  }
+
+  _missionStars() {
+    const babyRatio = this.baby
+      ? Math.max(0, this.baby.userData.hp / (this.baby.userData.maxHp || 1))
+      : 0;
+    const jeepRatio = this.vehicle
+      ? Math.max(0, this.vehicle.userData.hp / (this.vehicle.userData.maxHp || 1))
+      : 0;
+    let stars = 1;
+    if (babyRatio > 0.35 && jeepRatio > 0.25) stars = 2;
+    if (babyRatio > 0.65 && jeepRatio > 0.45 && this._eggsCollected >= 2) stars = 3;
+    return stars;
+  }
+
+  _newVehicleUnlocks(prevCleared, nextCleared) {
+    return VEHICLES.filter(
+      (v) => !isVehicleUnlocked(v, prevCleared) && isVehicleUnlocked(v, nextCleared),
+    );
   }
 
   loop() {
@@ -377,6 +476,7 @@ export class Game {
     this._driveVehicle(dt, axis);
     this._updateCamera(dt);
     this._updatePhase(dt);
+    this._updateChargeTelegraph(dt);
     this._updateActors(dt);
     this._updateProjectiles(dt);
     this._updateSparks(dt);
@@ -581,6 +681,23 @@ export class Game {
         if (c.position.x > c.userData.baseX + 30) c.position.x = c.userData.baseX - 30;
       }
     }
+    const drips = this.world?.userData?.stalactiteDrips;
+    if (drips) {
+      const t = performance.now() * 0.001;
+      for (const drop of drips) {
+        const fall = ((t * 1.4 + drop.userData.phase) % 2.2);
+        drop.position.y = drop.userData.baseY - fall;
+        drop.material.opacity = fall < 1.8 ? 0.75 : Math.max(0, 1 - (fall - 1.8) * 2);
+      }
+    }
+    const flowers = this.world?.userData?.kingFlowers;
+    if (flowers) {
+      const t = performance.now() * 0.001;
+      for (const f of flowers) {
+        f.rotation.y = Math.sin(t * 0.8 + f.position.x) * 0.15;
+        f.position.y = Math.sin(t * 2 + f.position.z) * 0.04;
+      }
+    }
   }
 
   _resolveBlockers() {
@@ -769,7 +886,8 @@ export class Game {
         this.phaseT = 0;
         predator.userData.anim.state = 'attack';
         this.ui.setMission('Watch out — headbutt!');
-        this.ui.toast('Too many shots! Predator charges the jeep!');
+        this.ui.toast('Charge telegraph! Predator winds up a headbutt!');
+        this.ui.crewCallout('Scout Mina', 'Red ring — dodge the charge!');
         this.ui.setHeadbuttAlarm(true);
         this.audio.headbutt();
         this.audio.roar();
@@ -866,7 +984,21 @@ export class Game {
       baby
     ) {
       const threatDist = predator.position.distanceTo(baby.position);
-      this.ui.setDanger(threatDist < 4.5 && this.phase !== PHASE.ESCORT);
+      const inDanger = threatDist < 4.5 && this.phase !== PHASE.ESCORT;
+      this.ui.setDanger(inDanger);
+      if (inDanger) {
+        baby.userData.anim.panic = true;
+        if (baby.userData.baseSpeed == null) baby.userData.baseSpeed = baby.userData.speed;
+        baby.userData.speed = baby.userData.baseSpeed * 1.35;
+        this._squealCooldown -= dt;
+        if (this._squealCooldown <= 0) {
+          this.audio.squeal();
+          this._squealCooldown = 1.1;
+        }
+      } else if (baby.userData.anim) {
+        baby.userData.anim.panic = false;
+        if (baby.userData.baseSpeed != null) baby.userData.speed = baby.userData.baseSpeed;
+      }
       if (threatDist < 1.55) {
         // Slower drain so kids can still save after a close call
         this.baby.userData.hp -= (this.level.water ? 12 : 18) * dt;
@@ -881,6 +1013,7 @@ export class Game {
       }
     } else {
       this.ui.setDanger(false);
+      if (baby?.userData?.anim) baby.userData.anim.panic = false;
     }
   }
 
@@ -937,10 +1070,14 @@ export class Game {
   _finishWin() {
     if (this.phase === PHASE.WIN || this.phase === PHASE.LOSE) return;
     this.phase = PHASE.WIN;
-    this.missionScore += 500 + Math.floor(this.vehicle?.userData?.hp || 0);
+    this.audio.stopAmbient();
+    const stars = this._missionStars();
+    this._lastStars = stars;
+    this.missionScore += 500 + Math.floor(this.vehicle?.userData?.hp || 0) + stars * 50;
     this.ui.updateScore(this.missionScore);
     const stampId = this.level.stamp;
     const stamp = DINOSAURS[stampId];
+    const prevCleared = this.save.cleared.length;
     markCleared(this.save, this.level.id, stampId, this.missionScore);
     // Also stamp predator / mother for encyclopedia depth
     if (!this.save.stamps.includes(this.level.predator)) {
@@ -953,6 +1090,15 @@ export class Game {
       this.save.stamps.push(this.level.baby);
     }
     writeSave(this.save);
+    const unlocks = this._newVehicleUnlocks(prevCleared, this.save.cleared.length);
+    let unlockText = '';
+    if (unlocks.length) {
+      unlockText = `New ride unlocked: ${unlocks.map((v) => v.name).join(', ')}!`;
+      this.audio.unlock();
+      this.ui.toast(unlockText);
+    }
+    const idx = LEVELS.findIndex((l) => l.id === this.level.id);
+    const hasNext = idx >= 0 && idx < LEVELS.length - 1;
     this.ui.updateNestCompass(false);
     this.ui.hideCrewCallout();
     this.ui.showResult({
@@ -961,6 +1107,9 @@ export class Game {
       stampName: stamp?.name || 'Stamp',
       stampColor: stamp ? `#${stamp.color.toString(16).padStart(6, '0')}` : undefined,
       fact: stamp?.facts || DINOSAURS[this.level.predator]?.facts,
+      stars,
+      unlockText,
+      hasNext,
     });
     this.state = 'result';
   }
@@ -968,12 +1117,13 @@ export class Game {
   _fail(message) {
     if (this.phase === PHASE.LOSE) return;
     this.phase = PHASE.LOSE;
+    this.audio.stopAmbient();
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
     this.ui.updateNestCompass(false);
     document.getElementById('tutorial-tip')?.classList.add('hidden');
     this.audio.lose();
-    this.ui.showResult({ win: false, message });
+    this.ui.showResult({ win: false, message, stars: 0, hasNext: false });
     this.state = 'result';
   }
 
@@ -1093,11 +1243,12 @@ export class Game {
       if (this.vehicle.position.distanceTo(egg.position) < 2.2) {
         egg.userData.collected = true;
         egg.visible = false;
+        this._eggsCollected = (this._eggsCollected || 0) + 1;
         this.missionScore += 50;
         this.ui.updateScore(this.missionScore);
         this.audio.collect();
         this._spawnSparks(egg.position.clone().setY(1), 0xffe08a, 8);
-        this.ui.toast('Dino egg collected! +50');
+        this.ui.toast(`Dino egg collected! +50 (${this._eggsCollected}/5)`);
       }
     }
   }

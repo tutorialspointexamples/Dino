@@ -44,6 +44,13 @@ window.__DINO_GUARD_QA__ = {
   getPhase: () => game.phase,
   getScore: () => game.missionScore,
   getSave: () => game.save,
+  getStars: () => game._lastStars || game._missionStars?.() || 0,
+  forceHeadbutt() {
+    game.phase = 'headbutt';
+    game.phaseT = 0;
+    game.ui.setHeadbuttAlarm(true);
+    if (game.predator) game.predator.userData.anim.state = 'attack';
+  },
 };
 
 const splash = document.getElementById('boot-splash');

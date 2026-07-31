@@ -4,6 +4,8 @@ export class AudioBus {
   constructor() {
     this.ctx = null;
     this.enabled = true;
+    this._ambientNodes = null;
+    this._ambientTimer = null;
   }
 
   ensure() {
@@ -31,6 +33,56 @@ export class AudioBus {
     g.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + dur);
+  }
+
+  /** Soft looping Jurassic pad during missions */
+  startAmbient() {
+    this.stopAmbient();
+    const ctx = this.ensure();
+    if (!ctx) return;
+    const master = ctx.createGain();
+    master.gain.value = 0.028;
+    master.connect(ctx.destination);
+    const notes = [196, 247, 294, 330];
+    const nodes = [];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      g.gain.value = 0.0001;
+      osc.connect(g);
+      g.connect(master);
+      osc.start();
+      nodes.push({ osc, g, freq, phase: i * 0.7 });
+    });
+    this._ambientNodes = { master, nodes };
+    const pulse = () => {
+      if (!this._ambientNodes || !this.enabled) return;
+      const t = ctx.currentTime;
+      for (const n of this._ambientNodes.nodes) {
+        const target = 0.012 + Math.sin(t * 0.35 + n.phase) * 0.008;
+        n.g.gain.cancelScheduledValues(t);
+        n.g.gain.linearRampToValueAtTime(Math.max(0.0001, target), t + 0.4);
+      }
+      this._ambientTimer = setTimeout(pulse, 420);
+    };
+    pulse();
+  }
+
+  stopAmbient() {
+    if (this._ambientTimer) {
+      clearTimeout(this._ambientTimer);
+      this._ambientTimer = null;
+    }
+    if (this._ambientNodes) {
+      try {
+        for (const n of this._ambientNodes.nodes) n.osc.stop();
+      } catch {
+        /* already stopped */
+      }
+      this._ambientNodes = null;
+    }
   }
 
   shoot() {
@@ -84,12 +136,24 @@ export class AudioBus {
     this.tone({ freq: 784, dur: 0.18, type: 'triangle', gain: 0.08, slide: 120 });
   }
 
+  squeal() {
+    this.tone({ freq: 980, dur: 0.14, type: 'triangle', gain: 0.06, slide: 180 });
+    setTimeout(() => this.tone({ freq: 1200, dur: 0.1, type: 'sine', gain: 0.05, slide: -200 }), 70);
+  }
+
+  unlock() {
+    [523, 659, 784].forEach((f, i) => {
+      setTimeout(() => this.tone({ freq: f, dur: 0.12, type: 'triangle', gain: 0.07 }), i * 90);
+    });
+  }
+
   ui() {
     this.tone({ freq: 660, dur: 0.06, type: 'triangle', gain: 0.05 });
   }
 
   toggle() {
     this.enabled = !this.enabled;
+    if (!this.enabled) this.stopAmbient();
     return this.enabled;
   }
 }

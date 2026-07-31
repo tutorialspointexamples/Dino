@@ -517,6 +517,73 @@ h2 {
   animation: popIn 0.3s ease;
 }
 
+.result-stars {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+  font-size: 2rem;
+  line-height: 1;
+  color: rgba(255, 248, 231, 0.25);
+}
+
+.result-stars [data-star].lit {
+  color: var(--sun);
+  text-shadow: 0 0 12px rgba(244, 193, 75, 0.55);
+  animation: starPop 0.45s cubic-bezier(0.2, 1.4, 0.3, 1);
+}
+
+@keyframes starPop {
+  0% { transform: scale(0.4); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.result-unlock {
+  margin: 8px 0 0;
+  color: var(--sun);
+  font-weight: 800;
+}
+
+.master-meter {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15, 40, 28, 0.55);
+  border: 1px solid rgba(244, 193, 75, 0.35);
+}
+
+.master-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-family: var(--font-display);
+}
+
+.master-label span {
+  font-size: 0.9rem;
+  color: rgba(255, 248, 231, 0.8);
+}
+
+.master-bar {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 248, 231, 0.12);
+  overflow: hidden;
+  border: 1px solid rgba(98, 210, 111, 0.35);
+}
+
+.master-bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, #62d26f, #f4c14b);
+  transition: transform 0.35s ease;
+}
+
 .result-stamp {
   width: 120px;
   height: 120px;
