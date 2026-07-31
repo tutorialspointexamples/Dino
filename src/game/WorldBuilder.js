@@ -287,10 +287,37 @@ export function buildWorld(level, scene) {
     egg.position.set(Math.cos(a) * 8, 0.45, -16 + Math.sin(a) * 5);
     egg.userData.kind = 'egg';
     egg.userData.collected = false;
+    egg.visible = false; // revealed during escort phase
     group.add(egg);
     eggs.push(egg);
   }
   group.userData.eggs = eggs;
+
+  // Soft sky clouds for atmosphere (not flat single-color sky alone)
+  const clouds = [];
+  for (let i = 0; i < 10; i++) {
+    const cloud = new THREE.Group();
+    const matC = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.55,
+      roughness: 1,
+    });
+    for (let j = 0; j < 3; j++) {
+      const puff = new THREE.Mesh(new THREE.SphereGeometry(rand(1.2, 2.2), 10, 8), matC);
+      puff.position.set(j * 1.4 - 1.4, rand(-0.3, 0.4), rand(-0.4, 0.4));
+      puff.scale.y = 0.55;
+      cloud.add(puff);
+    }
+    const a = rand(0, Math.PI * 2);
+    const r = rand(20, 45);
+    cloud.position.set(Math.cos(a) * r, rand(10, 16), Math.sin(a) * r);
+    cloud.userData.drift = rand(0.4, 1.1);
+    cloud.userData.baseX = cloud.position.x;
+    group.add(cloud);
+    clouds.push(cloud);
+  }
+  group.userData.clouds = clouds;
 
   // Roadblocks / route obstacles — denser on boss / swamp routes
   const blockers = [];

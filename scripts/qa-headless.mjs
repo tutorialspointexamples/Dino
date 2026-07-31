@@ -216,7 +216,10 @@ async function main() {
     !headbuttPhase.alarm ||
     volcanoFx.ash < 10 ||
     !volcanoFx.lava ||
-    subCrew < 4;
+    subCrew < 4 ||
+    eggState.before !== 0 ||
+    eggState.after < 5 ||
+    eggState.clouds < 5;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

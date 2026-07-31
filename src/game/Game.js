@@ -397,6 +397,13 @@ export class Game {
         egg.rotation.y += dt * 1.5;
       }
     }
+    const clouds = this.world?.userData?.clouds;
+    if (clouds) {
+      for (const c of clouds) {
+        c.position.x += c.userData.drift * dt * 0.35;
+        if (c.position.x > c.userData.baseX + 30) c.position.x = c.userData.baseX - 30;
+      }
+    }
   }
 
   _resolveBlockers() {
@@ -702,6 +709,12 @@ export class Game {
     this.ui.showAim(false);
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
+    const tip = document.getElementById('tutorial-tip');
+    if (tip) tip.classList.add('hidden');
+    // Reveal escort eggs
+    for (const egg of this.world?.userData?.eggs || []) {
+      if (!egg.userData.collected) egg.visible = true;
+    }
     this.ui.toast('Predator retreats! Escort the baby — grab glowing eggs!');
     this.missionScore += 200;
     this.ui.updateScore(this.missionScore);
@@ -719,6 +732,10 @@ export class Game {
   _win() {
     if (this.phase === PHASE.WIN || this.phase === PHASE.LOSE) return;
     this.phase = PHASE.WIN;
+    this.ui.setDanger(false);
+    this.ui.setHeadbuttAlarm(false);
+    this.ui.updateNestCompass(false);
+    document.getElementById('tutorial-tip')?.classList.add('hidden');
     this.missionScore += 500 + Math.floor(this.vehicle?.userData?.hp || 0);
     this.ui.updateScore(this.missionScore);
     const stampId = this.level.stamp;
@@ -754,7 +771,10 @@ export class Game {
   _fail(message) {
     if (this.phase === PHASE.LOSE) return;
     this.phase = PHASE.LOSE;
+    this.ui.setDanger(false);
+    this.ui.setHeadbuttAlarm(false);
     this.ui.updateNestCompass(false);
+    document.getElementById('tutorial-tip')?.classList.add('hidden');
     this.audio.lose();
     this.ui.showResult({ win: false, message });
     this.state = 'result';

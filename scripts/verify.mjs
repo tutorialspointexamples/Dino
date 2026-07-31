@@ -87,6 +87,8 @@ ok(dino.includes('CapsuleGeometry'), 'organic capsule dinosaur meshes');
 ok(dino.includes('jaw') && dino.includes("anim.state === 'attack'"), 'jaw chomp attack animation');
 ok(world.includes('eggs') && world.includes("kind = 'egg'"), 'escort collectible eggs');
 ok(world.includes('ash') || world.includes('lavaPool'), 'volcano ash/lava FX');
+ok(world.includes('clouds') && world.includes('drift'), 'sky cloud atmosphere');
+ok(game.includes('egg.visible = true') || game.includes('Reveal escort eggs'), 'eggs reveal on escort');
 ok(game.includes('_updateRadar') && html.includes('radar-canvas'), 'mission mini-map radar');
 ok(game.includes('createTrailPuff') || game.includes('_updateTrails'), 'vehicle drive trails');
 ok(game.includes('shakeT') && game.includes('setHeadbuttAlarm'), 'headbutt camera shake + HUD alarm');
