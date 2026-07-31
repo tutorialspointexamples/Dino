@@ -62,7 +62,7 @@ npm run qa
 7. Escape/P pause-resume; mother heals baby  
 8. Dilophosaurus frill fans + translucent title diorama  
 9. Eggs reveal only on escort; drifting sky clouds; HUD cleanup  
-10. Reduced-motion support, control-hint polish, browser playtest OK
+10. Reduced-motion support; water-mission balance (slower ocean predators, more baby HP)
 
 ## Project layout
 

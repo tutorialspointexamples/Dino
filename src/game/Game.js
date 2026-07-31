@@ -195,18 +195,24 @@ export class Game {
     this.scene.add(this.vehicle);
 
     this.baby = createDinosaur(DINOSAURS[level.baby]);
-    this.baby.position.set(1.5, 0, -6);
+    this.baby.position.set(1.5, 0, -8);
     this.baby.userData.anim.state = 'run';
+    // Kids-friendly buffer so missions don't fail instantly
+    this.baby.userData.hp = level.water ? 70 : 55;
+    this.baby.userData.maxHp = this.baby.userData.hp;
+    if (level.water) this.baby.userData.speed *= 1.15;
     this.scene.add(this.baby);
 
     this.predator = createDinosaur(DINOSAURS[level.predator]);
-    this.predator.position.set(5, 0, -2);
+    // Spawn predator farther so the Guard can intercept first
+    this.predator.position.set(level.water ? 10 : 6, 0, level.water ? 4 : -1);
     this.predator.userData.anim.state = 'chase';
     // Tuned for kids: normal missions resolve quickly; bosses last longer
     // Bosses soak more darts; normal missions stay kid-quick
     this.predator.userData.hp = level.boss ? 180 : 70;
     this.predator.userData.maxHp = this.predator.userData.hp;
-    this.predator.userData.speed = (DINOSAURS[level.predator].role === 'predator' ? 7.5 : 6) * (level.boss ? 1.12 : 1);
+    const basePredSpeed = DINOSAURS[level.predator].role === 'predator' ? 7.5 : 6;
+    this.predator.userData.speed = basePredSpeed * (level.boss ? 1.08 : 1) * (level.water ? 0.82 : 1);
     this.scene.add(this.predator);
 
     this.mother = createDinosaur(DINOSAURS[level.mother]);
@@ -684,8 +690,9 @@ export class Game {
     ) {
       const threatDist = predator.position.distanceTo(baby.position);
       this.ui.setDanger(threatDist < 4.5 && this.phase !== PHASE.ESCORT);
-      if (threatDist < 1.6) {
-        this.baby.userData.hp -= 25 * dt;
+      if (threatDist < 1.55) {
+        // Slower drain so kids can still save after a close call
+        this.baby.userData.hp -= (this.level.water ? 12 : 18) * dt;
         this._roarCooldown -= dt;
         if (this._roarCooldown <= 0) {
           this.audio.roar();
