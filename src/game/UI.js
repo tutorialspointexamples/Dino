@@ -247,6 +247,29 @@ export class UI {
     if (arrow) arrow.style.transform = `rotate(${angleRad}rad)`;
   }
 
+  setWeaponModeUI(mode) {
+    document.querySelectorAll('#weapon-modes .mode').forEach((b) => {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+  }
+
+  showTutorial(text, ms = 4200) {
+    const tip = this.$('tutorial-tip');
+    if (!tip) return;
+    tip.textContent = text;
+    tip.classList.remove('hidden');
+    clearTimeout(this._tutorialTimer);
+    this._tutorialTimer = setTimeout(() => tip.classList.add('hidden'), ms);
+  }
+
+  setDanger(show) {
+    this.$('danger-banner')?.classList.toggle('hidden', !show);
+  }
+
+  setHeadbuttAlarm(on) {
+    this.$('hud')?.classList.toggle('headbutt-alarm', !!on);
+  }
+
   toast(msg) {
     const el = this.$('toast');
     el.textContent = msg;

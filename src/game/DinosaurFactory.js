@@ -64,7 +64,7 @@ export function createDinosaur(def) {
   head.position.set(0, morph === 'longneck' ? 0.85 * s : 0.35 * s, morph === 'longneck' ? 0.2 * s : 0.45 * s);
   neck.add(head);
   addMesh(head, new THREE.SphereGeometry(0.38 * s, 14, 12), def.color, [0, 0, 0]);
-  addMesh(
+  const jaw = addMesh(
     head,
     new THREE.CapsuleGeometry(0.16 * s, morph === 'mosa' ? 0.7 * s : 0.45 * s, 4, 8),
     def.accent,
@@ -246,7 +246,7 @@ export function createDinosaur(def) {
     hpBar = { bg, fill, width: 1.32 * s };
   }
 
-  root.userData.parts = { body, neck, head, tail, legs, wings, shadow, marker, hpBar, torso };
+  root.userData.parts = { body, neck, head, jaw, tail, legs, wings, shadow, marker, hpBar, torso };
   root.userData.radius = 1.2 * s;
   root.userData.speed = def.role === 'predator' ? 7.5 : def.role === 'mother' ? 6 : 3.5;
   root.scale.setScalar(1.4);
@@ -262,6 +262,10 @@ export function createDinosaur(def) {
     neck.rotation.x = Math.sin(t * 3) * 0.1 + (u.anim.state === 'attack' ? -0.35 : 0);
     head.rotation.y = Math.sin(t * 2.2) * 0.15;
     head.rotation.x = u.anim.state === 'attack' ? Math.sin(t * 12) * 0.2 : Math.sin(t * 1.5) * 0.05;
+    if (jaw) {
+      jaw.rotation.x = u.anim.state === 'attack' ? Math.sin(t * 14) * 0.55 : Math.sin(t * 2) * 0.08;
+      jaw.position.y = (u.anim.state === 'attack' ? -0.12 : -0.05) * s;
+    }
     tail.rotation.y = Math.sin(t * 5 * walk) * 0.45;
     tail.rotation.x = Math.sin(t * 4) * 0.1;
 

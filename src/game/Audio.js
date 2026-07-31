@@ -60,6 +60,15 @@ export class AudioBus {
     this.tone({ freq: 90, dur: 0.25, type: 'square', gain: 0.1, slide: -40 });
   }
 
+  roar() {
+    this.tone({ freq: 110, dur: 0.4, type: 'sawtooth', gain: 0.09, slide: -55 });
+    setTimeout(() => this.tone({ freq: 70, dur: 0.28, type: 'square', gain: 0.07, slide: -20 }), 90);
+  }
+
+  collect() {
+    this.tone({ freq: 740, dur: 0.1, type: 'triangle', gain: 0.06, slide: 220 });
+  }
+
   ui() {
     this.tone({ freq: 660, dur: 0.06, type: 'triangle', gain: 0.05 });
   }

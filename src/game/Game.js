@@ -3,7 +3,7 @@ import { DINOSAURS, LEVELS, VEHICLES } from './data.js';
 import { loadSave, writeSave, markCleared } from './Save.js';
 import { createDinosaur } from './DinosaurFactory.js';
 import { createVehicle } from './VehicleFactory.js';
-import { buildWorld, createProjectile, createSpark } from './WorldBuilder.js';
+import { buildWorld, createProjectile, createSpark, createTrailPuff } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
 import { AudioBus } from './Audio.js';
@@ -43,6 +43,10 @@ export class Game {
     this.missionScore = 0;
     this.projectiles = [];
     this.sparks = [];
+    this.trails = [];
+    this.shakeT = 0;
+    this._trailCooldown = 0;
+    this._roarCooldown = 0;
     this.world = null;
     this.vehicle = null;
     this.baby = null;
@@ -84,8 +88,14 @@ export class Game {
     this.vehicle = this.baby = this.mother = this.predator = null;
     for (const p of this.projectiles) this.scene.remove(p);
     for (const s of this.sparks) this.scene.remove(s);
+    for (const t of this.trails) this.scene.remove(t);
     this.projectiles = [];
     this.sparks = [];
+    this.trails = [];
+    this.shakeT = 0;
+    this.ui.setDanger(false);
+    this.ui.setHeadbuttAlarm(false);
+    this.ui.updateNestCompass(false);
   }
 
   _buildTitleDiorama() {
@@ -212,9 +222,19 @@ export class Game {
 
     this.ui.showHud(`Protect ${DINOSAURS[level.baby].name}!`);
     this.ui.updateNestCompass(false);
+    this.ui.setDanger(false);
+    this.ui.setHeadbuttAlarm(false);
+    this.ui.setWeaponModeUI('auto');
     this.ui.toast(level.boss ? 'Alarm! Boss dinosaur alert!' : 'Rescue mission started!');
     this.ui.showAim(false);
     this.audio.ui();
+    if (level.boss) this.audio.roar();
+    // First-clear tutorial for rainforest
+    if (level.id === 'rainforest' && !this.save.cleared.includes('rainforest')) {
+      this.ui.showTutorial('Drive close to the big dino, then FIRE. Mother will help — escort baby to the glowing nest!');
+    } else if (level.water) {
+      this.ui.showTutorial('Water mission! Steer your submarine and fire torpedo darts at the ocean hunter.');
+    }
     const hint = document.getElementById('control-hint');
     if (hint) {
       hint.classList.remove('fade');
@@ -276,6 +296,12 @@ export class Game {
 
   _updateMission(dt) {
     this.phaseT += dt;
+    const hotkey = this.input.consumeWeaponHotkey();
+    if (hotkey) {
+      this.setWeaponMode(hotkey);
+      this.ui.setWeaponModeUI(hotkey);
+      this.ui.toast(hotkey === 'auto' ? 'Auto Aim' : hotkey === 'zoom' ? 'Zoom Aim' : 'Scatter Shot');
+    }
     const axis = this.input.getAxis();
     this._driveVehicle(dt, axis);
     this._updateCamera(dt);
@@ -283,6 +309,9 @@ export class Game {
     this._updateActors(dt);
     this._updateProjectiles(dt);
     this._updateSparks(dt);
+    this._updateTrails(dt);
+    this._updateRadar();
+    this._updateEggs();
 
     if (this.vehicle) {
       this.ui.updateHp(this.vehicle.userData.hp / this.vehicle.userData.maxHp);
@@ -335,6 +364,32 @@ export class Game {
         b.material.opacity = 0.25 + Math.sin(t * 3 + b.userData.phase) * 0.2;
       }
     }
+    const lava = this.world?.userData?.lavaPool;
+    if (lava) {
+      lava.material.emissiveIntensity = 0.65 + Math.sin(performance.now() * 0.006) * 0.35;
+      lava.scale.setScalar(1 + Math.sin(performance.now() * 0.003) * 0.04);
+    }
+    const ash = this.world?.userData?.ash;
+    if (ash) {
+      const t = performance.now() * 0.001;
+      for (const flake of ash) {
+        const b = flake.userData.base;
+        const p = flake.userData.phase;
+        flake.position.x = b.x + Math.sin(t * 0.8 + p) * 1.2;
+        flake.position.y = ((b.y + t * 0.9 + p) % 8) + 0.5;
+        flake.position.z = b.z + Math.cos(t * 0.6 + p) * 1.2;
+        flake.material.opacity = 0.3 + Math.sin(t * 4 + p) * 0.2;
+      }
+    }
+    const eggs = this.world?.userData?.eggs;
+    if (eggs) {
+      const t = performance.now() * 0.001;
+      for (const egg of eggs) {
+        if (egg.userData.collected) continue;
+        egg.position.y = 0.45 + Math.sin(t * 3 + egg.position.x) * 0.12;
+        egg.rotation.y += dt * 1.5;
+      }
+    }
   }
 
   _resolveBlockers() {
@@ -373,6 +428,17 @@ export class Game {
     v.position.y = this.level.water ? 0.35 : 0;
     v.userData.updateAnim(dt, moving);
     v.userData.fireCooldown = Math.max(0, v.userData.fireCooldown - dt);
+
+    this._trailCooldown -= dt;
+    if (moving && this._trailCooldown <= 0) {
+      this._trailCooldown = 0.08;
+      const puff = createTrailPuff(this.level.water ? 0xb6eaff : 0xc4a35a, this.level.water);
+      puff.position.copy(v.position);
+      puff.position.y = this.level.water ? 0.5 : 0.15;
+      puff.position.add(new THREE.Vector3(0, 0, 1.1).applyQuaternion(v.quaternion));
+      this.scene.add(puff);
+      this.trails.push(puff);
+    }
 
     const wantFire = this.input.consumeFire();
     if (wantFire && this.phase !== PHASE.WIN && this.phase !== PHASE.LOSE) {
@@ -433,6 +499,11 @@ export class Game {
     );
     const target = this.vehicle.position.clone().add(offset);
     this.camera.position.lerp(target, 1 - Math.pow(0.0008, dt));
+    if (this.shakeT > 0) {
+      this.shakeT -= dt;
+      this.camera.position.x += (Math.random() - 0.5) * 0.35;
+      this.camera.position.y += (Math.random() - 0.5) * 0.2;
+    }
     const look = this.vehicle.position.clone();
     look.y += 1.4;
     look.add(new THREE.Vector3(0, 0, -4).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.vehicle.rotation.y));
@@ -502,7 +573,10 @@ export class Game {
         predator.userData.anim.state = 'attack';
         this.ui.setMission('Watch out — headbutt!');
         this.ui.toast('Too many shots! Predator charges the jeep!');
+        this.ui.setHeadbuttAlarm(true);
         this.audio.headbutt();
+        this.audio.roar();
+        this.shakeT = 0.55;
       }
     }
 
@@ -518,20 +592,26 @@ export class Game {
         this.ui.toast('Predator hits the mother — shoot now!');
         mother.userData.anim.state = 'hurt';
         predator.userData.anim.state = 'attack';
+        this.audio.roar();
+        this.shakeT = 0.35;
       }
       if (predator.userData.hp <= 0) this._beginEscort();
       if (vehicle.userData.shotsAtPredator >= 22) {
         this.phase = PHASE.HEADBUTT;
         this.phaseT = 0;
+        this.ui.setHeadbuttAlarm(true);
+        this.audio.roar();
       }
     }
 
     if (this.phase === PHASE.HEADBUTT) {
+      this.ui.setHeadbuttAlarm(true);
       this._chase(predator, vehicle.position, predator.userData.speed * 1.6, dt);
       if (predator.position.distanceTo(vehicle.position) < 2.4) {
         vehicle.userData.hp -= 28;
         this._spawnSparks(vehicle.position, 0xe85d4c, 10);
         this.audio.headbutt();
+        this.shakeT = 0.7;
         predator.position.add(
           predator.position.clone().sub(vehicle.position).setY(0).normalize().multiplyScalar(3),
         );
@@ -539,10 +619,13 @@ export class Game {
         this.phase = predator.userData.hp < predator.userData.maxHp * 0.72 ? PHASE.MOTHER : PHASE.COMBAT;
         this.phaseT = 0;
         predator.userData.anim.state = 'chase';
+        this.ui.setHeadbuttAlarm(false);
         this.ui.setMission('Keep protecting the baby!');
         if (vehicle.userData.hp <= 0) this._fail('Your vehicle was wrecked by a headbutt!');
       }
       if (predator.userData.hp <= 0) this._beginEscort();
+    } else if (this.phase !== PHASE.HEADBUTT) {
+      this.ui.setHeadbuttAlarm(false);
     }
 
     if (this.phase === PHASE.ESCORT) {
@@ -578,12 +661,24 @@ export class Game {
     // Fail if predator reaches baby hard
     if (
       [PHASE.INTRO, PHASE.CHASE, PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase) &&
-      predator.position.distanceTo(baby.position) < 1.6
+      predator &&
+      baby
     ) {
-      this.baby.userData.hp -= 25 * dt;
-      if (this.baby.userData.hp <= 0) {
-        this._fail('The predator reached the baby dinosaur!');
+      const threatDist = predator.position.distanceTo(baby.position);
+      this.ui.setDanger(threatDist < 4.5 && this.phase !== PHASE.ESCORT);
+      if (threatDist < 1.6) {
+        this.baby.userData.hp -= 25 * dt;
+        this._roarCooldown -= dt;
+        if (this._roarCooldown <= 0) {
+          this.audio.roar();
+          this._roarCooldown = 1.4;
+        }
+        if (this.baby.userData.hp <= 0) {
+          this._fail('The predator reached the baby dinosaur!');
+        }
       }
+    } else {
+      this.ui.setDanger(false);
     }
   }
 
@@ -594,7 +689,9 @@ export class Game {
     this._escortDwelling = 0;
     if (this.predator) this.predator.userData.anim.state = 'hurt';
     this.ui.showAim(false);
-    this.ui.toast('Predator retreats! Escort the baby!');
+    this.ui.setDanger(false);
+    this.ui.setHeadbuttAlarm(false);
+    this.ui.toast('Predator retreats! Escort the baby — grab glowing eggs!');
     this.missionScore += 200;
     this.ui.updateScore(this.missionScore);
     // Nudge baby toward nest so completion is reliable
@@ -742,5 +839,91 @@ export class Game {
         this.sparks.splice(i, 1);
       }
     }
+  }
+
+  _updateTrails(dt) {
+    for (let i = this.trails.length - 1; i >= 0; i--) {
+      const t = this.trails[i];
+      t.userData.life -= dt;
+      t.position.y += dt * 0.4;
+      t.scale.multiplyScalar(1.02);
+      t.material.opacity = Math.max(0, t.userData.life * 0.9);
+      if (t.userData.life <= 0) {
+        this.scene.remove(t);
+        this.trails.splice(i, 1);
+      }
+    }
+  }
+
+  _updateEggs() {
+    if (this.phase !== PHASE.ESCORT || !this.vehicle) return;
+    const eggs = this.world?.userData?.eggs;
+    if (!eggs) return;
+    for (const egg of eggs) {
+      if (egg.userData.collected) continue;
+      if (this.vehicle.position.distanceTo(egg.position) < 2.2) {
+        egg.userData.collected = true;
+        egg.visible = false;
+        this.missionScore += 50;
+        this.ui.updateScore(this.missionScore);
+        this.audio.collect();
+        this._spawnSparks(egg.position.clone().setY(1), 0xffe08a, 8);
+        this.ui.toast('Dino egg collected! +50');
+      }
+    }
+  }
+
+  _updateRadar() {
+    const canvas = document.getElementById('radar-canvas');
+    if (!canvas || !this.vehicle) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const scale = 1.35;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(15, 40, 28, 0.95)';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(244, 193, 75, 0.35)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 58, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const plot = (obj, color, r = 4) => {
+      if (!obj || !obj.visible) return;
+      const dx = (obj.position.x - this.vehicle.position.x) * scale;
+      const dz = (obj.position.z - this.vehicle.position.z) * scale;
+      // Rotate into vehicle heading so forward is up
+      const ang = -this.vehicle.rotation.y;
+      const rx = dx * Math.cos(ang) - dz * Math.sin(ang);
+      const ry = dx * Math.sin(ang) + dz * Math.cos(ang);
+      const x = cx + rx;
+      const y = cy + ry;
+      if (x < 4 || x > w - 4 || y < 4 || y > h - 4) return;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    if (this.world?.userData?.nestPos) {
+      const nest = { position: this.world.userData.nestPos, visible: true };
+      plot(nest, '#62d26f', 5);
+    }
+    plot(this.baby, '#f4c14b', 4);
+    plot(this.predator, '#e85d4c', 5);
+    if (this.mother?.visible) plot(this.mother, '#60a5fa', 4);
+    // Vehicle always center
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 7);
+    ctx.lineTo(cx + 5, cy + 5);
+    ctx.lineTo(cx - 5, cy + 5);
+    ctx.closePath();
+    ctx.fill();
   }
 }

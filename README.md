@@ -11,12 +11,15 @@ A browser-based **3D** kids rescue game inspired by [Dinosaur Guard 2](https://p
 - **4 named Guard crew** riding along on missions
 - **26 animated dinosaur characters** (babies, mothers, predators, marine reptiles, pterosaurs)
 - **Rescue missions**: predators chase babies; intercept and fire
-- **Weapon modes**: Auto Aim, Zoom, Scatter
+- **Weapon modes**: Auto Aim, Zoom, Scatter (hotkeys 1/2/3)
 - **Mother dinosaur assist** mid-fight
-- **Headbutt risk** if you overshoot the predator
-- **Escort to nest** after the predator retreats
+- **Headbutt risk** if you overshoot the predator (camera shake + HUD alarm)
+- **Escort to nest** after the predator retreats (beacon + compass)
+- **Collectible dino eggs** during escort for bonus score
+- **Mini-map radar** tracking baby, predator, mother, and nest
 - **Stamp book / encyclopedia** for rescued species
-- **Roadblocks & route obstacles**
+- **Roadblocks, biome FX** (fireflies, vines, bubbles, volcano ash/lava)
+- **Animated jaw chomp / wing / walk cycles** on procedural dinosaurs
 - **Touch joystick + FIRE** controls for mobile; keyboard on desktop
 - **Offline-friendly** local progress via `localStorage`
 
@@ -26,7 +29,7 @@ A browser-based **3D** kids rescue game inspired by [Dinosaur Guard 2](https://p
 |--------|---------|-------|
 | Drive | WASD / Arrow keys | Virtual stick |
 | Fire | Space | FIRE button |
-| Weapon mode | HUD buttons | HUD buttons |
+| Weapon mode | 1 / 2 / 3 or HUD buttons | HUD buttons |
 | Pause | II button | II button |
 
 ## Run locally

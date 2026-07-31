@@ -81,6 +81,16 @@ ok(html.includes('btn-mute') && html.includes('nest-compass'), 'mute + nest comp
 ok(world.includes('bubbles') || world.includes('vine'), 'biome props (vines/bubbles)');
 ok(world.includes('crater') || world.includes('meteor'), 'meteorite crater scenery');
 ok(dino.includes('CapsuleGeometry'), 'organic capsule dinosaur meshes');
+ok(dino.includes('jaw') && dino.includes("anim.state === 'attack'"), 'jaw chomp attack animation');
+ok(world.includes('eggs') && world.includes("kind = 'egg'"), 'escort collectible eggs');
+ok(world.includes('ash') || world.includes('lavaPool'), 'volcano ash/lava FX');
+ok(game.includes('_updateRadar') && html.includes('radar-canvas'), 'mission mini-map radar');
+ok(game.includes('createTrailPuff') || game.includes('_updateTrails'), 'vehicle drive trails');
+ok(game.includes('shakeT') && game.includes('setHeadbuttAlarm'), 'headbutt camera shake + HUD alarm');
+ok(html.includes('danger-banner') && game.includes('setDanger'), 'baby danger banner');
+ok(html.includes('tutorial-tip') && game.includes('showTutorial'), 'first-mission tutorial tip');
+ok(read('src/game/Input.js').includes('weaponHotkey') && read('src/game/Input.js').includes('Digit1'), '1/2/3 weapon hotkeys');
+ok(read('src/game/Audio.js').includes('roar') && read('src/game/Audio.js').includes('collect'), 'roar + collect SFX');
 
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');

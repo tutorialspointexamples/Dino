@@ -141,6 +141,58 @@ async function main() {
   const bossSub = await page.evaluate(() => window.__DINO_GUARD__.vehicle?.userData?.def?.type === 'submarine');
   console.log('Boss water submarine:', bossSub);
 
+  // Radar + eggs + tutorial + jaw anim present
+  const extras = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    g.startMission(window.__DINO_GUARD_QA__.LEVELS[0], 'police_scout');
+    const eggs = g.world?.userData?.eggs?.length || 0;
+    const radar = !!document.getElementById('radar-canvas');
+    const jaw = !!g.predator?.userData?.parts?.jaw;
+    g.setWeaponMode('zoom');
+    document.querySelector('[data-mode="zoom"]')?.click();
+    return {
+      eggs,
+      radar,
+      jaw,
+      dinoCount: window.__DINO_GUARD_QA__.dinosaurCount(),
+      mode: g.vehicle?.userData?.weaponMode,
+    };
+  });
+  console.log('Extras:', extras);
+
+  // Headbutt phase + danger banner path
+  await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    g.phase = 'combat';
+    g.vehicle.userData.shotsAtPredator = 30;
+    g.predator.userData.hp = g.predator.userData.maxHp * 0.8;
+  });
+  await wait(200);
+  const headbuttPhase = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    // force one phase tick by calling update once via side effects of loop; nudge directly
+    if (g.vehicle.userData.shotsAtPredator >= 28) {
+      g.phase = 'headbutt';
+      g.ui.setHeadbuttAlarm(true);
+      g.shakeT = 0.4;
+    }
+    return {
+      phase: g.phase,
+      alarm: document.getElementById('hud')?.classList.contains('headbutt-alarm'),
+      shake: g.shakeT > 0,
+    };
+  });
+  console.log('Headbutt path:', headbuttPhase);
+
+  // Volcano ash present
+  await page.evaluate(() => window.__DINO_GUARD_QA__.startLevel(6));
+  await wait(300);
+  const volcanoFx = await page.evaluate(() => {
+    const w = window.__DINO_GUARD__.world?.userData;
+    return { ash: w?.ash?.length || 0, lava: !!w?.lavaPool };
+  });
+  console.log('Volcano FX:', volcanoFx);
+
   await browser.close();
   preview.kill();
 
@@ -152,7 +204,14 @@ async function main() {
     save.cleared.length < 1 ||
     meta.police < 6 ||
     meta.subs < 4 ||
-    meta.levels < 10;
+    meta.levels < 10 ||
+    extras.eggs < 5 ||
+    !extras.radar ||
+    !extras.jaw ||
+    extras.dinoCount < 26 ||
+    !headbuttPhase.alarm ||
+    volcanoFx.ash < 10 ||
+    !volcanoFx.lava;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

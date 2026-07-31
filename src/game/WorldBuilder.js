@@ -156,6 +156,20 @@ export function buildWorld(level, scene) {
     lava.rotation.x = -Math.PI / 2;
     lava.position.set(18, 0.05, -10);
     group.add(lava);
+    group.userData.lavaPool = lava;
+    const ash = [];
+    for (let i = 0; i < 36; i++) {
+      const flake = new THREE.Mesh(
+        new THREE.SphereGeometry(rand(0.05, 0.12), 5, 5),
+        new THREE.MeshBasicMaterial({ color: 0x555555, transparent: true, opacity: 0.55 }),
+      );
+      flake.position.set(rand(-30, 30), rand(1, 8), rand(-30, 30));
+      flake.userData.base = flake.position.clone();
+      flake.userData.phase = rand(0, Math.PI * 2);
+      group.add(flake);
+      ash.push(flake);
+    }
+    group.userData.ash = ash;
   }
 
   if (biome === 'desert') {
@@ -256,6 +270,28 @@ export function buildWorld(level, scene) {
   group.add(beaconRing);
   group.userData.nestBeacon = { beacon, beaconRing };
 
+  // Escort collectible eggs for bonus score / learning loop
+  const eggs = [];
+  for (let i = 0; i < 5; i++) {
+    const egg = new THREE.Mesh(
+      new THREE.SphereGeometry(0.35, 10, 8),
+      new THREE.MeshStandardMaterial({
+        color: i % 2 ? 0xffe08a : 0xf4c14b,
+        emissive: 0xf4c14b,
+        emissiveIntensity: 0.25,
+        roughness: 0.55,
+      }),
+    );
+    egg.scale.set(0.85, 1.1, 0.85);
+    const a = (i / 5) * Math.PI * 2 + 0.4;
+    egg.position.set(Math.cos(a) * 8, 0.45, -16 + Math.sin(a) * 5);
+    egg.userData.kind = 'egg';
+    egg.userData.collected = false;
+    group.add(egg);
+    eggs.push(egg);
+  }
+  group.userData.eggs = eggs;
+
   // Roadblocks / route obstacles — denser on boss / swamp routes
   const blockers = [];
   const blockCount = level.boss ? 12 : biome === 'swamp' || biome === 'volcano' ? 10 : 8;
@@ -327,5 +363,15 @@ export function createSpark(color) {
     new THREE.MeshBasicMaterial({ color }),
   );
   mesh.userData.life = 0.35;
+  return mesh;
+}
+
+export function createTrailPuff(color, water = false) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(water ? 0.18 : 0.22, 6, 6),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: water ? 0.45 : 0.4 }),
+  );
+  mesh.userData.life = 0.45;
+  mesh.userData.kind = 'trail';
   return mesh;
 }
