@@ -1,32 +1,27 @@
 import * as THREE from 'three';
 
-function mat(color, emissive = 0x000000, emissiveIntensity = 0) {
+function mat(color, emissiveIntensity = 0.14) {
   return new THREE.MeshStandardMaterial({
     color,
-    roughness: 0.48,
+    roughness: 0.45,
     metalness: 0.08,
-    emissive: emissive || color,
-    emissiveIntensity: emissiveIntensity || 0.12,
+    emissive: color,
+    emissiveIntensity,
   });
 }
 
-function box(w, h, d, color, y = 0) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
-  m.position.y = y;
+function addMesh(parent, geo, color, pos = [0, 0, 0], rot = [0, 0, 0]) {
+  const m = new THREE.Mesh(geo, mat(color));
+  m.position.set(...pos);
+  m.rotation.set(...rot);
   m.castShadow = true;
   m.receiveShadow = true;
-  return m;
-}
-
-function sphere(r, color, y = 0) {
-  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), mat(color));
-  m.position.y = y;
-  m.castShadow = true;
+  parent.add(m);
   return m;
 }
 
 /**
- * Procedural animated dinosaur with leg / tail / head motion.
+ * Organic-styled procedural dinosaurs (capsules/spheres) with walk cycles.
  */
 export function createDinosaur(def) {
   const root = new THREE.Group();
@@ -34,188 +29,199 @@ export function createDinosaur(def) {
   root.userData.kind = 'dinosaur';
   root.userData.hp = def.role === 'predator' ? 100 : 40;
   root.userData.maxHp = root.userData.hp;
-  root.userData.anim = { t: Math.random() * 10, phase: def.role === 'predator' ? 'chase' : 'idle' };
+  root.userData.anim = { t: Math.random() * 10, state: def.role === 'predator' ? 'chase' : 'idle' };
 
+  const s = def.scale;
   const body = new THREE.Group();
   root.add(body);
 
-  const torso = box(1.4 * def.scale, 0.9 * def.scale, 2.2 * def.scale, def.color, 1.1 * def.scale);
-  body.add(torso);
+  const torso = addMesh(
+    body,
+    new THREE.CapsuleGeometry(0.55 * s, 1.1 * s, 6, 12),
+    def.color,
+    [0, 1.15 * s, 0],
+    [Math.PI / 2, 0, 0],
+  );
 
-  const belly = box(1.1 * def.scale, 0.55 * def.scale, 1.6 * def.scale, def.accent, 0.75 * def.scale);
-  belly.position.z = 0.1 * def.scale;
-  body.add(belly);
+  addMesh(
+    body,
+    new THREE.SphereGeometry(0.5 * s, 14, 12),
+    def.accent,
+    [0, 0.95 * s, 0.15 * s],
+  );
 
   const neck = new THREE.Group();
-  neck.position.set(0, 1.35 * def.scale, 1.0 * def.scale);
+  neck.position.set(0, 1.45 * s, 0.85 * s);
   body.add(neck);
-  const neckMesh = box(0.45 * def.scale, 0.7 * def.scale, 0.7 * def.scale, def.color, 0);
-  neck.add(neckMesh);
+  addMesh(neck, new THREE.CapsuleGeometry(0.22 * s, 0.45 * s, 4, 8), def.color, [0, 0.15 * s, 0.1 * s], [0.6, 0, 0]);
 
   const head = new THREE.Group();
-  head.position.set(0, 0.35 * def.scale, 0.45 * def.scale);
+  head.position.set(0, 0.35 * s, 0.45 * s);
   neck.add(head);
-  const skull = box(0.7 * def.scale, 0.55 * def.scale, 0.9 * def.scale, def.color, 0);
-  head.add(skull);
-  const snout = box(0.45 * def.scale, 0.35 * def.scale, 0.7 * def.scale, def.accent, -0.05 * def.scale);
-  snout.position.z = 0.55 * def.scale;
-  head.add(snout);
+  addMesh(head, new THREE.SphereGeometry(0.38 * s, 14, 12), def.color, [0, 0, 0]);
+  addMesh(head, new THREE.CapsuleGeometry(0.16 * s, 0.45 * s, 4, 8), def.accent, [0, -0.05 * s, 0.42 * s], [Math.PI / 2, 0, 0]);
 
-  // Eyes
-  const eyeL = sphere(0.08 * def.scale, 0xffffff);
-  eyeL.position.set(-0.22 * def.scale, 0.12 * def.scale, 0.35 * def.scale);
-  head.add(eyeL);
-  const eyeR = eyeL.clone();
-  eyeR.position.x *= -1;
-  head.add(eyeR);
-  const pupilL = sphere(0.04 * def.scale, 0x111111);
-  pupilL.position.copy(eyeL.position).add(new THREE.Vector3(0, 0, 0.05 * def.scale));
-  head.add(pupilL);
-  const pupilR = pupilL.clone();
-  pupilR.position.x *= -1;
-  head.add(pupilR);
+  const eyeL = addMesh(head, new THREE.SphereGeometry(0.07 * s, 10, 8), 0xffffff, [-0.16 * s, 0.1 * s, 0.28 * s]);
+  const eyeR = addMesh(head, new THREE.SphereGeometry(0.07 * s, 10, 8), 0xffffff, [0.16 * s, 0.1 * s, 0.28 * s]);
+  addMesh(head, new THREE.SphereGeometry(0.035 * s, 8, 6), 0x111111, [-0.16 * s, 0.1 * s, 0.34 * s]);
+  addMesh(head, new THREE.SphereGeometry(0.035 * s, 8, 6), 0x111111, [0.16 * s, 0.1 * s, 0.34 * s]);
+  void eyeL;
+  void eyeR;
 
   if (def.id.includes('trike')) {
-    const frill = box(1.4 * def.scale, 1.1 * def.scale, 0.15 * def.scale, def.accent, 0.2 * def.scale);
-    frill.position.z = -0.2 * def.scale;
-    head.add(frill);
-    const horn = box(0.1 * def.scale, 0.1 * def.scale, 0.55 * def.scale, 0xf5f0e0, 0.1 * def.scale);
-    horn.position.z = 0.85 * def.scale;
-    head.add(horn);
+    addMesh(head, new THREE.CircleGeometry(0.7 * s, 16), def.accent, [0, 0.15 * s, -0.2 * s], [0, 0, 0]);
+    head.children[head.children.length - 1].material.side = THREE.DoubleSide;
+    addMesh(head, new THREE.ConeGeometry(0.08 * s, 0.55 * s, 6), 0xf5f0e0, [0, 0.05 * s, 0.7 * s], [Math.PI / 2, 0, 0]);
+    addMesh(head, new THREE.ConeGeometry(0.06 * s, 0.35 * s, 6), 0xf5f0e0, [-0.22 * s, 0.25 * s, 0.2 * s], [0.4, 0, 0.2]);
+    addMesh(head, new THREE.ConeGeometry(0.06 * s, 0.35 * s, 6), 0xf5f0e0, [0.22 * s, 0.25 * s, 0.2 * s], [0.4, 0, -0.2]);
   }
 
   if (def.id.includes('stego')) {
-    for (let i = 0; i < 5; i++) {
-      const plate = box(0.08 * def.scale, 0.55 * def.scale, 0.4 * def.scale, def.accent, 1.7 * def.scale);
-      plate.position.z = -0.7 * def.scale + i * 0.35 * def.scale;
-      body.add(plate);
+    for (let i = 0; i < 6; i++) {
+      addMesh(
+        body,
+        new THREE.ConeGeometry(0.18 * s, 0.55 * s, 4),
+        def.accent,
+        [(i % 2 === 0 ? -0.1 : 0.1) * s, 1.7 * s, (-0.7 + i * 0.28) * s],
+      );
     }
   }
 
   if (def.id.includes('spinosaurus') || def.id === 'bahariasaurus') {
-    const sail = box(0.12 * def.scale, 1.4 * def.scale, 1.6 * def.scale, def.accent, 1.9 * def.scale);
-    body.add(sail);
+    addMesh(body, new THREE.BoxGeometry(0.12 * s, 1.5 * s, 1.5 * s), def.accent, [0, 1.9 * s, -0.1 * s]);
   }
 
   if (def.id.includes('dilophosaurus')) {
-    const crestL = box(0.08 * def.scale, 0.45 * def.scale, 0.35 * def.scale, def.accent, 0.35 * def.scale);
-    crestL.position.set(-0.2 * def.scale, 0.2 * def.scale, 0);
-    head.add(crestL);
-    const crestR = crestL.clone();
-    crestR.position.x *= -1;
-    head.add(crestR);
+    addMesh(head, new THREE.ConeGeometry(0.12 * s, 0.4 * s, 5), def.accent, [-0.18 * s, 0.3 * s, 0], [0, 0, 0.4]);
+    addMesh(head, new THREE.ConeGeometry(0.12 * s, 0.4 * s, 5), def.accent, [0.18 * s, 0.3 * s, 0], [0, 0, -0.4]);
   }
 
-  if (def.id.includes('mosa') || def.id.includes('haino')) {
-    // flippers instead of legs later
+  if (def.id.includes('para')) {
+    addMesh(head, new THREE.CapsuleGeometry(0.08 * s, 0.7 * s, 4, 6), def.accent, [0, 0.35 * s, -0.05 * s], [0.9, 0, 0]);
   }
 
   const tail = new THREE.Group();
-  tail.position.set(0, 1.1 * def.scale, -1.1 * def.scale);
+  tail.position.set(0, 1.1 * s, -0.9 * s);
   body.add(tail);
-  const t1 = box(0.55 * def.scale, 0.45 * def.scale, 0.9 * def.scale, def.color, 0);
-  t1.position.z = -0.35 * def.scale;
-  tail.add(t1);
-  const t2 = box(0.35 * def.scale, 0.3 * def.scale, 0.8 * def.scale, def.accent, 0);
-  t2.position.z = -1.0 * def.scale;
-  tail.add(t2);
+  addMesh(tail, new THREE.CapsuleGeometry(0.28 * s, 0.7 * s, 4, 8), def.color, [0, 0, -0.35 * s], [Math.PI / 2, 0, 0]);
+  addMesh(tail, new THREE.CapsuleGeometry(0.16 * s, 0.6 * s, 4, 8), def.accent, [0, 0, -1.0 * s], [Math.PI / 2, 0, 0]);
 
   const legs = [];
   const isAquatic = def.id.includes('mosa') || def.id.includes('haino');
   if (isAquatic) {
     for (const [x, z] of [
-      [-0.7, 0.5],
-      [0.7, 0.5],
-      [-0.7, -0.6],
-      [0.7, -0.6],
+      [-0.65, 0.45],
+      [0.65, 0.45],
+      [-0.65, -0.55],
+      [0.65, -0.55],
     ]) {
-      const flip = box(0.7 * def.scale, 0.12 * def.scale, 0.45 * def.scale, def.accent, 0.7 * def.scale);
-      flip.position.set(x * def.scale, 0, z * def.scale);
-      body.add(flip);
+      const flip = addMesh(
+        body,
+        new THREE.CapsuleGeometry(0.12 * s, 0.7 * s, 4, 8),
+        def.accent,
+        [x * s, 0.75 * s, z * s],
+        [0, 0, Math.PI / 2],
+      );
       legs.push(flip);
     }
   } else {
-    const isBiped = def.role === 'predator' && !def.id.includes('stego');
+    const isBiped = def.role === 'predator';
     const layout = isBiped
       ? [
-          [-0.45, -0.2],
-          [0.45, -0.2],
+          [-0.4, -0.15],
+          [0.4, -0.15],
         ]
       : [
-          [-0.45, 0.55],
-          [0.45, 0.55],
-          [-0.45, -0.55],
-          [0.45, -0.55],
+          [-0.4, 0.5],
+          [0.4, 0.5],
+          [-0.4, -0.5],
+          [0.4, -0.5],
         ];
     for (const [x, z] of layout) {
       const leg = new THREE.Group();
-      leg.position.set(x * def.scale, 0, z * def.scale);
-      const thigh = box(0.28 * def.scale, 0.7 * def.scale, 0.28 * def.scale, def.color, 0.45 * def.scale);
-      const foot = box(0.32 * def.scale, 0.16 * def.scale, 0.42 * def.scale, def.accent, 0.08 * def.scale);
-      foot.position.z = 0.05 * def.scale;
-      leg.add(thigh, foot);
+      leg.position.set(x * s, 0, z * s);
+      addMesh(leg, new THREE.CapsuleGeometry(0.14 * s, 0.55 * s, 4, 8), def.color, [0, 0.45 * s, 0]);
+      addMesh(leg, new THREE.SphereGeometry(0.16 * s, 10, 8), def.accent, [0, 0.1 * s, 0.08 * s]);
       body.add(leg);
       legs.push(leg);
     }
     if (isBiped) {
-      // tiny arms
-      for (const x of [-0.5, 0.5]) {
-        const arm = box(0.16 * def.scale, 0.35 * def.scale, 0.16 * def.scale, def.color, 1.15 * def.scale);
-        arm.position.set(x * def.scale, 0, 0.7 * def.scale);
-        body.add(arm);
+      for (const x of [-0.45, 0.45]) {
+        addMesh(body, new THREE.CapsuleGeometry(0.08 * s, 0.28 * s, 4, 6), def.color, [x * s, 1.2 * s, 0.55 * s]);
       }
     }
   }
 
-  // Ground shadow disc
   const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.9 * def.scale, 20),
-    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25 }),
+    new THREE.CircleGeometry(0.95 * s, 20),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 }),
   );
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = 0.02;
   root.add(shadow);
 
-  // Floating marker so kids can spot characters easily
-  const markerColor =
-    def.role === 'predator' ? 0xe85d4c : def.role === 'baby' ? 0xf4c14b : 0x62d26f;
+  const markerColor = def.role === 'predator' ? 0xe85d4c : def.role === 'baby' ? 0xf4c14b : 0x62d26f;
   const marker = new THREE.Mesh(
-    new THREE.ConeGeometry(0.28 * Math.max(def.scale, 0.7), 0.55 * Math.max(def.scale, 0.7), 4),
+    new THREE.ConeGeometry(0.28 * Math.max(s, 0.7), 0.55 * Math.max(s, 0.7), 4),
     new THREE.MeshBasicMaterial({ color: markerColor }),
   );
   marker.rotation.x = Math.PI;
-  marker.position.y = 2.6 * def.scale + 0.8;
+  marker.position.y = 2.8 * s + 0.6;
   root.add(marker);
 
-  root.userData.parts = { body, neck, head, tail, legs, shadow, marker };
-  root.userData.radius = 1.1 * def.scale;
+  // Tiny floating HP pip for predators
+  let hpBar = null;
+  if (def.role === 'predator') {
+    const bg = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.4 * s, 0.14 * s),
+      new THREE.MeshBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.7 }),
+    );
+    bg.position.y = 3.1 * s + 0.6;
+    const fill = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.32 * s, 0.1 * s),
+      new THREE.MeshBasicMaterial({ color: 0xe85d4c }),
+    );
+    fill.position.z = 0.01;
+    bg.add(fill);
+    root.add(bg);
+    hpBar = { bg, fill, width: 1.32 * s };
+  }
+
+  root.userData.parts = { body, neck, head, tail, legs, shadow, marker, hpBar, torso };
+  root.userData.radius = 1.2 * s;
   root.userData.speed = def.role === 'predator' ? 7.5 : def.role === 'mother' ? 6 : 3.5;
-  // Boost overall readability in third-person chase cam
-  root.scale.setScalar(1.35);
+  root.scale.setScalar(1.4);
 
   root.userData.updateAnim = (dt, moving = false) => {
     const u = root.userData;
     u.anim.t += dt;
     const t = u.anim.t;
     const walk = moving || u.anim.state === 'chase' || u.anim.state === 'run' ? 1 : 0.25;
-    const bob = Math.sin(t * 8 * walk) * 0.04 * def.scale;
-    body.position.y = bob;
-    neck.rotation.x = Math.sin(t * 3) * 0.08 + (u.anim.state === 'attack' ? -0.25 : 0);
-    head.rotation.y = Math.sin(t * 2.2) * 0.12;
-    tail.rotation.y = Math.sin(t * 5 * walk) * 0.35;
-    tail.rotation.x = Math.sin(t * 4) * 0.08;
+    body.position.y = Math.sin(t * 8 * walk) * 0.05 * s;
+    neck.rotation.x = Math.sin(t * 3) * 0.1 + (u.anim.state === 'attack' ? -0.3 : 0);
+    head.rotation.y = Math.sin(t * 2.2) * 0.15;
+    tail.rotation.y = Math.sin(t * 5 * walk) * 0.4;
+    tail.rotation.x = Math.sin(t * 4) * 0.1;
     legs.forEach((leg, i) => {
       const phase = i % 2 === 0 ? 1 : -1;
-      leg.rotation.x = Math.sin(t * 9 * walk) * 0.55 * phase * walk;
+      leg.rotation.x = Math.sin(t * 9 * walk) * 0.6 * phase * walk;
     });
     if (u.anim.state === 'hurt') {
-      body.rotation.z = Math.sin(t * 30) * 0.08;
+      body.rotation.z = Math.sin(t * 30) * 0.1;
     } else {
       body.rotation.z = THREE.MathUtils.lerp(body.rotation.z, 0, 1 - Math.pow(0.001, dt));
     }
     if (u.parts.marker) {
-      u.parts.marker.position.y = 2.6 * def.scale + 0.8 + Math.sin(t * 4) * 0.15;
+      u.parts.marker.position.y = 2.8 * s + 0.6 + Math.sin(t * 4) * 0.15;
       u.parts.marker.rotation.y += dt * 2;
+    }
+    if (u.parts.hpBar) {
+      const ratio = Math.max(0, u.hp / u.maxHp);
+      u.parts.hpBar.fill.scale.x = Math.max(0.01, ratio);
+      u.parts.hpBar.fill.position.x = -((1 - ratio) * u.parts.hpBar.width) / 2;
+      u.parts.hpBar.bg.quaternion.copy(root.parent?.quaternion || new THREE.Quaternion());
+      // Billboard-ish: face camera approximately by resetting world yaw via look at later in game if needed
+      u.parts.hpBar.bg.rotation.set(0, 0, 0);
     }
   };
 

@@ -171,6 +171,32 @@ export function buildWorld(level, scene) {
   group.add(nest);
   group.userData.nestPos = nest.position.clone();
 
+  // Roadblocks / route obstacles (kid-friendly crates & rocks)
+  const blockers = [];
+  for (let i = 0; i < 8; i++) {
+    const block = new THREE.Mesh(
+      i % 2 === 0
+        ? new THREE.BoxGeometry(rand(1.2, 2.2), rand(0.8, 1.6), rand(1.2, 2.2))
+        : new THREE.DodecahedronGeometry(rand(0.7, 1.3)),
+      new THREE.MeshStandardMaterial({
+        color: i % 2 === 0 ? 0xb45309 : 0x6b7280,
+        roughness: 0.85,
+      }),
+    );
+    const a = rand(0, Math.PI * 2);
+    const r = rand(12, 36);
+    block.position.set(Math.cos(a) * r, block.geometry.parameters?.[1] ? block.geometry.parameters[1] / 2 : 0.7, Math.sin(a) * r);
+    // Keep center lane somewhat open
+    if (Math.abs(block.position.x) < 3.5 && block.position.z > -14 && block.position.z < 14) {
+      block.position.x += block.position.x >= 0 ? 5 : -5;
+    }
+    block.castShadow = true;
+    block.userData.radius = 1.4;
+    group.add(block);
+    blockers.push(block);
+  }
+  group.userData.blockers = blockers;
+
   scene.background = new THREE.Color(colors.sky);
   scene.fog = new THREE.Fog(colors.fog, 40, 90);
 

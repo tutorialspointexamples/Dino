@@ -61,6 +61,11 @@ ok(vehicle.includes('submarine') && vehicle.includes('police'), 'vehicle types b
 ok(html.includes('Stamp Book') && html.includes('Garage') && html.includes('Jurassic Map'), 'hub UI surfaces');
 ok(html.includes('Auto Aim') && html.includes('Zoom') && html.includes('Scatter'), 'weapon mode UI');
 ok(html.includes('stick-zone') && html.includes('btn-fire'), 'touch controls');
+ok(html.includes('predator-bar'), 'predator HP HUD');
+ok(fs.existsSync(path.join(root, 'src/game/Audio.js')), 'procedural audio bus');
+ok(read('src/game/WorldBuilder.js').includes('blockers'), 'roadblock obstacles');
+ok(read('src/game/VehicleFactory.js').includes('crewColors') || read('src/game/VehicleFactory.js').includes('Guard crew'), 'guard crew on vehicles');
+ok(dino.includes('CapsuleGeometry'), 'organic capsule dinosaur meshes');
 
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');

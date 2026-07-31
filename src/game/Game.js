@@ -6,6 +6,7 @@ import { createVehicle } from './VehicleFactory.js';
 import { buildWorld, createProjectile, createSpark } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
+import { AudioBus } from './Audio.js';
 
 const PHASE = {
   INTRO: 'intro',
@@ -24,6 +25,7 @@ export class Game {
     this.save = loadSave();
     this.input = new Input();
     this.ui = new UI(this);
+    this.audio = new AudioBus();
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -52,6 +54,13 @@ export class Game {
     this.tmp2 = new THREE.Vector3();
 
     window.addEventListener('resize', () => this.onResize());
+
+    // Debug unlocks for QA: ?debug=1
+    if (new URLSearchParams(location.search).has('debug')) {
+      this.save.cleared = LEVELS.map((l) => l.id);
+      writeSave(this.save);
+    }
+
     this._buildTitleDiorama();
     this.ui.showTitle();
     this.loop();
@@ -196,8 +205,14 @@ export class Game {
     this.camera.lookAt(this.vehicle.position.x, 1.4, this.vehicle.position.z - 4);
 
     this.ui.showHud(`Protect ${DINOSAURS[level.baby].name}!`);
-    this.ui.toast(level.boss ? 'Boss dinosaur alert!' : 'Rescue mission started!');
+    this.ui.toast(level.boss ? 'Alarm! Boss dinosaur alert!' : 'Rescue mission started!');
     this.ui.showAim(false);
+    this.audio.ui();
+    const hint = document.getElementById('control-hint');
+    if (hint) {
+      hint.classList.remove('fade');
+      setTimeout(() => hint.classList.add('fade'), 4500);
+    }
     writeSave(this.save);
   }
 
@@ -262,6 +277,26 @@ export class Game {
 
     if (this.vehicle) {
       this.ui.updateHp(this.vehicle.userData.hp / this.vehicle.userData.maxHp);
+    }
+    if (this.predator) {
+      const bar = document.getElementById('predator-bar');
+      if (bar) {
+        bar.style.transform = `scaleX(${Math.max(0, this.predator.userData.hp / this.predator.userData.maxHp)})`;
+      }
+    }
+    this._resolveBlockers();
+  }
+
+  _resolveBlockers() {
+    const blocks = this.world?.userData?.blockers;
+    if (!blocks || !this.vehicle) return;
+    for (const b of blocks) {
+      const d = this.vehicle.position.distanceTo(b.position);
+      const min = (b.userData.radius || 1.4) + this.vehicle.userData.radius * 0.55;
+      if (d < min && d > 0.001) {
+        const push = this.vehicle.position.clone().sub(b.position).setY(0).normalize();
+        this.vehicle.position.addScaledVector(push, (min - d) * 0.85);
+      }
     }
   }
 
@@ -329,6 +364,7 @@ export class Game {
       this.scene.add(p);
       this.projectiles.push(p);
     }
+    this.audio.shoot();
 
     if (this.predator) {
       v.userData.shotsAtPredator += mode === 'scatter' ? 3 : 1;
@@ -403,6 +439,7 @@ export class Game {
         this.phaseT = 0;
         this.ui.setMission('Mother dinosaur is helping!');
         this.ui.toast(`${DINOSAURS[this.level.mother].name} arrives!`);
+        this.audio.mother();
       }
       if (predator.userData.hp <= 0) {
         this._beginEscort();
@@ -414,6 +451,7 @@ export class Game {
         predator.userData.anim.state = 'attack';
         this.ui.setMission('Watch out — headbutt!');
         this.ui.toast('Too many shots! Predator charges the jeep!');
+        this.audio.headbutt();
       }
     }
 
@@ -442,6 +480,7 @@ export class Game {
       if (predator.position.distanceTo(vehicle.position) < 2.4) {
         vehicle.userData.hp -= 28;
         this._spawnSparks(vehicle.position, 0xe85d4c, 10);
+        this.audio.headbutt();
         predator.position.add(
           predator.position.clone().sub(vehicle.position).setY(0).normalize().multiplyScalar(3),
         );
@@ -509,6 +548,7 @@ export class Game {
       this.save.stamps.push(this.level.mother);
     }
     writeSave(this.save);
+    this.audio.win();
     this.ui.showResult({
       win: true,
       message: `Great work, Guard! +${this.missionScore} points`,
@@ -521,6 +561,7 @@ export class Game {
   _fail(message) {
     if (this.phase === PHASE.LOSE) return;
     this.phase = PHASE.LOSE;
+    this.audio.lose();
     this.ui.showResult({ win: false, message });
     this.state = 'result';
   }
@@ -549,11 +590,12 @@ export class Game {
   _updateActors(dt) {
     for (const a of [this.baby, this.mother, this.predator]) {
       if (!a || !a.visible) continue;
-      if (a !== this.predator || this.phase === PHASE.ESCORT) {
-        // chase already animates moving ones; idle update for others
-      }
       a.userData.updateAnim(dt, a.userData.anim.state !== 'idle');
       if (this.level.water) a.position.y = 0.2;
+      const hp = a.userData.parts?.hpBar;
+      if (hp) {
+        hp.bg.lookAt(this.camera.position);
+      }
     }
   }
 
@@ -570,6 +612,7 @@ export class Game {
           this._spawnSparks(p.position, 0xf4c14b, 6);
           this.missionScore += 10;
           this.ui.updateScore(this.missionScore);
+          this.audio.hit();
           hit = true;
           if (this.phase === PHASE.CHASE) {
             this.phase = PHASE.COMBAT;

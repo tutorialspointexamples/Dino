@@ -123,6 +123,25 @@ export function createVehicle(def) {
   root.add(marker);
   root.userData.marker = marker;
 
+  // Guard crew silhouettes in the cabin / deck
+  if (def.type !== 'submarine') {
+    const crewColors = [0xf4c14b, 0x60a5fa, 0xe85d4c, 0x62d26f];
+    crewColors.forEach((c, i) => {
+      const crew = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.25, 4, 6), mat(c));
+      body.position.y = 0.2;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), mat(0xffe0bd));
+      head.position.y = 0.42;
+      crew.add(body, head);
+      crew.position.set((i % 2 === 0 ? -0.35 : 0.35), 1.15, i < 2 ? 0.15 : -0.35);
+      root.add(crew);
+    });
+  } else {
+    const pilot = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), mat(0xffe0bd));
+    pilot.position.set(0.35, 1.25, 0);
+    root.add(pilot);
+  }
+
   root.userData.radius = 1.35;
   root.scale.setScalar(1.25);
   root.userData.updateAnim = (dt, moving) => {
