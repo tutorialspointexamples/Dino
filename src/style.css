@@ -266,10 +266,30 @@ h2 {
 }
 
 .level-card .swatch {
+  position: relative;
   height: 54px;
   border-radius: 12px;
   margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 6px;
 }
+
+.lvl-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(13, 36, 24, 0.72);
+  border: 1px solid rgba(255, 248, 231, 0.35);
+}
+
+.lvl-badge.water { color: #7dd3fc; border-color: #38bdf8; }
+.lvl-badge.boss { color: #fecaca; border-color: #f87171; }
+.lvl-badge.clear { color: #86efac; border-color: #4ade80; }
 
 .level-card h3,
 .item-card h3 {

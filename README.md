@@ -8,20 +8,23 @@ A browser-based **3D** kids rescue game inspired by [Dinosaur Guard 2](https://p
 
 - **10 Jurassic biomes** — Tropical Rainforest, Crystal Cave, Firefly Lights Cave, Danxia Landforms, Vine Swamp, Coral Relics, Lava Volcano, Deep-Sea Swirl, Meteorite Hole, Tropical Ocean Current
 - **6 police cars + 4 guard submarines** with progressive unlocks
-- **4 named Guard crew** riding along on missions
-- **26 animated dinosaur characters** (babies, mothers, predators, marine reptiles, pterosaurs)
+- **4 named Guard crew** with in-mission callouts
+- **27 animated dinosaur characters** (babies, mothers, predators, marine reptiles, pterosaurs)
+- **Alarm countdown** before each rescue (3-2-1-GO)
 - **Rescue missions**: predators chase babies; intercept and fire
-- **Weapon modes**: Auto Aim, Zoom, Scatter (hotkeys 1/2/3)
+- **Weapon modes**: Auto Aim, Zoom, Scatter — auto-cycle in combat + hotkeys 1/2/3
 - **Mother dinosaur assist** mid-fight
 - **Headbutt risk** if you overshoot the predator (camera shake + HUD alarm)
-- **Escort to nest** after the predator retreats (beacon + compass)
+- **Escort to nest** after the predator retreats (beacon + compass + celebration)
 - **Collectible dino eggs** during escort for bonus score
-- **Mini-map radar** tracking baby, predator, mother, and nest
-- **Stamp book / encyclopedia** for rescued species
-- **Roadblocks, biome FX** (fireflies, vines, bubbles, volcano ash/lava)
-- **Animated jaw chomp / wing / walk cycles** on procedural dinosaurs
+- **Mugger crocodiles** in swamp / ocean biomes
+- **Designed rescue routes** + roadblocks
+- **Mini-map radar** tracking baby, predator, mother, nest, and crocs
+- **Stamp book / encyclopedia** with unlock pop animation
+- **Biome FX** (fireflies, vines, bubbles, volcano ash/lava, sky clouds)
+- **Animated blink / jaw / wing / walk cycles** on procedural dinosaurs
 - **Touch joystick + FIRE** controls for mobile; keyboard on desktop
-- **Offline-friendly** local progress via `localStorage`
+- **Offline-friendly** via `localStorage` + web app manifest
 
 ## Controls
 
@@ -30,7 +33,7 @@ A browser-based **3D** kids rescue game inspired by [Dinosaur Guard 2](https://p
 | Drive | WASD / Arrow keys | Virtual stick |
 | Fire | Space | FIRE button |
 | Weapon mode | 1 / 2 / 3 or HUD buttons | HUD buttons |
-| Pause | II button | II button |
+| Pause | Esc / P / II button | II button |
 
 ## Run locally
 
@@ -51,18 +54,18 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (10)
+### Verification iterations (this branch)
 
-1. Mini-map radar tracking baby / predator / nest  
-2. Drive trails + jaw chomp attack animation  
-3. Weapon hotkeys 1/2/3 + roar / collect SFX  
-4. First-mission tutorial tip  
-5. Escort eggs, headbutt shake/alarm, danger banner, volcano ash  
-6. Submarine hull/muzzle face −Z; full 4-crew on subs  
-7. Escape/P pause-resume; mother heals baby  
-8. Dilophosaurus frill fans + translucent title diorama  
-9. Eggs reveal only on escort; drifting sky clouds; HUD cleanup  
-10. Reduced-motion support; water-mission balance (slower ocean predators, more baby HP)
+1. Mission alarm countdown (3-2-1-GO) + alarm SFX/HUD ring  
+2. Auto smart weapon cycling (Auto → Zoom → Scatter) during combat  
+3. Designed rescue route lane from spawn to nest  
+4. Mugger crocodile hazards in swamp / ocean biomes  
+5. Floating damage numbers on dart hits  
+6. Guard crew callouts for key mission events  
+7. Nest celebration parade before result screen  
+8. Stamp unlock pop animation + level SUB/BOSS badges  
+9. Boot splash + offline web manifest  
+10. Expanded `verify` / Playwright QA for countdown, crocs, celebrate, route  
 
 ## Project layout
 
@@ -75,7 +78,7 @@ src/
     data.js            # levels, dinos, vehicles, crew
     DinosaurFactory.js # animated procedural dinosaurs
     VehicleFactory.js  # police cars / submarines + crew
-    WorldBuilder.js    # biome worlds + roadblocks
+    WorldBuilder.js    # biome worlds + routes + crocs
     Input.js           # keyboard + touch
     UI.js              # hub / garage / stamps / HUD
     Save.js            # local progress

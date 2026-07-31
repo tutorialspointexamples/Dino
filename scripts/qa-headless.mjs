@@ -62,9 +62,20 @@ async function main() {
   await page.waitForFunction(() => window.__DINO_GUARD_QA__);
 
   await page.evaluate(() => window.__DINO_GUARD_QA__.startLevel(0));
-  await wait(500);
+  await wait(200);
+  const countdownPhase = await page.evaluate(() => window.__DINO_GUARD_QA__.getPhase());
+  console.log('Mission phase after start:', countdownPhase);
+  await page.evaluate(() => window.__DINO_GUARD_QA__.skipCountdown());
+  await wait(100);
   const phase1 = await page.evaluate(() => window.__DINO_GUARD_QA__.getPhase());
-  console.log('Mission phase after start:', phase1);
+  console.log('Mission phase after skip countdown:', phase1);
+  const countdownUi = await page.evaluate(() => ({
+    alarm: !!document.getElementById('alarm-ring'),
+    countdown: !!document.getElementById('mission-countdown'),
+    crew: !!document.getElementById('crew-callout'),
+    route: !!window.__DINO_GUARD__.world?.userData?.rescueRoute,
+  }));
+  console.log('Countdown UI / route:', countdownUi);
 
   // Exercise all three weapon modes
   for (const mode of ['auto', 'zoom', 'scatter']) {
@@ -98,13 +109,16 @@ async function main() {
   const phase2 = await page.evaluate(() => window.__DINO_GUARD_QA__.getPhase());
   console.log('Phase after escort:', phase2);
 
-  // Simulate baby arriving at nest for natural win
+  // Simulate baby arriving at nest for natural win (celebrate → win)
   await page.evaluate(() => {
     const g = window.__DINO_GUARD__;
     const nest = g.world.userData.nestPos;
     g.baby.position.set(nest.x, 0, nest.z);
   });
-  await wait(1200);
+  await wait(900);
+  const celebratePhase = await page.evaluate(() => window.__DINO_GUARD_QA__.getPhase());
+  console.log('Phase mid nest arrival:', celebratePhase);
+  await wait(1800);
   const phase3 = await page.evaluate(() => window.__DINO_GUARD_QA__.getPhase());
   console.log('Phase after nest arrival:', phase3);
   if (phase3 !== 'win') {
@@ -117,11 +131,13 @@ async function main() {
     console.error('Natural nest win failed — used forceWin fallback');
   }
 
-  // Water mission
+  // Water mission + crocs
   await page.evaluate(() => window.__DINO_GUARD_QA__.startLevel(5));
   await wait(400);
+  await page.evaluate(() => window.__DINO_GUARD_QA__.skipCountdown());
   const waterOk = await page.evaluate(() => window.__DINO_GUARD__.vehicle?.userData?.def?.type === 'submarine');
-  console.log('Water mission submarine:', waterOk);
+  const crocs = await page.evaluate(() => window.__DINO_GUARD__.world?.userData?.crocs?.length || 0);
+  console.log('Water mission submarine:', waterOk, 'crocs:', crocs);
 
   const meta = await page.evaluate(() => {
     const g = window.__DINO_GUARD__;
@@ -215,7 +231,13 @@ async function main() {
 
   const failed =
     errors.length > 0 ||
+    countdownPhase !== 'countdown' ||
+    !countdownUi.alarm ||
+    !countdownUi.countdown ||
+    !countdownUi.crew ||
+    !countdownUi.route ||
     !waterOk ||
+    crocs < 1 ||
     !bossSub ||
     !modesOk ||
     save.cleared.length < 1 ||
@@ -232,7 +254,8 @@ async function main() {
     subCrew < 4 ||
     eggState.before !== 0 ||
     eggState.after < 5 ||
-    eggState.clouds < 5;
+    eggState.clouds < 5 ||
+    !(celebratePhase === 'celebrate' || phase3 === 'win');
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

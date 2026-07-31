@@ -66,8 +66,13 @@ export class UI {
       const cleared = save.cleared.includes(level.id);
       const btn = document.createElement('button');
       btn.className = `level-card${cleared ? ' cleared' : ''}${unlocked ? '' : ' locked'}`;
+      const badges = [
+        level.water ? '<span class="lvl-badge water">SUB</span>' : '',
+        level.boss ? '<span class="lvl-badge boss">BOSS</span>' : '',
+        cleared ? '<span class="lvl-badge clear">✓</span>' : '',
+      ].join('');
       btn.innerHTML = `
-        <div class="swatch" style="background:linear-gradient(135deg,${hexCss(level.colors.sky)},${hexCss(level.colors.ground)})"></div>
+        <div class="swatch" style="background:linear-gradient(135deg,${hexCss(level.colors.sky)},${hexCss(level.colors.ground)})">${badges}</div>
         <h3>${i + 1}. ${level.name}</h3>
         <p>${unlocked ? level.desc : 'Clear previous mission to unlock'}</p>
       `;

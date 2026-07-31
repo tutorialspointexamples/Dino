@@ -371,6 +371,9 @@ export class Game {
       this._weaponCycleT = 0;
     }
     this._autoCycleWeapons(dt);
+    if (this.vehicle) {
+      this.vehicle.userData.sirenBoost = [PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase);
+    }
     const axis = this.input.getAxis();
     this._driveVehicle(dt, axis);
     this._updateCamera(dt);

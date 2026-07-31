@@ -96,6 +96,19 @@ ok(html.includes('danger-banner') && game.includes('setDanger'), 'baby danger ba
 ok(html.includes('tutorial-tip') && game.includes('showTutorial'), 'first-mission tutorial tip');
 ok(read('src/game/Input.js').includes('weaponHotkey') && read('src/game/Input.js').includes('Digit1'), '1/2/3 weapon hotkeys');
 ok(read('src/game/Audio.js').includes('roar') && read('src/game/Audio.js').includes('collect'), 'roar + collect SFX');
+ok(read('src/game/Audio.js').includes('alarm') && read('src/game/Audio.js').includes('countdown'), 'alarm + countdown SFX');
+ok(game.includes('PHASE.COUNTDOWN') || game.includes("COUNTDOWN: 'countdown'"), 'mission countdown phase');
+ok(game.includes('CELEBRATE') && game.includes('_finishWin'), 'victory celebrate then result');
+ok(game.includes('_autoCycleWeapons') && game.includes('WEAPON_CYCLE'), 'auto smart weapon cycling');
+ok(game.includes('_resolveCrocs') && world.includes('makeCrocodile'), 'mugger crocodile hazards');
+ok(world.includes('rescueRoute') && world.includes('PlaneGeometry(4.2, 30)'), 'designed rescue route lane');
+ok(game.includes('_spawnDamageFloater') && read('src/style.css').includes('dmg-floater'), 'damage floater feedback');
+ok(html.includes('mission-countdown') && html.includes('crew-callout') && html.includes('alarm-ring'), 'countdown / crew / alarm UI');
+ok(html.includes('manifest.webmanifest') && fs.existsSync(path.join(root, 'public/manifest.webmanifest')), 'offline web manifest');
+ok(html.includes('boot-splash'), 'boot splash loading screen');
+ok(dino.includes('_eyes') && dino.includes('blink'), 'dinosaur blink animation');
+ok(vehicle.includes('sirenBoost'), 'siren boost during combat');
+ok(read('src/game/UI.js').includes('lvl-badge') || read('src/style.css').includes('lvl-badge'), 'level water/boss badges');
 
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');

@@ -181,9 +181,15 @@ export function createVehicle(def) {
       }
     }
     if (u.sirens) {
-      const blink = Math.sin(performance.now() * 0.02) > 0;
+      // Faster flash when alarm/combat boost is active
+      const rate = u.sirenBoost ? 0.045 : 0.02;
+      const blink = Math.sin(performance.now() * rate) > 0;
       u.sirens[0].visible = blink;
       u.sirens[1].visible = !blink;
+      if (u.sirenBoost) {
+        u.sirens[0].material.emissiveIntensity = blink ? 1.2 : 0.2;
+        u.sirens[1].material.emissiveIntensity = blink ? 0.2 : 1.2;
+      }
     }
     if (u.marker) {
       u.marker.position.y = 2.8 + Math.sin(performance.now() * 0.006) * 0.12;

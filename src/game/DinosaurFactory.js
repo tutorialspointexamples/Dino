@@ -72,10 +72,11 @@ export function createDinosaur(def) {
     [Math.PI / 2, 0, 0],
   );
 
-  addMesh(head, new THREE.SphereGeometry(0.07 * s, 10, 8), 0xffffff, [-0.16 * s, 0.1 * s, 0.28 * s]);
-  addMesh(head, new THREE.SphereGeometry(0.07 * s, 10, 8), 0xffffff, [0.16 * s, 0.1 * s, 0.28 * s]);
+  const eyeL = addMesh(head, new THREE.SphereGeometry(0.07 * s, 10, 8), 0xffffff, [-0.16 * s, 0.1 * s, 0.28 * s]);
+  const eyeR = addMesh(head, new THREE.SphereGeometry(0.07 * s, 10, 8), 0xffffff, [0.16 * s, 0.1 * s, 0.28 * s]);
   addMesh(head, new THREE.SphereGeometry(0.035 * s, 8, 6), 0x111111, [-0.16 * s, 0.1 * s, 0.34 * s]);
   addMesh(head, new THREE.SphereGeometry(0.035 * s, 8, 6), 0x111111, [0.16 * s, 0.1 * s, 0.34 * s]);
+  root.userData._eyes = [eyeL, eyeR];
 
   // Morph ornaments
   if (morph === 'trike') {
@@ -311,6 +312,14 @@ export function createDinosaur(def) {
       u.parts.hpBar.fill.scale.x = Math.max(0.01, ratio);
       u.parts.hpBar.fill.position.x = -((1 - ratio) * u.parts.hpBar.width) / 2;
       u.parts.hpBar.bg.rotation.set(0, 0, 0);
+    }
+
+    // Occasional blink for lively characters
+    if (root.userData._eyes) {
+      const blink = Math.sin(t * 1.7) > 0.96;
+      for (const eye of root.userData._eyes) {
+        eye.scale.y = blink ? 0.15 : 1;
+      }
     }
   };
 
