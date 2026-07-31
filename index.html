@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Dinosaur Guard 2 — Rescue Adventure</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Title / Hub -->
+      <div id="screen-title" class="screen">
+        <div class="title-bg"></div>
+        <div class="title-panel">
+          <p class="brand">DINOSAUR GUARD 2</p>
+          <h1>Rescue Adventure</h1>
+          <p class="tagline">Drive. Protect. Collect stamps. Become a Dino Guard!</p>
+          <div class="title-actions">
+            <button id="btn-play" class="btn primary">Start Mission</button>
+            <button id="btn-garage" class="btn">Garage</button>
+            <button id="btn-stamps" class="btn">Stamp Book</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level Select Hub -->
+      <div id="screen-hub" class="screen hidden">
+        <div class="panel wide">
+          <header class="panel-head">
+            <button id="btn-hub-back" class="btn small">Back</button>
+            <h2>Jurassic Map</h2>
+            <span id="hub-progress" class="badge">0/10</span>
+          </header>
+          <div id="level-grid" class="level-grid"></div>
+        </div>
+      </div>
+
+      <!-- Garage -->
+      <div id="screen-garage" class="screen hidden">
+        <div class="panel wide">
+          <header class="panel-head">
+            <button id="btn-garage-back" class="btn small">Back</button>
+            <h2>Guard Garage</h2>
+            <span class="badge">Pick your ride</span>
+          </header>
+          <div id="vehicle-grid" class="card-grid"></div>
+        </div>
+      </div>
+
+      <!-- Stamp Book -->
+      <div id="screen-stamps" class="screen hidden">
+        <div class="panel wide">
+          <header class="panel-head">
+            <button id="btn-stamps-back" class="btn small">Back</button>
+            <h2>Dinosaur Stamp Book</h2>
+            <span id="stamp-count" class="badge">0 stamps</span>
+          </header>
+          <div id="stamp-grid" class="card-grid"></div>
+        </div>
+      </div>
+
+      <!-- Vehicle pick before mission -->
+      <div id="screen-vehicle-pick" class="screen hidden">
+        <div class="panel">
+          <header class="panel-head">
+            <button id="btn-pick-back" class="btn small">Back</button>
+            <h2 id="pick-level-name">Choose Vehicle</h2>
+          </header>
+          <p id="pick-level-desc" class="muted"></p>
+          <div id="pick-vehicle-grid" class="card-grid"></div>
+          <button id="btn-launch" class="btn primary launch" disabled>Launch Rescue</button>
+        </div>
+      </div>
+
+      <!-- HUD -->
+      <div id="hud" class="hidden">
+        <div class="hud-top">
+          <div class="hud-pill">
+            <span>❤️</span>
+            <div class="bar"><i id="hp-bar"></i></div>
+          </div>
+          <div class="hud-pill mission" id="mission-text">Save the baby!</div>
+          <div class="hud-pill">
+            <span>⭐</span>
+            <strong id="score">0</strong>
+          </div>
+        </div>
+        <div class="hud-pill predator-hp" id="predator-hud">
+          <span>🦖</span>
+          <div class="bar danger"><i id="predator-bar"></i></div>
+        </div>
+        <p class="hint" id="control-hint">WASD / stick to drive · Space / FIRE to shoot</p>
+        <div class="hud-aim hidden" id="aim-hint">SMART AIM READY — TAP / SPACE TO FIRE</div>
+        <div class="weapon-modes" id="weapon-modes">
+          <button data-mode="auto" class="mode active">Auto Aim</button>
+          <button data-mode="zoom" class="mode">Zoom</button>
+          <button data-mode="scatter" class="mode">Scatter</button>
+        </div>
+        <div class="touch-controls" id="touch-controls">
+          <div class="stick-zone" id="stick-zone">
+            <div class="stick-base"><div class="stick-knob" id="stick-knob"></div></div>
+          </div>
+          <button id="btn-fire" class="fire-btn">FIRE</button>
+        </div>
+        <button id="btn-pause" class="btn small pause">II</button>
+      </div>
+
+      <!-- Pause / Result -->
+      <div id="screen-pause" class="screen hidden">
+        <div class="panel narrow">
+          <h2>Paused</h2>
+          <button id="btn-resume" class="btn primary">Resume</button>
+          <button id="btn-quit" class="btn">Quit to Map</button>
+        </div>
+      </div>
+
+      <div id="screen-result" class="screen hidden">
+        <div class="panel narrow">
+          <h2 id="result-title">Rescue Complete!</h2>
+          <p id="result-msg" class="muted"></p>
+          <div id="result-stamp" class="result-stamp hidden"></div>
+          <button id="btn-result-continue" class="btn primary">Continue</button>
+        </div>
+      </div>
+
+      <div id="toast" class="toast hidden"></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
