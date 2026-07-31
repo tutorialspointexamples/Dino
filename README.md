@@ -56,16 +56,16 @@ npm run qa
 
 ### Verification iterations (this branch)
 
-1. Mission alarm countdown (3-2-1-GO) + alarm SFX/HUD ring  
-2. Auto smart weapon cycling (Auto → Zoom → Scatter) during combat  
-3. Designed rescue route lane from spawn to nest  
-4. Mugger crocodile hazards in swamp / ocean biomes  
-5. Floating damage numbers on dart hits  
-6. Guard crew callouts for key mission events  
-7. Nest celebration parade before result screen  
-8. Stamp unlock pop animation + level SUB/BOSS badges  
-9. Boot splash + offline web manifest  
-10. Expanded `verify` / Playwright QA for countdown, crocs, celebrate, route  
+1. Mission star rating (1–3) from baby HP, jeep HP, and egg pickups  
+2. Vehicle unlock celebration toast + result unlock line  
+3. Predator charge telegraph (red ring + emissive wind-up) before headbutt  
+4. Soft ambient music bed during missions (+ mute stops it)  
+5. Dinosaur Master collection meter on the Stamp Book  
+6. Dripping stalactites in crystal / firefly cave biomes  
+7. King flowers swaying in the Tropical Rainforest  
+8. Baby panic animation + squeal when the predator gets close  
+9. Next Mission button on the result screen  
+10. Expanded `verify` / Playwright QA for stars, telegraph, flowers, drips, master meter  
 
 ## Project layout
 

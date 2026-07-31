@@ -110,6 +110,17 @@ ok(dino.includes('_eyes') && dino.includes('blink'), 'dinosaur blink animation')
 ok(vehicle.includes('sirenBoost'), 'siren boost during combat');
 ok(read('src/game/UI.js').includes('lvl-badge') || read('src/style.css').includes('lvl-badge'), 'level water/boss badges');
 
+// Branch 60a8 polish iterations
+ok(html.includes('result-stars') && game.includes('_missionStars'), 'mission star rating');
+ok(html.includes('btn-result-next') && game.includes('startNextMission'), 'next mission flow');
+ok(html.includes('master-meter') && read('src/game/UI.js').includes('Dinosaur Master'), 'Dinosaur Master stamp meter');
+ok(game.includes('_attachChargeTelegraph') && game.includes('_updateChargeTelegraph'), 'predator charge telegraph');
+ok(read('src/game/Audio.js').includes('startAmbient') && read('src/game/Audio.js').includes('squeal'), 'ambient music + baby squeal');
+ok(game.includes('_newVehicleUnlocks') && html.includes('result-unlock'), 'vehicle unlock celebration');
+ok(world.includes('stalactiteDrips') && world.includes('makeKingFlower'), 'cave drips + rainforest king flowers');
+ok(dino.includes('panicBoost') || dino.includes('anim.panic'), 'baby panic animation boost');
+ok(game.includes('_eggsCollected'), 'egg collection tracked for stars');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

@@ -226,6 +226,32 @@ async function main() {
   });
   console.log('Egg reveal / clouds:', eggState);
 
+  // Stars / telegraph / king flowers / cave drips / master meter
+  const polish = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    g.startMission(window.__DINO_GUARD_QA__.LEVELS[0], 'police_scout');
+    const flowers = g.world?.userData?.kingFlowers?.length || 0;
+    const telegraph = !!g._chargeTelegraph;
+    g._eggsCollected = 3;
+    if (g.baby) {
+      g.baby.userData.hp = g.baby.userData.maxHp;
+      g.baby.userData.anim.panic = true;
+    }
+    if (g.vehicle) g.vehicle.userData.hp = g.vehicle.userData.maxHp;
+    const stars = g._missionStars();
+    g.phase = 'headbutt';
+    g._updateChargeTelegraph(0.05);
+    const teleOp = g._chargeTelegraph?.material?.opacity ?? 0;
+    g.startMission(window.__DINO_GUARD_QA__.LEVELS[1], 'police_scout');
+    const drips = g.world?.userData?.stalactiteDrips?.length || 0;
+    document.getElementById('btn-stamps')?.click();
+    const master = !!document.getElementById('master-meter');
+    const starsUi = !!document.getElementById('result-stars');
+    const nextBtn = !!document.getElementById('btn-result-next');
+    return { flowers, telegraph, stars, teleOp, drips, master, starsUi, nextBtn };
+  });
+  console.log('Polish extras:', polish);
+
   await browser.close();
   preview.kill();
 
@@ -255,7 +281,14 @@ async function main() {
     eggState.before !== 0 ||
     eggState.after < 5 ||
     eggState.clouds < 5 ||
-    !(celebratePhase === 'celebrate' || phase3 === 'win');
+    !(celebratePhase === 'celebrate' || phase3 === 'win') ||
+    polish.flowers < 8 ||
+    !polish.telegraph ||
+    polish.stars < 3 ||
+    polish.drips < 10 ||
+    !polish.master ||
+    !polish.starsUi ||
+    !polish.nextBtn;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);
