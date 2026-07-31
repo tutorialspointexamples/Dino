@@ -259,8 +259,9 @@ export function createDinosaur(def) {
     const t = u.anim.t;
     const walk = moving || u.anim.state === 'chase' || u.anim.state === 'run' ? 1 : 0.25;
     const attackBoost = u.anim.state === 'attack' ? 1.4 : 1;
+    const panicBoost = u.anim.panic ? 1.55 : 1;
 
-    body.position.y = Math.sin(t * 8 * walk) * 0.05 * s;
+    body.position.y = Math.sin(t * 8 * walk * panicBoost) * 0.05 * s * (u.anim.panic ? 1.4 : 1);
     neck.rotation.x = Math.sin(t * 3) * 0.1 + (u.anim.state === 'attack' ? -0.35 : 0);
     head.rotation.y = Math.sin(t * 2.2) * 0.15;
     head.rotation.x = u.anim.state === 'attack' ? Math.sin(t * 12) * 0.2 : Math.sin(t * 1.5) * 0.05;
@@ -276,7 +277,7 @@ export function createDinosaur(def) {
       if (isAquatic) {
         leg.rotation.z = Math.sin(t * 6 * walk) * 0.35 * phase;
       } else {
-        leg.rotation.x = Math.sin(t * 9 * walk * attackBoost) * 0.65 * phase * walk;
+        leg.rotation.x = Math.sin(t * 9 * walk * attackBoost * panicBoost) * 0.65 * phase * walk;
       }
     });
 

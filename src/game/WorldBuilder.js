@@ -68,6 +68,23 @@ export function buildWorld(level, scene) {
     }
   }
 
+  // Store lore: king flowers in rain forests
+  if (biome === 'forest') {
+    const flowers = [];
+    for (let i = 0; i < 14; i++) {
+      const flower = makeKingFlower();
+      const a = rand(0, Math.PI * 2);
+      const r = rand(8, 36);
+      flower.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
+      if (Math.abs(flower.position.x) < 3.5 && flower.position.z > -14 && flower.position.z < 14) {
+        flower.position.x += flower.position.x >= 0 ? 4 : -4;
+      }
+      group.add(flower);
+      flowers.push(flower);
+    }
+    group.userData.kingFlowers = flowers;
+  }
+
   if (biome === 'swamp') {
     for (let i = 0; i < 16; i++) {
       const vine = new THREE.Mesh(
@@ -99,6 +116,35 @@ export function buildWorld(level, scene) {
       crystal.rotation.z = rand(-0.2, 0.2);
       group.add(crystal);
     }
+    // Store lore: dripping stalactites in rock caves
+    const drips = [];
+    for (let i = 0; i < 18; i++) {
+      const spike = new THREE.Mesh(
+        new THREE.ConeGeometry(rand(0.12, 0.28), rand(1.2, 2.6), 6),
+        new THREE.MeshStandardMaterial({
+          color: colors.accent,
+          emissive: colors.accent,
+          emissiveIntensity: 0.2,
+          roughness: 0.45,
+        }),
+      );
+      spike.rotation.x = Math.PI;
+      const a = rand(0, Math.PI * 2);
+      const r = rand(4, 28);
+      spike.position.set(Math.cos(a) * r, rand(5.5, 7.5), Math.sin(a) * r);
+      group.add(spike);
+      const drop = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0xb6eaff, transparent: true, opacity: 0.7 }),
+      );
+      drop.position.copy(spike.position);
+      drop.position.y -= 0.4;
+      drop.userData.baseY = drop.position.y;
+      drop.userData.phase = rand(0, Math.PI * 2);
+      group.add(drop);
+      drips.push(drop);
+    }
+    group.userData.stalactiteDrips = drips;
   }
 
   if (level.fireflies || (biome === 'cave' && colors.accent === 0xf4c14b)) {
@@ -413,6 +459,40 @@ function makeTree(leafColor) {
   leaves.position.y = 2.8;
   leaves.castShadow = true;
   g.add(leaves);
+  return g;
+}
+
+function makeKingFlower() {
+  const g = new THREE.Group();
+  g.userData.kind = 'kingFlower';
+  const stem = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.09, 1.4, 6),
+    new THREE.MeshStandardMaterial({ color: 0x2f7a3e, roughness: 0.9 }),
+  );
+  stem.position.y = 0.7;
+  g.add(stem);
+  const bloom = new THREE.Mesh(
+    new THREE.SphereGeometry(0.45, 10, 8),
+    new THREE.MeshStandardMaterial({
+      color: 0xff6b8a,
+      emissive: 0xc45c26,
+      emissiveIntensity: 0.25,
+      roughness: 0.55,
+    }),
+  );
+  bloom.position.y = 1.45;
+  bloom.scale.set(1, 0.55, 1);
+  g.add(bloom);
+  for (let i = 0; i < 5; i++) {
+    const petal = new THREE.Mesh(
+      new THREE.SphereGeometry(0.22, 8, 6),
+      new THREE.MeshStandardMaterial({ color: 0xf4c14b, roughness: 0.7 }),
+    );
+    const a = (i / 5) * Math.PI * 2;
+    petal.position.set(Math.cos(a) * 0.38, 1.4, Math.sin(a) * 0.38);
+    petal.scale.set(1, 0.4, 0.7);
+    g.add(petal);
+  }
   return g;
 }
 
