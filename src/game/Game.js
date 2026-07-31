@@ -40,7 +40,6 @@ export class Game {
     this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
     this.camera.position.set(0, 14, 18);
 
-    this.clock = new THREE.Clock();
     this._prevTime = performance.now();
     this.state = 'title';
     this.paused = false;
