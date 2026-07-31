@@ -120,8 +120,15 @@ body,
 }
 
 @keyframes brandPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 4px 0 rgba(196, 92, 38, 0.35));
+  }
+  50% {
+    transform: scale(1.03);
+    filter: drop-shadow(0 6px 0 rgba(244, 193, 75, 0.45));
+  }
 }
 
 h1 {
@@ -496,17 +503,69 @@ h2 {
   padding: 8px;
 }
 
+.result-fact {
+  margin: 8px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.pill-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+
+.nest-compass {
+  position: absolute;
+  top: 150px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 12;
+  font-weight: 800;
+  font-size: 0.75rem;
+  color: var(--cream);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.compass-arrow {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 22px solid var(--sun);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+  transform-origin: 50% 70%;
+}
+
+.btn.mute {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: 64px;
+  z-index: 12;
+  min-width: 48px;
+}
+
 @media (max-width: 700px) {
   .weapon-modes {
     top: auto;
-    bottom: 200px;
+    bottom: calc(200px + env(safe-area-inset-bottom, 0px));
     right: 12px;
   }
 
   .pause {
-    top: 12px;
+    top: calc(12px + env(safe-area-inset-top, 0px));
     left: auto;
     right: 12px;
+  }
+
+  .mute {
+    right: 64px;
   }
 
   .hud-pill.mission {
@@ -517,11 +576,19 @@ h2 {
     top: 118px;
   }
 
+  .nest-compass {
+    top: 160px;
+  }
+
   .hint {
-    bottom: 200px;
+    bottom: calc(200px + env(safe-area-inset-bottom, 0px));
     font-size: 0.72rem;
     max-width: 90%;
     text-align: center;
+  }
+
+  .touch-controls {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   }
 
   .title-panel,

@@ -63,4 +63,9 @@ export class AudioBus {
   ui() {
     this.tone({ freq: 660, dur: 0.06, type: 'triangle', gain: 0.05 });
   }
+
+  toggle() {
+    this.enabled = !this.enabled;
+    return this.enabled;
+  }
 }

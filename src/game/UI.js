@@ -27,6 +27,11 @@ export class UI {
     this.$('btn-resume').onclick = () => this.game.resume();
     this.$('btn-quit').onclick = () => this.game.quitToHub();
     this.$('btn-result-continue').onclick = () => this.showHub();
+    this.$('btn-mute').onclick = () => {
+      const on = this.game.audio.toggle();
+      this.$('btn-mute').textContent = on ? 'SND' : 'OFF';
+      this.toast(on ? 'Sound on' : 'Sound muted');
+    };
 
     document.querySelectorAll('#weapon-modes .mode').forEach((btn) => {
       btn.onclick = () => {
@@ -211,11 +216,19 @@ export class UI {
     this.$('screen-pause').classList.add('hidden');
   }
 
-  showResult({ win, message, stampName, stampColor }) {
+  showResult({ win, message, stampName, stampColor, fact }) {
     this.$('hud').classList.add('hidden');
+    this.$('nest-compass')?.classList.add('hidden');
     this.$('screen-result').classList.remove('hidden');
     this.$('result-title').textContent = win ? 'Rescue Complete!' : 'Mission Failed';
     this.$('result-msg').textContent = message;
+    const factEl = this.$('result-fact');
+    if (win && fact) {
+      factEl.textContent = fact;
+      factEl.classList.remove('hidden');
+    } else {
+      factEl.classList.add('hidden');
+    }
     const stamp = this.$('result-stamp');
     if (win && stampName) {
       stamp.classList.remove('hidden');
@@ -224,6 +237,14 @@ export class UI {
     } else {
       stamp.classList.add('hidden');
     }
+  }
+
+  updateNestCompass(show, angleRad = 0) {
+    const el = this.$('nest-compass');
+    if (!el) return;
+    el.classList.toggle('hidden', !show);
+    const arrow = this.$('compass-arrow');
+    if (arrow) arrow.style.transform = `rotate(${angleRad}rad)`;
   }
 
   toast(msg) {
