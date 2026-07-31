@@ -51,6 +51,19 @@ npm run verify
 npm run qa
 ```
 
+### Verification iterations (10)
+
+1. Mini-map radar tracking baby / predator / nest  
+2. Drive trails + jaw chomp attack animation  
+3. Weapon hotkeys 1/2/3 + roar / collect SFX  
+4. First-mission tutorial tip  
+5. Escort eggs, headbutt shake/alarm, danger banner, volcano ash  
+6. Submarine hull/muzzle face −Z; full 4-crew on subs  
+7. Escape/P pause-resume; mother heals baby  
+8. Dilophosaurus frill fans + translucent title diorama  
+9. Eggs reveal only on escort; drifting sky clouds; HUD cleanup  
+10. Reduced-motion support, control-hint polish, browser playtest OK
+
 ## Project layout
 
 ```

@@ -709,3 +709,14 @@ h2 {
     opacity: 0.35;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .title-bg,
+  .brand,
+  .danger-banner,
+  .title-panel,
+  .panel,
+  #hud.headbutt-alarm .hud-top {
+    animation: none !important;
+  }
+}

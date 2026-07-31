@@ -197,6 +197,19 @@ async function main() {
   });
   console.log('Volcano FX:', volcanoFx);
 
+  // Escort egg reveal + clouds
+  await page.evaluate(() => window.__DINO_GUARD_QA__.startLevel(0));
+  await wait(200);
+  const eggState = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    const eggs = g.world?.userData?.eggs || [];
+    const before = eggs.filter((e) => e.visible).length;
+    g._beginEscort();
+    const after = eggs.filter((e) => e.visible && !e.userData.collected).length;
+    return { before, after, clouds: g.world?.userData?.clouds?.length || 0 };
+  });
+  console.log('Egg reveal / clouds:', eggState);
+
   await browser.close();
   preview.kill();
 
