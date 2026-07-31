@@ -37,6 +37,7 @@ export class Game {
     this.camera.position.set(0, 14, 18);
 
     this.clock = new THREE.Clock();
+    this._prevTime = performance.now();
     this.state = 'title';
     this.paused = false;
     this.missionScore = 0;
@@ -246,7 +247,9 @@ export class Game {
 
   loop() {
     requestAnimationFrame(() => this.loop());
-    const dt = Math.min(0.05, this.clock.getDelta());
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - this._prevTime) / 1000);
+    this._prevTime = now;
     if (this.state === 'title' || this.state === 'hub') {
       this._updateTitle(dt);
     } else if (this.state === 'mission' && !this.paused) {
