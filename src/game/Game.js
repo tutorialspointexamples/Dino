@@ -1,9 +1,17 @@
 import * as THREE from 'three';
 import { DINOSAURS, LEVELS, VEHICLES } from './data.js';
-import { loadSave, writeSave, markCleared, isVehicleUnlocked } from './Save.js';
+import { loadSave, writeSave, markCleared, isVehicleUnlocked, recordBestStars } from './Save.js';
 import { createDinosaur } from './DinosaurFactory.js';
 import { createVehicle } from './VehicleFactory.js';
-import { buildWorld, createProjectile, createSpark, createTrailPuff } from './WorldBuilder.js';
+import {
+  buildWorld,
+  createProjectile,
+  createSpark,
+  createTrailPuff,
+  createFootprint,
+  createWakeRing,
+  createHealSpark,
+} from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
 import { AudioBus } from './Audio.js';
@@ -59,6 +67,14 @@ export class Game {
     this._eggsCollected = 0;
     this._lastStars = 0;
     this._chargeTelegraph = null;
+    this._hitCombo = 0;
+    this._comboTimer = 0;
+    this._footprintCooldown = 0;
+    this._wakeCooldown = 0;
+    this._healFxCooldown = 0;
+    this._hitFlashT = 0;
+    this._missionVehicleId = null;
+    this.heals = [];
     this.world = null;
     this.vehicle = null;
     this.baby = null;
@@ -101,9 +117,14 @@ export class Game {
     for (const p of this.projectiles) this.scene.remove(p);
     for (const s of this.sparks) this.scene.remove(s);
     for (const t of this.trails) this.scene.remove(t);
+    for (const h of this.heals || []) this.scene.remove(h);
     this.projectiles = [];
     this.sparks = [];
     this.trails = [];
+    this.heals = [];
+    this._clearChargeTelegraph();
+    this.ui?.setCombo?.(0);
+    this.ui?.setHpVignette?.(0);
     this.shakeT = 0;
     this._weaponCycleT = 0;
     this._weaponCycleIdx = 0;
@@ -204,11 +225,18 @@ export class Game {
     this._clearTitleDiorama();
     this.clearSceneExtras();
     this.level = level;
+    this._missionVehicleId = vehicleId;
     this.missionScore = 0;
     this.phase = PHASE.COUNTDOWN;
     this.phaseT = 0;
     this.paused = false;
     this.state = 'mission';
+    this._hitCombo = 0;
+    this._comboTimer = 0;
+    this._footprintCooldown = 0;
+    this._wakeCooldown = 0;
+    this._healFxCooldown = 0;
+    this._hitFlashT = 0;
 
     this.world = buildWorld(level, this.scene);
 
@@ -318,6 +346,24 @@ export class Game {
     this.ui.showHub();
   }
 
+  restartMission() {
+    if (!this.level) {
+      this.ui.showHub();
+      return;
+    }
+    const vehicleId =
+      this._missionVehicleId ||
+      this.save.selectedVehicle ||
+      (this.level.water
+        ? VEHICLES.find((v) => v.type === 'submarine')?.id
+        : 'police_scout');
+    this.paused = false;
+    this.ui.hidePause();
+    this.audio.stopAmbient();
+    this.startMission(this.level, vehicleId);
+    this.ui.toast('Mission restarted — Guard roll out!');
+  }
+
   startNextMission() {
     if (!this.level) {
       this.ui.showHub();
@@ -372,14 +418,14 @@ export class Game {
       const pulse = 1 + Math.sin(performance.now() * 0.02) * 0.12;
       ring.scale.setScalar(pulse);
       // Wind-up glow on predator body
-      const body = this.predator.userData?.parts?.body;
+      const body = this._predatorBodyMesh();
       if (body?.material) {
         body.material.emissive = body.material.emissive || new THREE.Color(0x000000);
         body.material.emissive.setHex(0xe85d4c);
         body.material.emissiveIntensity = 0.35 + Math.sin(performance.now() * 0.025) * 0.25;
       }
-    } else {
-      const body = this.predator.userData?.parts?.body;
+    } else if (this._hitFlashT <= 0) {
+      const body = this._predatorBodyMesh();
       if (body?.material?.emissiveIntensity != null) {
         body.material.emissiveIntensity = THREE.MathUtils.lerp(body.material.emissiveIntensity, 0.05, 0.1);
       }
@@ -481,8 +527,13 @@ export class Game {
     this._updateProjectiles(dt);
     this._updateSparks(dt);
     this._updateTrails(dt);
+    this._updateHeals(dt);
+    this._updateFootprints(dt);
+    this._updateHitFlash(dt);
+    this._updateCombo(dt);
     this._updateRadar();
     this._updateEggs();
+    this._updateHpVignette();
 
     if (this.vehicle) {
       this.ui.updateHp(this.vehicle.userData.hp / this.vehicle.userData.maxHp);
@@ -748,6 +799,20 @@ export class Game {
       this.trails.push(puff);
     }
 
+    // Submarine wake rings expand behind the hull
+    if (this.level.water && moving) {
+      this._wakeCooldown -= dt;
+      if (this._wakeCooldown <= 0) {
+        this._wakeCooldown = 0.22;
+        const wake = createWakeRing(0xb6eaff);
+        wake.position.copy(v.position);
+        wake.position.y = 0.28;
+        wake.position.add(new THREE.Vector3(0, 0, 1.4).applyQuaternion(v.quaternion));
+        this.scene.add(wake);
+        this.trails.push(wake);
+      }
+    }
+
     const wantFire = this.input.consumeFire();
     if (wantFire && this.phase !== PHASE.WIN && this.phase !== PHASE.LOSE) {
       this._tryFire();
@@ -905,6 +970,11 @@ export class Game {
       // Mother soothes baby while helping
       if (mother.position.distanceTo(baby.position) < 5) {
         baby.userData.hp = Math.min(baby.userData.maxHp, baby.userData.hp + 8 * dt);
+        this._healFxCooldown -= dt;
+        if (this._healFxCooldown <= 0) {
+          this._healFxCooldown = 0.18;
+          this._spawnHealSpark(baby.position.clone().setY(1.2));
+        }
       }
       // Predator may smack mother
       if (this.phaseT > 2 && Math.random() < 0.004) {
@@ -1074,11 +1144,13 @@ export class Game {
     const stars = this._missionStars();
     this._lastStars = stars;
     this.missionScore += 500 + Math.floor(this.vehicle?.userData?.hp || 0) + stars * 50;
+    if (this._hitCombo > 4) this.missionScore += this._hitCombo * 5;
     this.ui.updateScore(this.missionScore);
     const stampId = this.level.stamp;
     const stamp = DINOSAURS[stampId];
     const prevCleared = this.save.cleared.length;
     markCleared(this.save, this.level.id, stampId, this.missionScore);
+    recordBestStars(this.save, this.level.id, stars);
     // Also stamp predator / mother for encyclopedia depth
     if (!this.save.stamps.includes(this.level.predator)) {
       this.save.stamps.push(this.level.predator);
@@ -1108,6 +1180,7 @@ export class Game {
       stampColor: stamp ? `#${stamp.color.toString(16).padStart(6, '0')}` : undefined,
       fact: stamp?.facts || DINOSAURS[this.level.predator]?.facts,
       stars,
+      perfect: stars >= 3,
       unlockText,
       hasNext,
     });
@@ -1177,8 +1250,8 @@ export class Game {
           this.predator.userData.anim.state = 'hurt';
           this._spawnSparks(p.position.clone().setY(1.2), 0xf4c14b, 6);
           this._spawnDamageFloater(p.position.clone().setY(2.2), p.userData.damage);
-          this.missionScore += 10;
-          this.ui.updateScore(this.missionScore);
+          this._registerHit(p.userData.damage);
+          this._flashPredatorHit();
           this.audio.hit();
           hit = true;
           if (this.phase === PHASE.INTRO || this.phase === PHASE.CHASE) {
@@ -1224,12 +1297,129 @@ export class Game {
     for (let i = this.trails.length - 1; i >= 0; i--) {
       const t = this.trails[i];
       t.userData.life -= dt;
-      t.position.y += dt * 0.4;
-      t.scale.multiplyScalar(1.02);
-      t.material.opacity = Math.max(0, t.userData.life * 0.9);
+      if (t.userData.kind === 'wake') {
+        t.scale.multiplyScalar(1.04);
+        t.material.opacity = Math.max(0, t.userData.life * 0.75);
+      } else if (t.userData.kind === 'footprint') {
+        t.material.opacity = Math.max(0, t.userData.life * 0.25);
+      } else {
+        t.position.y += dt * 0.4;
+        t.scale.multiplyScalar(1.02);
+        t.material.opacity = Math.max(0, t.userData.life * 0.9);
+      }
       if (t.userData.life <= 0) {
         this.scene.remove(t);
         this.trails.splice(i, 1);
+      }
+    }
+  }
+
+  _registerHit(_baseDamage) {
+    this._hitCombo += 1;
+    this._comboTimer = 1.6;
+    const mult = Math.min(4, 1 + Math.floor(this._hitCombo / 3) * 0.5);
+    const bonus = Math.round(10 * mult);
+    this.missionScore += bonus;
+    this.ui.updateScore(this.missionScore);
+    this.ui.setCombo(this._hitCombo);
+    if (this._hitCombo >= 5 && this._hitCombo % 5 === 0) {
+      this.ui.toast(`Combo x${this._hitCombo}!`);
+      this.ui.crewCallout('Gunner Kai', `Keep the streak — x${this._hitCombo}!`);
+    }
+  }
+
+  _updateCombo(dt) {
+    if (this._hitCombo <= 0) return;
+    this._comboTimer -= dt;
+    if (this._comboTimer <= 0) {
+      this._hitCombo = 0;
+      this.ui.setCombo(0);
+    }
+  }
+
+  _predatorBodyMesh() {
+    const parts = this.predator?.userData?.parts;
+    if (!parts) return null;
+    // `body` is a Group; `torso` is the lit MeshStandardMaterial mesh
+    if (parts.torso?.material?.emissive) return parts.torso;
+    if (parts.body?.material?.emissive) return parts.body;
+    let found = null;
+    parts.body?.traverse?.((child) => {
+      if (!found && child.isMesh && child.material?.emissive) found = child;
+    });
+    return found;
+  }
+
+  _flashPredatorHit() {
+    const body = this._predatorBodyMesh();
+    if (!body?.material) return;
+    if (!body.material.emissive) body.material.emissive = new THREE.Color(0x000000);
+    body.material.emissive.setHex(0xfff3a0);
+    body.material.emissiveIntensity = 0.85;
+    this._hitFlashT = 0.18;
+  }
+
+  _updateHitFlash(dt) {
+    if (this._hitFlashT <= 0) return;
+    this._hitFlashT -= dt;
+    const body = this._predatorBodyMesh();
+    if (!body?.material) return;
+    if (this._hitFlashT <= 0) {
+      body.material.emissiveIntensity = 0.05;
+    } else {
+      body.material.emissiveIntensity = 0.2 + this._hitFlashT * 3.5;
+    }
+  }
+
+  _updateHpVignette() {
+    const babyRatio = this.baby
+      ? this.baby.userData.hp / (this.baby.userData.maxHp || 1)
+      : 1;
+    const jeepRatio = this.vehicle
+      ? this.vehicle.userData.hp / (this.vehicle.userData.maxHp || 1)
+      : 1;
+    const danger = Math.min(babyRatio, jeepRatio);
+    // Stronger red edge when either is critical
+    const amount = danger < 0.4 ? (0.4 - danger) / 0.4 : 0;
+    this.ui.setHpVignette(amount);
+  }
+
+  _updateFootprints(dt) {
+    if (this.level?.water) return;
+    this._footprintCooldown -= dt;
+    if (this._footprintCooldown > 0) return;
+    this._footprintCooldown = 0.28;
+    for (const dino of [this.baby, this.predator, this.mother]) {
+      if (!dino?.visible) continue;
+      if (dino.userData.anim?.state === 'idle') continue;
+      const print = createFootprint(0x2a1c10);
+      print.position.set(dino.position.x, 0.03, dino.position.z);
+      print.rotation.z = -dino.rotation.y;
+      // Offset slightly behind the body
+      print.position.x -= Math.sin(dino.rotation.y) * 0.35;
+      print.position.z -= Math.cos(dino.rotation.y) * 0.35;
+      this.scene.add(print);
+      this.trails.push(print);
+    }
+  }
+
+  _spawnHealSpark(pos) {
+    const s = createHealSpark();
+    s.position.copy(pos);
+    this.scene.add(s);
+    this.heals.push(s);
+  }
+
+  _updateHeals(dt) {
+    for (let i = this.heals.length - 1; i >= 0; i--) {
+      const h = this.heals[i];
+      h.position.addScaledVector(h.userData.velocity, dt);
+      h.userData.life -= dt;
+      h.material.opacity = Math.max(0, h.userData.life);
+      h.scale.multiplyScalar(0.98);
+      if (h.userData.life <= 0) {
+        this.scene.remove(h);
+        this.heals.splice(i, 1);
       }
     }
   }

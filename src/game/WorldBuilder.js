@@ -554,3 +554,55 @@ export function createTrailPuff(color, water = false) {
   mesh.userData.kind = 'trail';
   return mesh;
 }
+
+/** Oval footprint left by walking dinosaurs. */
+export function createFootprint(color = 0x3a2a18) {
+  const mesh = new THREE.Mesh(
+    new THREE.CircleGeometry(0.22, 10),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.scale.set(0.7, 1.15, 1);
+  mesh.userData.life = 1.8;
+  mesh.userData.kind = 'footprint';
+  return mesh;
+}
+
+/** Expanding ring wake for submarines. */
+export function createWakeRing(color = 0xb6eaff) {
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(0.35, 0.55, 20),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.userData.life = 0.7;
+  mesh.userData.kind = 'wake';
+  return mesh;
+}
+
+/** Soft heal spark for mother-assist soothing. */
+export function createHealSpark() {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.14, 6, 6),
+    new THREE.MeshBasicMaterial({ color: 0x62d26f, transparent: true, opacity: 0.9 }),
+  );
+  mesh.userData.life = 0.7;
+  mesh.userData.kind = 'heal';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 1.2,
+    1.5 + Math.random(),
+    (Math.random() - 0.5) * 1.2,
+  );
+  return mesh;
+}

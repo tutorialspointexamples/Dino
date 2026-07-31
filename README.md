@@ -56,16 +56,16 @@ npm run qa
 
 ### Verification iterations (this branch)
 
-1. Mission star rating (1–3) from baby HP, jeep HP, and egg pickups  
-2. Vehicle unlock celebration toast + result unlock line  
-3. Predator charge telegraph (red ring + emissive wind-up) before headbutt  
-4. Soft ambient music bed during missions (+ mute stops it)  
-5. Dinosaur Master collection meter on the Stamp Book  
-6. Dripping stalactites in crystal / firefly cave biomes  
-7. King flowers swaying in the Tropical Rainforest  
-8. Baby panic animation + squeal when the predator gets close  
-9. Next Mission button on the result screen  
-10. Expanded `verify` / Playwright QA for stars, telegraph, flowers, drips, master meter  
+1. **Restart Mission** from the pause menu  
+2. **Hit combo streak** HUD with score multiplier  
+3. **Predator hit flash** (emissive pulse on dart impact)  
+4. **Low HP vignette** when baby or Guard vehicle is critical  
+5. **Dinosaur footprints** left while chasing on land  
+6. **Submarine wake rings** in water biomes  
+7. **Level card roster** — baby / predator preview + best stars on the Jurassic Map  
+8. **Perfect Rescue** badge on 3-star wins  
+9. **Mother heal sparkles** while soothing the baby  
+10. **Best stars persistence** in save data + expanded verify / Playwright QA  
 
 ## Project layout
 

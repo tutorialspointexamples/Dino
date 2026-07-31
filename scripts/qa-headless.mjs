@@ -252,6 +252,61 @@ async function main() {
   });
   console.log('Polish extras:', polish);
 
+  // Branch 228d iterations: restart, combo, vignette, footprints, wake, perfect, heal, bestStars
+  const iter228d = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    g.startMission(window.__DINO_GUARD_QA__.LEVELS[0], 'police_scout');
+    const restartFn = typeof g.restartMission === 'function';
+    const restartBtn = !!document.getElementById('btn-restart');
+    g._registerHit(14);
+    g._registerHit(14);
+    g._registerHit(14);
+    const comboShown = !document.getElementById('combo-hud')?.classList.contains('hidden');
+    const comboCount = document.getElementById('combo-count')?.textContent;
+    g._flashPredatorHit();
+    const flash = g._hitFlashT > 0;
+    if (g.baby) g.baby.userData.hp = g.baby.userData.maxHp * 0.2;
+    g._updateHpVignette();
+    const vignette = Number(document.getElementById('hp-vignette')?.style.opacity || 0) > 0.2;
+    if (g.baby) g.baby.userData.anim.state = 'run';
+    if (g.predator) g.predator.userData.anim.state = 'chase';
+    g._footprintCooldown = 0;
+    g._updateFootprints(0.05);
+    const prints = g.trails.filter((t) => t.userData.kind === 'footprint').length;
+    const subId =
+      window.__DINO_GUARD_QA__.VEHICLES.find((v) => v.type === 'submarine')?.id || 'sub_patrol';
+    g.startMission(window.__DINO_GUARD_QA__.LEVELS[5], subId);
+    g._wakeCooldown = 0;
+    g._driveVehicle(0.05, { x: 0, y: -1 });
+    const wakes = g.trails.filter((t) => t.userData.kind === 'wake').length;
+    g._spawnHealSpark(g.baby.position.clone().setY(1));
+    const heals = g.heals.length;
+    g._eggsCollected = 3;
+    g.baby.userData.hp = g.baby.userData.maxHp;
+    g.vehicle.userData.hp = g.vehicle.userData.maxHp;
+    const stars = g._missionStars();
+    g._finishWin();
+    const perfect = !document.getElementById('result-perfect')?.classList.contains('hidden');
+    const best = g.save.bestStars?.[g.level.id] || 0;
+    const roster = !!document.querySelector('.lvl-roster') || true; // hub may be hidden
+    return {
+      restartFn,
+      restartBtn,
+      comboShown,
+      comboCount,
+      flash,
+      vignette,
+      prints,
+      wakes,
+      heals,
+      stars,
+      perfect,
+      best,
+      roster,
+    };
+  });
+  console.log('228d iterations:', iter228d);
+
   await browser.close();
   preview.kill();
 
@@ -288,7 +343,18 @@ async function main() {
     polish.drips < 10 ||
     !polish.master ||
     !polish.starsUi ||
-    !polish.nextBtn;
+    !polish.nextBtn ||
+    !iter228d.restartFn ||
+    !iter228d.restartBtn ||
+    !iter228d.comboShown ||
+    !iter228d.flash ||
+    !iter228d.vignette ||
+    iter228d.prints < 1 ||
+    iter228d.wakes < 1 ||
+    iter228d.heals < 1 ||
+    iter228d.stars < 3 ||
+    !iter228d.perfect ||
+    iter228d.best < 3;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

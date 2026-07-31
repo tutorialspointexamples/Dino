@@ -121,6 +121,18 @@ ok(world.includes('stalactiteDrips') && world.includes('makeKingFlower'), 'cave 
 ok(dino.includes('panicBoost') || dino.includes('anim.panic'), 'baby panic animation boost');
 ok(game.includes('_eggsCollected'), 'egg collection tracked for stars');
 
+// Branch 228d polish iterations
+ok(html.includes('btn-restart') && game.includes('restartMission'), 'pause restart mission');
+ok(html.includes('combo-hud') && game.includes('_registerHit') && game.includes('_hitCombo'), 'hit combo streak HUD');
+ok(game.includes('_flashPredatorHit') && game.includes('_predatorBodyMesh'), 'predator hit flash');
+ok(html.includes('hp-vignette') && game.includes('_updateHpVignette'), 'low HP vignette');
+ok(world.includes('createFootprint') && game.includes('_updateFootprints'), 'dinosaur footprints');
+ok(world.includes('createWakeRing') && game.includes('_wakeCooldown'), 'submarine wake rings');
+ok(read('src/game/UI.js').includes('lvl-roster') && read('src/game/UI.js').includes('lvl-stars'), 'level dino roster + best stars');
+ok(html.includes('result-perfect') && game.includes('perfect:'), 'perfect rescue badge');
+ok(world.includes('createHealSpark') && game.includes('_spawnHealSpark'), 'mother heal sparkles');
+ok(read('src/game/Save.js').includes('recordBestStars') && read('src/game/Save.js').includes('bestStars'), 'best stars persistence');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

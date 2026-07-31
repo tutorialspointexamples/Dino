@@ -25,6 +25,7 @@ export class UI {
     };
     this.$('btn-pause').onclick = () => this.game.pause();
     this.$('btn-resume').onclick = () => this.game.resume();
+    this.$('btn-restart')?.addEventListener('click', () => this.game.restartMission());
     this.$('btn-quit').onclick = () => this.game.quitToHub();
     this.$('btn-result-continue').onclick = () => this.showHub();
     this.$('btn-result-next')?.addEventListener('click', () => this.game.startNextMission());
@@ -67,15 +68,24 @@ export class UI {
       const cleared = save.cleared.includes(level.id);
       const btn = document.createElement('button');
       btn.className = `level-card${cleared ? ' cleared' : ''}${unlocked ? '' : ' locked'}`;
+      const best = save.bestStars?.[level.id] || 0;
+      const babyName = DINOSAURS[level.baby]?.name?.replace(/^Baby\s+/, '') || 'Dino';
+      const predName = DINOSAURS[level.predator]?.name || 'Predator';
       const badges = [
         level.water ? '<span class="lvl-badge water">SUB</span>' : '',
         level.boss ? '<span class="lvl-badge boss">BOSS</span>' : '',
         cleared ? '<span class="lvl-badge clear">✓</span>' : '',
       ].join('');
+      const starRow =
+        best > 0
+          ? `<div class="lvl-stars" aria-label="${best} stars">${'★'.repeat(best)}${'☆'.repeat(3 - best)}</div>`
+          : '<div class="lvl-stars empty">☆☆☆</div>';
       btn.innerHTML = `
         <div class="swatch" style="background:linear-gradient(135deg,${hexCss(level.colors.sky)},${hexCss(level.colors.ground)})">${badges}</div>
         <h3>${i + 1}. ${level.name}</h3>
-        <p>${unlocked ? level.desc : 'Clear previous mission to unlock'}</p>
+        ${starRow}
+        <p class="lvl-roster">${unlocked ? `Save ${babyName} · stop ${predName}` : 'Clear previous mission to unlock'}</p>
+        <p>${unlocked ? level.desc : ''}</p>
       `;
       btn.onclick = () => {
         if (!unlocked) {
@@ -228,9 +238,21 @@ export class UI {
     this.$('screen-pause').classList.add('hidden');
   }
 
-  showResult({ win, message, stampName, stampColor, fact, stars = 0, unlockText = '', hasNext = false }) {
+  showResult({
+    win,
+    message,
+    stampName,
+    stampColor,
+    fact,
+    stars = 0,
+    perfect = false,
+    unlockText = '',
+    hasNext = false,
+  }) {
     this.$('hud').classList.add('hidden');
     this.$('nest-compass')?.classList.add('hidden');
+    this.setCombo(0);
+    this.setHpVignette(0);
     this.hideCountdown();
     this.hideCrewCallout();
     this.setAlarmRing(false);
@@ -247,6 +269,10 @@ export class UI {
       } else {
         starsEl.classList.add('hidden');
       }
+    }
+    const perfectEl = this.$('result-perfect');
+    if (perfectEl) {
+      perfectEl.classList.toggle('hidden', !(win && perfect));
     }
     const factEl = this.$('result-fact');
     if (win && fact) {
@@ -352,5 +378,28 @@ export class UI {
     el.classList.remove('hidden');
     clearTimeout(this._toastTimer);
     this._toastTimer = setTimeout(() => el.classList.add('hidden'), 1800);
+  }
+
+  setCombo(n) {
+    const el = this.$('combo-hud');
+    if (!el) return;
+    if (n >= 2) {
+      el.classList.remove('hidden');
+      const count = this.$('combo-count');
+      if (count) count.textContent = `x${n}`;
+      el.classList.remove('pop');
+      void el.offsetWidth;
+      el.classList.add('pop');
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  setHpVignette(amount) {
+    const el = this.$('hp-vignette');
+    if (!el) return;
+    const a = Math.max(0, Math.min(1, amount));
+    el.style.opacity = String(a * 0.85);
+    el.classList.toggle('critical', a > 0.55);
   }
 }
