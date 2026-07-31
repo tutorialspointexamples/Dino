@@ -38,31 +38,34 @@ export function createVehicle(def) {
   const crewNodes = [];
 
   if (def.type === 'submarine') {
+    // Capsule long-axis along Z so nose faces -Z (drive/fire forward)
     const hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.7, 2.2, 8, 16), mat(bodyColor));
-    hull.rotation.z = Math.PI / 2;
+    hull.rotation.x = Math.PI / 2;
     hull.position.y = 0.9;
     hull.castShadow = true;
     root.add(hull);
 
     const cabin = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 12), mat(accent));
-    cabin.position.set(0.4, 1.25, 0);
+    cabin.position.set(0, 1.35, -0.35);
     root.add(cabin);
 
-    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.8), mat(accent));
-    fin.position.set(-1.2, 1.2, 0);
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 0.15), mat(accent));
+    fin.position.set(0, 1.25, 1.25);
     root.add(fin);
 
-    for (const z of [-0.55, 0.55]) {
-      const prop = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.08, 0.5), mat(0xdddddd));
-      prop.position.set(-1.45, 0.9, z);
+    for (const x of [-0.55, 0.55]) {
+      const prop = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.35), mat(0xdddddd));
+      prop.position.set(x, 0.9, 1.5);
       root.add(prop);
       root.userData.propellers = root.userData.propellers || [];
       root.userData.propellers.push(prop);
     }
 
-    // Two crew visible in viewport
-    crewNodes.push(addCrewMember(root, CREW[0], 0.2, 0.95, 0.15));
-    crewNodes.push(addCrewMember(root, CREW[1], 0.45, 0.95, -0.15));
+    // Guard crew visible in the conning tower / seats
+    crewNodes.push(addCrewMember(root, CREW[0], -0.2, 1.05, -0.2));
+    crewNodes.push(addCrewMember(root, CREW[1], 0.2, 1.05, -0.2));
+    crewNodes.push(addCrewMember(root, CREW[2], -0.2, 1.05, 0.25));
+    crewNodes.push(addCrewMember(root, CREW[3], 0.2, 1.05, 0.25));
   } else {
     // Police / guard land vehicles
     const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.55, 2.6), mat(bodyColor));
@@ -136,12 +139,13 @@ export function createVehicle(def) {
     root.userData.muzzle.position.set(0, 1.0, -1.6);
     root.add(root.userData.muzzle);
   }
-  // Sub torpedo tube visual
+  // Sub torpedo tube visual — forward (-Z)
   if (def.type === 'submarine') {
     const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 10), mat(0x333333));
     tube.rotation.x = Math.PI / 2;
-    tube.position.set(0, 0.85, -1.35);
+    tube.position.set(0, 0.85, -1.55);
     root.add(tube);
+    root.userData.muzzle.position.set(0, 0.85, -1.95);
   }
 
   const shadow = new THREE.Mesh(

@@ -71,6 +71,9 @@ ok(dino.includes('updateAnim') && dino.includes('legs') && dino.includes('wings'
 ok(dino.includes("morph === 'trike'") && dino.includes("morph === 'mosa'") && dino.includes("morph === 'ptera'"), 'species morphs');
 ok(vehicle.includes('submarine') && vehicle.includes('sirens') && vehicle.includes('CREW'), 'vehicles + crew built');
 ok(vehicle.includes("muzzle.position.set(0, 0.85, -1.9)"), 'muzzle aims forward (-Z)');
+ok(vehicle.includes('hull.rotation.x = Math.PI / 2') && vehicle.includes('muzzle.position.set(0, 0.85, -1.95)'), 'submarine hull faces -Z');
+ok(read('src/game/Input.js').includes('Escape') && game.includes('_handlePauseHotkey'), 'Escape/P pause hotkey');
+ok(dino.includes('_fans'), 'dilophosaurus frill fan animation');
 ok(html.includes('Stamp Book') && html.includes('Garage') && html.includes('Jurassic Map'), 'hub UI surfaces');
 ok(html.includes('Auto Aim') && html.includes('Zoom') && html.includes('Scatter'), 'weapon mode UI');
 ok(html.includes('stick-zone') && html.includes('btn-fire'), 'touch controls');

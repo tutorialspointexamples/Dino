@@ -104,11 +104,12 @@ export function createDinosaur(def) {
   if (morph === 'dilopho') {
     addMesh(head, new THREE.ConeGeometry(0.12 * s, 0.4 * s, 5), def.accent, [-0.18 * s, 0.3 * s, 0], [0, 0, 0.4]);
     addMesh(head, new THREE.ConeGeometry(0.12 * s, 0.4 * s, 5), def.accent, [0.18 * s, 0.3 * s, 0], [0, 0, -0.4]);
-    // Frill fans
+    // Frill fans (animated during chase/attack)
     const fanL = addMesh(head, new THREE.CircleGeometry(0.45 * s, 10), def.accent, [-0.35 * s, 0.05 * s, 0], [0, 0.4, 0.5], 0.35);
     fanL.material.side = THREE.DoubleSide;
     const fanR = addMesh(head, new THREE.CircleGeometry(0.45 * s, 10), def.accent, [0.35 * s, 0.05 * s, 0], [0, -0.4, -0.5], 0.35);
     fanR.material.side = THREE.DoubleSide;
+    root.userData._fans = [fanL, fanR];
   }
 
   if (morph === 'para') {
@@ -282,6 +283,12 @@ export function createDinosaur(def) {
       const side = i === 0 ? -1 : 1;
       wing.rotation.z = side * (0.25 + Math.sin(t * 7 * walk) * 0.45 * walk);
     });
+
+    if (root.userData._fans) {
+      const flare = u.anim.state === 'attack' || u.anim.state === 'chase' ? 0.55 : 0.2;
+      root.userData._fans[0].rotation.z = 0.5 + Math.sin(t * 6) * flare;
+      root.userData._fans[1].rotation.z = -0.5 - Math.sin(t * 6) * flare;
+    }
 
     if (u.anim.state === 'hurt') {
       body.rotation.z = Math.sin(t * 30) * 0.12;

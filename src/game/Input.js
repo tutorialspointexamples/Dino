@@ -7,6 +7,7 @@ export class Input {
     this._stickActive = false;
 
     this.weaponHotkey = null;
+    this.pausePressed = false;
 
     window.addEventListener('keydown', (e) => {
       this.keys.add(e.code);
@@ -18,6 +19,7 @@ export class Input {
       if (e.code === 'Digit1' || e.code === 'Numpad1') this.weaponHotkey = 'auto';
       if (e.code === 'Digit2' || e.code === 'Numpad2') this.weaponHotkey = 'zoom';
       if (e.code === 'Digit3' || e.code === 'Numpad3') this.weaponHotkey = 'scatter';
+      if (e.code === 'Escape' || e.code === 'KeyP') this.pausePressed = true;
     });
     window.addEventListener('keyup', (e) => {
       this.keys.delete(e.code);
@@ -108,5 +110,11 @@ export class Input {
     const mode = this.weaponHotkey;
     this.weaponHotkey = null;
     return mode;
+  }
+
+  consumePause() {
+    const v = this.pausePressed;
+    this.pausePressed = false;
+    return v;
   }
 }

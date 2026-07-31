@@ -134,12 +134,16 @@ async function main() {
     };
   });
   console.log('Fleet meta:', meta);
+  if (meta.crewOnVehicle < 2) {
+    console.error('Expected crew on vehicle');
+  }
 
-  // Boss water mission uses submarine
+  // Boss water mission uses submarine + full crew
   await page.evaluate(() => window.__DINO_GUARD_QA__.startLevel(7));
   await wait(300);
   const bossSub = await page.evaluate(() => window.__DINO_GUARD__.vehicle?.userData?.def?.type === 'submarine');
-  console.log('Boss water submarine:', bossSub);
+  const subCrew = await page.evaluate(() => window.__DINO_GUARD__.vehicle?.userData?.crew?.length || 0);
+  console.log('Boss water submarine:', bossSub, 'crew:', subCrew);
 
   // Radar + eggs + tutorial + jaw anim present
   const extras = await page.evaluate(() => {
@@ -211,7 +215,8 @@ async function main() {
     extras.dinoCount < 26 ||
     !headbuttPhase.alarm ||
     volcanoFx.ash < 10 ||
-    !volcanoFx.lava;
+    !volcanoFx.lava ||
+    subCrew < 4;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

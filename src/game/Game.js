@@ -258,6 +258,12 @@ export class Game {
     this.ui.hidePause();
   }
 
+  _handlePauseHotkey() {
+    if (!this.input.consumePause()) return;
+    if (this.state === 'mission' && this.paused) this.resume();
+    else if (this.state === 'mission') this.pause();
+  }
+
   quitToHub() {
     this.paused = false;
     this.ui.hidePause();
@@ -270,6 +276,7 @@ export class Game {
     const now = performance.now();
     const dt = Math.min(0.05, (now - this._prevTime) / 1000);
     this._prevTime = now;
+    if (this.state === 'mission') this._handlePauseHotkey();
     if (this.state === 'title' || this.state === 'hub') {
       this._updateTitle(dt);
     } else if (this.state === 'mission' && !this.paused) {
@@ -586,6 +593,10 @@ export class Game {
       if (mother.position.distanceTo(predator.position) < 2.8) {
         predator.userData.hp -= 18 * dt;
         predator.userData.anim.state = 'hurt';
+      }
+      // Mother soothes baby while helping
+      if (mother.position.distanceTo(baby.position) < 5) {
+        baby.userData.hp = Math.min(baby.userData.maxHp, baby.userData.hp + 8 * dt);
       }
       // Predator may smack mother
       if (this.phaseT > 2 && Math.random() < 0.004) {
