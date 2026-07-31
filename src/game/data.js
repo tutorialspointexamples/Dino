@@ -5,9 +5,9 @@ export const DINOSAURS = {
     id: 'baby_trike',
     name: 'Baby Triceratops',
     role: 'baby',
-    color: 0x6bcf7f,
-    accent: 0xe8f5a0,
-    scale: 0.55,
+    color: 0x8be09a,
+    accent: 0xfff3a0,
+    scale: 0.7,
     facts: 'Trikes use their frills to look bigger to predators.',
   },
   mother_trike: {

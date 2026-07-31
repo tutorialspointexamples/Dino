@@ -167,17 +167,18 @@ export class Game {
 
     const vDef = VEHICLES.find((v) => v.id === vehicleId) || VEHICLES[0];
     this.vehicle = createVehicle(vDef);
-    this.vehicle.position.set(0, 0, 10);
-    this.vehicle.rotation.y = Math.PI;
+    // Face -Z toward the nest / rescue action (Three.js default forward)
+    this.vehicle.position.set(0, 0, 12);
+    this.vehicle.rotation.y = 0;
     this.scene.add(this.vehicle);
 
     this.baby = createDinosaur(DINOSAURS[level.baby]);
-    this.baby.position.set(2, 0, -14);
+    this.baby.position.set(1.5, 0, -6);
     this.baby.userData.anim.state = 'run';
     this.scene.add(this.baby);
 
     this.predator = createDinosaur(DINOSAURS[level.predator]);
-    this.predator.position.set(8, 0, -8);
+    this.predator.position.set(5, 0, -2);
     this.predator.userData.anim.state = 'chase';
     this.predator.userData.hp = level.boss ? 160 : 100;
     this.predator.userData.maxHp = this.predator.userData.hp;

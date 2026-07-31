@@ -3,10 +3,10 @@ import * as THREE from 'three';
 function mat(color, emissive = 0x000000, emissiveIntensity = 0) {
   return new THREE.MeshStandardMaterial({
     color,
-    roughness: 0.55,
-    metalness: 0.05,
-    emissive,
-    emissiveIntensity,
+    roughness: 0.48,
+    metalness: 0.08,
+    emissive: emissive || color,
+    emissiveIntensity: emissiveIntensity || 0.12,
   });
 }
 

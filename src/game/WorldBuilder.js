@@ -172,7 +172,7 @@ export function buildWorld(level, scene) {
   group.userData.nestPos = nest.position.clone();
 
   scene.background = new THREE.Color(colors.sky);
-  scene.fog = new THREE.Fog(colors.fog, 28, 70);
+  scene.fog = new THREE.Fog(colors.fog, 40, 90);
 
   scene.add(group);
   return group;
@@ -199,15 +199,11 @@ function makeTree(leafColor) {
 
 export function createProjectile(color = 0xf4c14b) {
   const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.18, 10, 8),
-    new THREE.MeshStandardMaterial({
-      color,
-      emissive: color,
-      emissiveIntensity: 0.7,
-    }),
+    new THREE.SphereGeometry(0.32, 10, 8),
+    new THREE.MeshBasicMaterial({ color }),
   );
   mesh.userData.kind = 'projectile';
-  mesh.userData.life = 1.6;
+  mesh.userData.life = 1.8;
   mesh.userData.velocity = new THREE.Vector3();
   mesh.userData.damage = 14;
   return mesh;
