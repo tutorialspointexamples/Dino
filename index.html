@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#1f6b3a" />
+    <meta name="description" content="Offline 3D dinosaur rescue adventure — protect baby dinos, drive Guard vehicles, collect stamps." />
     <title>Dinosaur Guard 2 — Rescue Adventure</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -11,6 +14,11 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
+    <div id="boot-splash" class="boot-splash" aria-live="polite">
+      <p class="brand">DINOSAUR GUARD 2</p>
+      <p class="boot-tag">Loading Jurassic rescue…</p>
+      <div class="boot-bar"><i></i></div>
+    </div>
     <div id="app">
       <canvas id="game-canvas"></canvas>
 
@@ -104,6 +112,12 @@
           <span class="radar-label">RADAR</span>
         </div>
         <div id="danger-banner" class="danger-banner hidden">BABY IN DANGER!</div>
+        <div id="alarm-ring" class="alarm-ring hidden" aria-hidden="true">ALARM</div>
+        <div id="mission-countdown" class="mission-countdown hidden" aria-live="assertive">3</div>
+        <div id="crew-callout" class="crew-callout hidden" aria-live="polite">
+          <strong id="crew-callout-name">Captain Rio</strong>
+          <span id="crew-callout-text"></span>
+        </div>
         <div id="tutorial-tip" class="tutorial-tip hidden"></div>
         <p class="hint" id="control-hint">WASD / stick to drive · Space / FIRE · 1/2/3 weapons · Esc pause</p>
         <div class="hud-aim hidden" id="aim-hint">SMART AIM READY — TAP / SPACE TO FIRE</div>

@@ -21,16 +21,36 @@ window.__DINO_GUARD_QA__ = {
         : 'police_scout');
     game.startMission(level, pick);
   },
+  /** Skip countdown for automated QA */
+  skipCountdown() {
+    if (game.phase === 'countdown') {
+      game.phase = 'intro';
+      game.phaseT = 0;
+      game.ui.hideCountdown();
+      game.ui.setAlarmRing(false);
+      if (game.baby) game.baby.userData.anim.state = 'run';
+      if (game.predator) game.predator.userData.anim.state = 'chase';
+    }
+  },
   forceEscort() {
+    game.ui.hideCountdown();
+    game.ui.setAlarmRing(false);
     if (game.predator) game.predator.userData.hp = 0;
     game._beginEscort();
   },
   forceWin() {
-    game._win();
+    game._finishWin();
   },
   getPhase: () => game.phase,
   getScore: () => game.missionScore,
   getSave: () => game.save,
 };
+
+const splash = document.getElementById('boot-splash');
+if (splash) {
+  requestAnimationFrame(() => {
+    setTimeout(() => splash.classList.add('done'), 700);
+  });
+}
 
 console.info('[Dinosaur Guard 2] Ready — WASD/Arrows drive, Space/FIRE shoot');

@@ -512,6 +512,151 @@ h2 {
   padding: 8px;
 }
 
+.result-stamp.stamp-pop {
+  animation: stampPop 0.65s cubic-bezier(0.2, 1.5, 0.3, 1);
+}
+
+@keyframes stampPop {
+  0% { transform: scale(0.2) rotate(-12deg); opacity: 0; }
+  60% { transform: scale(1.12) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.boot-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(126, 200, 227, 0.25), transparent 50%),
+    linear-gradient(160deg, #1a4d2e, #0d2418 70%);
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.boot-splash.done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.boot-tag {
+  margin: 0;
+  font-weight: 800;
+  color: rgba(255, 248, 231, 0.85);
+}
+
+.boot-bar {
+  width: min(220px, 60vw);
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 248, 231, 0.15);
+  overflow: hidden;
+  border: 1px solid rgba(244, 193, 75, 0.45);
+}
+
+.boot-bar i {
+  display: block;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, #f4c14b, #62d26f);
+  animation: bootLoad 1.1s ease-in-out infinite;
+}
+
+@keyframes bootLoad {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(280%); }
+}
+
+.mission-countdown {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  z-index: 20;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 18vw, 7rem);
+  font-weight: 800;
+  color: var(--sun);
+  text-shadow: 0 6px 0 #8a5a12, 0 12px 30px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.mission-countdown.pop {
+  animation: countPop 0.45s cubic-bezier(0.2, 1.6, 0.3, 1);
+}
+
+@keyframes countPop {
+  from { transform: translate(-50%, -50%) scale(0.55); opacity: 0.4; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+.alarm-ring {
+  position: absolute;
+  top: calc(72px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  z-index: 14;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(185, 28, 28, 0.9);
+  border: 2px solid #fecaca;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  animation: alarmFlash 0.3s steps(2) infinite;
+  pointer-events: none;
+}
+
+#hud.alarm-active .weapon-modes {
+  filter: saturate(1.2);
+}
+
+.crew-callout {
+  position: absolute;
+  left: 12px;
+  bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+  z-index: 14;
+  max-width: min(280px, 70vw);
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(20, 53, 34, 0.92);
+  border: 2px solid rgba(96, 165, 250, 0.65);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+  animation: popIn 0.3s ease;
+}
+
+.crew-callout strong {
+  color: #93c5fd;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+}
+
+.crew-callout span {
+  font-size: 0.88rem;
+  line-height: 1.3;
+  color: rgba(255, 248, 231, 0.92);
+}
+
+.dmg-floater {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 30;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fecaca;
+  text-shadow: 0 2px 0 #7f1d1d, 0 4px 10px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
 .result-fact {
   margin: 8px 0 0;
   font-size: 0.95rem;
@@ -710,13 +855,30 @@ h2 {
   }
 }
 
+@media (max-width: 700px) {
+  .crew-callout {
+    bottom: calc(210px + env(safe-area-inset-bottom, 0px));
+    max-width: min(240px, 62vw);
+  }
+
+  .alarm-ring {
+    top: calc(118px + env(safe-area-inset-top, 0px));
+    right: 12px;
+    font-size: 0.8rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .title-bg,
   .brand,
   .danger-banner,
   .title-panel,
   .panel,
-  #hud.headbutt-alarm .hud-top {
+  #hud.headbutt-alarm .hud-top,
+  .mission-countdown.pop,
+  .result-stamp.stamp-pop,
+  .boot-bar i,
+  .alarm-ring {
     animation: none !important;
   }
 }

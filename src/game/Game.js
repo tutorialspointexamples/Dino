@@ -9,15 +9,19 @@ import { UI } from './UI.js';
 import { AudioBus } from './Audio.js';
 
 const PHASE = {
+  COUNTDOWN: 'countdown',
   INTRO: 'intro',
   CHASE: 'chase',
   COMBAT: 'combat',
   MOTHER: 'mother',
   HEADBUTT: 'headbutt',
   ESCORT: 'escort',
+  CELEBRATE: 'celebrate',
   WIN: 'win',
   LOSE: 'lose',
 };
+
+const WEAPON_CYCLE = ['auto', 'zoom', 'scatter'];
 
 export class Game {
   constructor(canvas) {
@@ -47,6 +51,11 @@ export class Game {
     this.shakeT = 0;
     this._trailCooldown = 0;
     this._roarCooldown = 0;
+    this._weaponCycleT = 0;
+    this._weaponCycleIdx = 0;
+    this._floaters = [];
+    this._countdownStep = 3;
+    this._celebrateT = 0;
     this.world = null;
     this.vehicle = null;
     this.baby = null;
@@ -93,9 +102,18 @@ export class Game {
     this.sparks = [];
     this.trails = [];
     this.shakeT = 0;
+    this._weaponCycleT = 0;
+    this._weaponCycleIdx = 0;
+    this._countdownStep = 3;
+    this._celebrateT = 0;
+    for (const f of this._floaters || []) f.el?.remove();
+    this._floaters = [];
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
     this.ui.updateNestCompass(false);
+    this.ui.hideCountdown();
+    this.ui.hideCrewCallout();
+    this.ui.setAlarmRing(false);
   }
 
   _buildTitleDiorama() {
@@ -180,7 +198,7 @@ export class Game {
     this.clearSceneExtras();
     this.level = level;
     this.missionScore = 0;
-    this.phase = PHASE.INTRO;
+    this.phase = PHASE.COUNTDOWN;
     this.phaseT = 0;
     this.paused = false;
     this.state = 'mission';
@@ -196,7 +214,7 @@ export class Game {
 
     this.baby = createDinosaur(DINOSAURS[level.baby]);
     this.baby.position.set(1.5, 0, -8);
-    this.baby.userData.anim.state = 'run';
+    this.baby.userData.anim.state = 'idle';
     // Kids-friendly buffer so missions don't fail instantly
     this.baby.userData.hp = level.water ? 70 : 55;
     this.baby.userData.maxHp = this.baby.userData.hp;
@@ -206,7 +224,7 @@ export class Game {
     this.predator = createDinosaur(DINOSAURS[level.predator]);
     // Spawn predator farther so the Guard can intercept first
     this.predator.position.set(level.water ? 10 : 6, 0, level.water ? 4 : -1);
-    this.predator.userData.anim.state = 'chase';
+    this.predator.userData.anim.state = 'idle';
     // Tuned for kids: normal missions resolve quickly; bosses last longer
     // Bosses soak more darts; normal missions stay kid-quick
     this.predator.userData.hp = level.boss ? 180 : 70;
@@ -226,20 +244,32 @@ export class Game {
     this.camera.position.copy(this.vehicle.position).add(back);
     this.camera.lookAt(this.vehicle.position.x, 1.4, this.vehicle.position.z - 4);
 
+    this.phase = PHASE.COUNTDOWN;
+    this.phaseT = 0;
+    this._countdownStep = 3;
+    this._weaponCycleIdx = 0;
+    this._weaponCycleT = 0;
+
     this.ui.showHud(`Protect ${DINOSAURS[level.baby].name}!`);
     this.ui.updateNestCompass(false);
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
     this.ui.setWeaponModeUI('auto');
-    this.ui.toast(level.boss ? 'Alarm! Boss dinosaur alert!' : 'Rescue mission started!');
+    this.ui.setAlarmRing(true);
+    this.ui.showCountdown('3');
+    this.ui.crewCallout('Captain Rio', 'Alarm! Baby dinosaur in danger — roll out!');
+    this.ui.toast(level.boss ? 'Alarm! Boss dinosaur alert!' : 'Alarm! Rescue countdown…');
     this.ui.showAim(false);
-    this.audio.ui();
+    this.audio.alarm();
+    this.audio.countdown();
     if (level.boss) this.audio.roar();
     // First-clear tutorial for rainforest
     if (level.id === 'rainforest' && !this.save.cleared.includes('rainforest')) {
       this.ui.showTutorial('Drive close to the big dino, then FIRE. Mother will help — escort baby to the glowing nest!');
     } else if (level.water) {
-      this.ui.showTutorial('Water mission! Steer your submarine and fire torpedo darts at the ocean hunter.');
+      this.ui.showTutorial('Water mission! Steer your submarine and fire torpedo darts at the ocean hunter. Watch for crocs!');
+    } else if (level.biome === 'swamp') {
+      this.ui.showTutorial('Swamp tip: mugger crocs slow your jeep — steer around them!');
     }
     const hint = document.getElementById('control-hint');
     if (hint) {
@@ -309,12 +339,38 @@ export class Game {
 
   _updateMission(dt) {
     this.phaseT += dt;
+    this._updateFloaters(dt);
+
+    // Countdown freezes chase until GO
+    if (this.phase === PHASE.COUNTDOWN) {
+      this._updateCountdown(dt);
+      this._updateCamera(dt);
+      this._updateActors(dt);
+      this._updateFireflies(dt);
+      this._updateWorldFX(dt);
+      this._updateRadar();
+      return;
+    }
+
+    if (this.phase === PHASE.CELEBRATE) {
+      this._updateCelebrate(dt);
+      this._updateCamera(dt);
+      this._updateActors(dt);
+      this._updateSparks(dt);
+      this._updateWorldFX(dt);
+      this._updateRadar();
+      return;
+    }
+
     const hotkey = this.input.consumeWeaponHotkey();
     if (hotkey) {
       this.setWeaponMode(hotkey);
       this.ui.setWeaponModeUI(hotkey);
       this.ui.toast(hotkey === 'auto' ? 'Auto Aim' : hotkey === 'zoom' ? 'Zoom Aim' : 'Scatter Shot');
+      this._weaponCycleIdx = WEAPON_CYCLE.indexOf(hotkey);
+      this._weaponCycleT = 0;
     }
+    this._autoCycleWeapons(dt);
     const axis = this.input.getAxis();
     this._driveVehicle(dt, axis);
     this._updateCamera(dt);
@@ -336,8 +392,121 @@ export class Game {
       }
     }
     this._resolveBlockers();
+    this._resolveCrocs(dt);
     this._updateFireflies(dt);
     this._updateWorldFX(dt);
+  }
+
+  _updateCountdown(dt) {
+    // 3 → 2 → 1 → GO across ~3.2s
+    const step = Math.max(0, 3 - Math.floor(this.phaseT));
+    if (step !== this._countdownStep && step >= 1) {
+      this._countdownStep = step;
+      this.ui.showCountdown(String(step));
+      this.audio.countdown();
+    }
+    if (this.phaseT >= 3.0 && this._countdownStep !== 0) {
+      this._countdownStep = 0;
+      this.ui.showCountdown('GO!');
+      this.audio.go();
+      this.ui.setAlarmRing(false);
+      this.ui.crewCallout('Scout Mina', 'Predator spotted — chase and protect the baby!');
+    }
+    if (this.phaseT >= 3.6) {
+      this.ui.hideCountdown();
+      this.phase = PHASE.INTRO;
+      this.phaseT = 0;
+      if (this.baby) this.baby.userData.anim.state = 'run';
+      if (this.predator) this.predator.userData.anim.state = 'chase';
+      this.ui.setMission(`Protect ${DINOSAURS[this.level.baby].name}!`);
+    }
+    // Gentle idle bob during countdown
+    if (this.predator) this.predator.userData.updateAnim(dt, false);
+    if (this.baby) this.baby.userData.updateAnim(dt, false);
+  }
+
+  _autoCycleWeapons(dt) {
+    if (![PHASE.COMBAT, PHASE.MOTHER].includes(this.phase) || !this.vehicle) return;
+    this._weaponCycleT += dt;
+    // Store feature: smart aiming modes launch automatically at the right moment
+    if (this._weaponCycleT < 4.2) return;
+    this._weaponCycleT = 0;
+    this._weaponCycleIdx = (this._weaponCycleIdx + 1) % WEAPON_CYCLE.length;
+    const mode = WEAPON_CYCLE[this._weaponCycleIdx];
+    this.setWeaponMode(mode);
+    this.ui.setWeaponModeUI(mode);
+    const label = mode === 'auto' ? 'Auto Aim' : mode === 'zoom' ? 'Zoom Aim' : 'Scatter Shot';
+    this.ui.toast(`Smart mode: ${label}`);
+    this.ui.crewCallout('Gunner Kai', `${label} online!`);
+  }
+
+  _resolveCrocs(dt) {
+    const crocs = this.world?.userData?.crocs;
+    if (!crocs?.length || !this.vehicle) return;
+    const t = performance.now() * 0.001;
+    for (const c of crocs) {
+      // Idle lurk sway
+      c.position.x += Math.sin(t * 0.7 + c.userData.phase) * dt * 0.35;
+      c.rotation.y += Math.sin(t + c.userData.phase) * dt * 0.2;
+      const d = this.vehicle.position.distanceTo(c.position);
+      if (d < (c.userData.radius || 1.6) + this.vehicle.userData.radius * 0.5) {
+        // Slow the jeep briefly — do not wreck kids' runs
+        const push = this.vehicle.position.clone().sub(c.position).setY(0).normalize();
+        this.vehicle.position.addScaledVector(push, 0.08);
+        this.vehicle.userData.hp = Math.max(8, this.vehicle.userData.hp - 6 * dt);
+        if (!c.userData.warnT || c.userData.warnT <= 0) {
+          this.ui.toast('Mugger crocodile! Steer around!');
+          this.ui.crewCallout('Medic Luma', 'Croc bay — keep clear of the water edge!');
+          c.userData.warnT = 1.8;
+        }
+      }
+      if (c.userData.warnT > 0) c.userData.warnT -= dt;
+    }
+  }
+
+  _spawnDamageFloater(worldPos, amount) {
+    const el = document.createElement('div');
+    el.className = 'dmg-floater';
+    el.textContent = `-${Math.round(amount)}`;
+    document.getElementById('app')?.appendChild(el);
+    this._floaters.push({ el, life: 0.9, pos: worldPos.clone() });
+  }
+
+  _updateFloaters(dt) {
+    if (!this._floaters?.length) return;
+    for (let i = this._floaters.length - 1; i >= 0; i--) {
+      const f = this._floaters[i];
+      f.life -= dt;
+      f.pos.y += dt * 1.4;
+      const v = f.pos.clone().project(this.camera);
+      const x = (v.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-v.y * 0.5 + 0.5) * window.innerHeight;
+      f.el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+      f.el.style.opacity = String(Math.max(0, f.life / 0.9));
+      if (f.life <= 0 || v.z > 1) {
+        f.el.remove();
+        this._floaters.splice(i, 1);
+      }
+    }
+  }
+
+  _updateCelebrate(dt) {
+    this._celebrateT += dt;
+    const nest = this.world?.userData?.nestPos;
+    if (this.baby && nest) {
+      this.baby.position.lerp(new THREE.Vector3(nest.x, 0, nest.z), 1 - Math.pow(0.02, dt));
+      this.baby.rotation.y += dt * 2.2;
+      this.baby.userData.anim.state = 'idle';
+    }
+    if (this.mother?.visible && nest) {
+      this._chase(this.mother, nest, this.mother.userData.speed * 0.8, dt);
+    }
+    if (this._celebrateT > 0.35 && this._celebrateT < 0.4) {
+      this._spawnSparks(this.baby.position.clone().setY(1.5), 0xf4c14b, 16);
+      this._spawnSparks(this.baby.position.clone().setY(1.2), 0x62d26f, 12);
+      this.ui.crewCallout('Medic Luma', 'Baby safe at the nest — stamp unlocked!');
+    }
+    if (this._celebrateT >= 1.6) this._finishWin();
   }
 
   _updateFireflies(dt) {
@@ -538,6 +707,7 @@ export class Game {
     const predator = this.predator;
     const mother = this.mother;
     const vehicle = this.vehicle;
+    if (this.phase === PHASE.COUNTDOWN || this.phase === PHASE.CELEBRATE) return;
 
     // Predator chases baby
     if (this.phase === PHASE.INTRO || this.phase === PHASE.CHASE || this.phase === PHASE.COMBAT) {
@@ -563,9 +733,13 @@ export class Game {
       if (dist < 14) {
         this.phase = PHASE.COMBAT;
         this.phaseT = 0;
+        this._weaponCycleT = 0;
         this.ui.setMission('Fire! Use Auto / Zoom / Scatter');
         this.ui.showAim(true);
         this.ui.toast('Smart aiming unlocked!');
+        this.ui.crewCallout('Gunner Kai', 'Smart aiming modes launching — Auto, Zoom, Scatter!');
+        this.setWeaponMode('auto');
+        this.ui.setWeaponModeUI('auto');
       }
     }
 
@@ -581,6 +755,7 @@ export class Game {
         this.phaseT = 0;
         this.ui.setMission('Mother dinosaur is helping!');
         this.ui.toast(`${DINOSAURS[this.level.mother].name} arrives!`);
+        this.ui.crewCallout('Scout Mina', 'Mother dinosaur is charging in to help!');
         this.audio.mother();
       }
       if (predator.userData.hp <= 0) {
@@ -737,12 +912,29 @@ export class Game {
   }
 
   _win() {
-    if (this.phase === PHASE.WIN || this.phase === PHASE.LOSE) return;
-    this.phase = PHASE.WIN;
+    if (
+      this.phase === PHASE.WIN ||
+      this.phase === PHASE.LOSE ||
+      this.phase === PHASE.CELEBRATE
+    ) {
+      return;
+    }
+    this.phase = PHASE.CELEBRATE;
+    this.phaseT = 0;
+    this._celebrateT = 0;
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
     this.ui.updateNestCompass(false);
+    this.ui.setAlarmRing(false);
     document.getElementById('tutorial-tip')?.classList.add('hidden');
+    this.ui.setMission('Safe at the nest — celebration!');
+    this.ui.toast('Baby dinosaur rescued!');
+    this.audio.win();
+  }
+
+  _finishWin() {
+    if (this.phase === PHASE.WIN || this.phase === PHASE.LOSE) return;
+    this.phase = PHASE.WIN;
     this.missionScore += 500 + Math.floor(this.vehicle?.userData?.hp || 0);
     this.ui.updateScore(this.missionScore);
     const stampId = this.level.stamp;
@@ -759,12 +951,8 @@ export class Game {
       this.save.stamps.push(this.level.baby);
     }
     writeSave(this.save);
-    if (this.baby) {
-      this._spawnSparks(this.baby.position.clone().setY(1.5), 0xf4c14b, 18);
-      this._spawnSparks(this.baby.position.clone().setY(1.2), 0x62d26f, 12);
-    }
-    this.audio.win();
     this.ui.updateNestCompass(false);
+    this.ui.hideCrewCallout();
     this.ui.showResult({
       win: true,
       message: `Great work, Guard! +${this.missionScore} points`,
@@ -836,6 +1024,7 @@ export class Game {
           this.predator.userData.hp -= p.userData.damage;
           this.predator.userData.anim.state = 'hurt';
           this._spawnSparks(p.position.clone().setY(1.2), 0xf4c14b, 6);
+          this._spawnDamageFloater(p.position.clone().setY(2.2), p.userData.damage);
           this.missionScore += 10;
           this.ui.updateScore(this.missionScore);
           this.audio.hit();
@@ -955,6 +1144,7 @@ export class Game {
     plot(this.baby, '#f4c14b', 4);
     plot(this.predator, '#e85d4c', 5);
     if (this.mother?.visible) plot(this.mother, '#60a5fa', 4);
+    for (const c of this.world?.userData?.crocs || []) plot(c, '#3a5a28', 3);
     // Vehicle always center
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();

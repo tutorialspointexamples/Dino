@@ -238,6 +238,50 @@ export function buildWorld(level, scene) {
   path.position.y = 0.06;
   group.add(path);
 
+  // Rescue route from spawn (z≈12) toward nest (z≈-16) — kids-readable lane
+  const routeMat = new THREE.MeshStandardMaterial({
+    color: water ? 0x5ec8e8 : biome === 'volcano' ? 0x6b4226 : 0xc4a35a,
+    roughness: 0.95,
+    transparent: true,
+    opacity: 0.72,
+  });
+  const route = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 30), routeMat);
+  route.rotation.x = -Math.PI / 2;
+  route.position.set(0, 0.04, -2);
+  group.add(route);
+  // Soft side rails so the route reads as a designed path
+  for (const sx of [-2.4, 2.4]) {
+    const rail = new THREE.Mesh(
+      new THREE.BoxGeometry(0.35, 0.18, 28),
+      new THREE.MeshStandardMaterial({
+        color: water ? 0x7fd0c0 : 0x8a6a3a,
+        emissive: water ? 0x2a8fb8 : 0xf4c14b,
+        emissiveIntensity: 0.15,
+        roughness: 0.9,
+      }),
+    );
+    rail.position.set(sx, 0.12, -2);
+    group.add(rail);
+  }
+  group.userData.rescueRoute = route;
+
+  // Mugger crocodiles hidden in water bays / swamp (store lore hazard)
+  const crocs = [];
+  if (biome === 'swamp' || water || biome === 'ocean') {
+    for (let i = 0; i < (biome === 'swamp' ? 4 : 3); i++) {
+      const croc = makeCrocodile(water ? 0x2a6a5a : 0x3a5a28);
+      const side = i % 2 === 0 ? -1 : 1;
+      croc.position.set(side * rand(10, 22), water ? 0.25 : 0.05, rand(-12, 8));
+      croc.rotation.y = side > 0 ? -0.4 : 0.4;
+      croc.userData.kind = 'crocodile';
+      croc.userData.radius = 1.6;
+      croc.userData.phase = rand(0, Math.PI * 2);
+      group.add(croc);
+      crocs.push(croc);
+    }
+  }
+  group.userData.crocs = crocs;
+
   // Mission landmarks
   const nest = new THREE.Mesh(
     new THREE.CylinderGeometry(1.8, 2.2, 0.4, 16),
@@ -369,6 +413,34 @@ function makeTree(leafColor) {
   leaves.position.y = 2.8;
   leaves.castShadow = true;
   g.add(leaves);
+  return g;
+}
+
+function makeCrocodile(color) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.35, 1.4, 4, 8),
+    new THREE.MeshStandardMaterial({ color, roughness: 0.85, emissive: color, emissiveIntensity: 0.08 }),
+  );
+  body.rotation.z = Math.PI / 2;
+  body.position.y = 0.25;
+  body.castShadow = true;
+  g.add(body);
+  const snout = new THREE.Mesh(
+    new THREE.BoxGeometry(0.85, 0.22, 0.28),
+    new THREE.MeshStandardMaterial({ color: 0x2a4030, roughness: 0.9 }),
+  );
+  snout.position.set(1.05, 0.28, 0);
+  g.add(snout);
+  const eye = new THREE.Mesh(
+    new THREE.SphereGeometry(0.08, 6, 6),
+    new THREE.MeshBasicMaterial({ color: 0xf4c14b }),
+  );
+  eye.position.set(0.55, 0.48, 0.18);
+  g.add(eye);
+  const eye2 = eye.clone();
+  eye2.position.z = -0.18;
+  g.add(eye2);
   return g;
 }
 

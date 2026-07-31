@@ -69,6 +69,21 @@ export class AudioBus {
     this.tone({ freq: 740, dur: 0.1, type: 'triangle', gain: 0.06, slide: 220 });
   }
 
+  alarm() {
+    // Alarm-bell style chirps matching the store “alarm is ringing” beat
+    [880, 660, 880, 660].forEach((f, i) => {
+      setTimeout(() => this.tone({ freq: f, dur: 0.12, type: 'square', gain: 0.07 }), i * 140);
+    });
+  }
+
+  countdown() {
+    this.tone({ freq: 523, dur: 0.12, type: 'triangle', gain: 0.07 });
+  }
+
+  go() {
+    this.tone({ freq: 784, dur: 0.18, type: 'triangle', gain: 0.08, slide: 120 });
+  }
+
   ui() {
     this.tone({ freq: 660, dur: 0.06, type: 'triangle', gain: 0.05 });
   }

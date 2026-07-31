@@ -219,6 +219,9 @@ export class UI {
   showResult({ win, message, stampName, stampColor, fact }) {
     this.$('hud').classList.add('hidden');
     this.$('nest-compass')?.classList.add('hidden');
+    this.hideCountdown();
+    this.hideCrewCallout();
+    this.setAlarmRing(false);
     this.$('screen-result').classList.remove('hidden');
     this.$('result-title').textContent = win ? 'Rescue Complete!' : 'Mission Failed';
     this.$('result-msg').textContent = message;
@@ -231,9 +234,11 @@ export class UI {
     }
     const stamp = this.$('result-stamp');
     if (win && stampName) {
-      stamp.classList.remove('hidden');
+      stamp.classList.remove('hidden', 'stamp-pop');
       stamp.style.background = stampColor || '#3f9d5a';
       stamp.textContent = stampName;
+      void stamp.offsetWidth;
+      stamp.classList.add('stamp-pop');
     } else {
       stamp.classList.add('hidden');
     }
@@ -268,6 +273,39 @@ export class UI {
 
   setHeadbuttAlarm(on) {
     this.$('hud')?.classList.toggle('headbutt-alarm', !!on);
+  }
+
+  setAlarmRing(on) {
+    this.$('alarm-ring')?.classList.toggle('hidden', !on);
+    this.$('hud')?.classList.toggle('alarm-active', !!on);
+  }
+
+  showCountdown(text) {
+    const el = this.$('mission-countdown');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('hidden', 'pop');
+    // Retrigger CSS pop
+    void el.offsetWidth;
+    el.classList.add('pop');
+  }
+
+  hideCountdown() {
+    this.$('mission-countdown')?.classList.add('hidden');
+  }
+
+  crewCallout(name, text, ms = 2800) {
+    const el = this.$('crew-callout');
+    if (!el) return;
+    this.$('crew-callout-name').textContent = name;
+    this.$('crew-callout-text').textContent = text;
+    el.classList.remove('hidden');
+    clearTimeout(this._crewTimer);
+    this._crewTimer = setTimeout(() => el.classList.add('hidden'), ms);
+  }
+
+  hideCrewCallout() {
+    this.$('crew-callout')?.classList.add('hidden');
   }
 
   toast(msg) {
