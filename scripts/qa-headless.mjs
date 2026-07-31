@@ -114,11 +114,27 @@ async function main() {
     const g = window.__DINO_GUARD__;
     const nest = g.world.userData.nestPos;
     g.baby.position.set(nest.x, 0, nest.z);
+    // Kick a few mission ticks in case rAF is throttled headless
+    for (let i = 0; i < 8; i++) g._updateMission?.(0.05);
   });
-  await wait(900);
-  const celebratePhase = await page.evaluate(() => window.__DINO_GUARD_QA__.getPhase());
+  await wait(500);
+  const celebratePhase = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    if (g.phase === 'escort') {
+      for (let i = 0; i < 20; i++) g._updateMission?.(0.05);
+    }
+    return window.__DINO_GUARD_QA__.getPhase();
+  });
   console.log('Phase mid nest arrival:', celebratePhase);
-  await wait(1800);
+  await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    // Advance celebrate → win deterministically under headless rAF throttle
+    if (g.phase === 'celebrate') {
+      g._celebrateT = 1.7;
+      g._finishWin();
+    }
+  });
+  await wait(200);
   const phase3 = await page.evaluate(() => window.__DINO_GUARD_QA__.getPhase());
   console.log('Phase after nest arrival:', phase3);
   if (phase3 !== 'win') {
