@@ -512,6 +512,27 @@ h2 {
   .hud-pill.mission {
     font-size: 0.85rem;
   }
+
+  .predator-hp {
+    top: 118px;
+  }
+
+  .hint {
+    bottom: 200px;
+    font-size: 0.72rem;
+    max-width: 90%;
+    text-align: center;
+  }
+
+  .title-panel,
+  .panel {
+    padding: 20px 14px;
+    border-radius: 22px;
+  }
+
+  .brand {
+    font-size: clamp(2rem, 10vw, 3.2rem);
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {

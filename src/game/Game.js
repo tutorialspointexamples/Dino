@@ -189,7 +189,8 @@ export class Game {
     this.predator = createDinosaur(DINOSAURS[level.predator]);
     this.predator.position.set(5, 0, -2);
     this.predator.userData.anim.state = 'chase';
-    this.predator.userData.hp = level.boss ? 160 : 100;
+    // Tuned for kids: normal missions resolve quickly; bosses last longer
+    this.predator.userData.hp = level.boss ? 140 : 70;
     this.predator.userData.maxHp = this.predator.userData.hp;
     this.scene.add(this.predator);
 
@@ -325,7 +326,7 @@ export class Game {
     v.userData.fireCooldown = Math.max(0, v.userData.fireCooldown - dt);
 
     const wantFire = this.input.consumeFire();
-    if (wantFire && this.phase !== PHASE.INTRO && this.phase !== PHASE.WIN && this.phase !== PHASE.LOSE) {
+    if (wantFire && this.phase !== PHASE.WIN && this.phase !== PHASE.LOSE) {
       this._tryFire();
     }
   }
@@ -444,8 +445,8 @@ export class Game {
       if (predator.userData.hp <= 0) {
         this._beginEscort();
       }
-      // Overshoot headbutt risk
-      if (vehicle.userData.shotsAtPredator >= 18 && hpRatio > 0.25) {
+      // Overshoot headbutt risk (higher threshold so kids can finish fights)
+      if (vehicle.userData.shotsAtPredator >= 28 && hpRatio > 0.35) {
         this.phase = PHASE.HEADBUTT;
         this.phaseT = 0;
         predator.userData.anim.state = 'attack';
@@ -497,16 +498,25 @@ export class Game {
     if (this.phase === PHASE.ESCORT) {
       // Escort baby to nest
       const nest = this.world.userData.nestPos;
-      this._chase(baby, nest, baby.userData.speed * 1.2, dt);
-      if (mother.visible) this._chase(mother, baby.position, mother.userData.speed * 0.9, dt);
+      this._chase(baby, nest, baby.userData.speed * 1.8, dt);
+      if (mother.visible) this._chase(mother, baby.position, mother.userData.speed * 1.1, dt);
       if (predator) {
         predator.userData.anim.state = 'hurt';
         predator.position.y = THREE.MathUtils.lerp(predator.position.y, -2, dt);
+        predator.visible = predator.position.y > -1.5;
       }
-      this.ui.setMission('Escort the baby to the nest!');
-      if (baby.position.distanceTo(nest) < 2.5) {
-        this._win();
+      const nestDist = Math.hypot(baby.position.x - nest.x, baby.position.z - nest.z);
+      this.ui.setMission(`Escort the baby to the nest! (${Math.max(0, nestDist - 3).toFixed(0)}m)`);
+      // Complete when baby arrives — generous radius + short dwell
+      if (nestDist < 3.5) {
+        this._escortDwelling = (this._escortDwelling || 0) + dt;
+        if (this._escortDwelling > 0.35 || nestDist < 1.6) this._win();
+      } else {
+        this._escortDwelling = 0;
       }
+      // Safety: if escort runs long, auto-complete once baby is near nest lane
+      if (this.phaseT > 20 && nestDist < 8) this._win();
+      if (this.phaseT > 35) this._win();
     }
 
     // Fail if predator reaches baby hard
@@ -525,17 +535,27 @@ export class Game {
     if (this.phase === PHASE.ESCORT || this.phase === PHASE.WIN) return;
     this.phase = PHASE.ESCORT;
     this.phaseT = 0;
-    this.predator.userData.anim.state = 'hurt';
+    this._escortDwelling = 0;
+    if (this.predator) this.predator.userData.anim.state = 'hurt';
     this.ui.showAim(false);
     this.ui.toast('Predator retreats! Escort the baby!');
     this.missionScore += 200;
     this.ui.updateScore(this.missionScore);
+    // Nudge baby toward nest so completion is reliable
+    if (this.baby && this.world?.userData?.nestPos) {
+      const nest = this.world.userData.nestPos;
+      const dir = nest.clone().sub(this.baby.position).setY(0);
+      if (dir.lengthSq() > 0.01) {
+        dir.normalize();
+        this.baby.position.addScaledVector(dir, 0.5);
+      }
+    }
   }
 
   _win() {
-    if (this.phase === PHASE.WIN) return;
+    if (this.phase === PHASE.WIN || this.phase === PHASE.LOSE) return;
     this.phase = PHASE.WIN;
-    this.missionScore += 500 + Math.floor(this.vehicle.userData.hp);
+    this.missionScore += 500 + Math.floor(this.vehicle?.userData?.hp || 0);
     this.ui.updateScore(this.missionScore);
     const stampId = this.level.stamp;
     const stamp = DINOSAURS[stampId];
@@ -547,7 +567,14 @@ export class Game {
     if (!this.save.stamps.includes(this.level.mother)) {
       this.save.stamps.push(this.level.mother);
     }
+    if (!this.save.stamps.includes(this.level.baby)) {
+      this.save.stamps.push(this.level.baby);
+    }
     writeSave(this.save);
+    if (this.baby) {
+      this._spawnSparks(this.baby.position.clone().setY(1.5), 0xf4c14b, 18);
+      this._spawnSparks(this.baby.position.clone().setY(1.2), 0x62d26f, 12);
+    }
     this.audio.win();
     this.ui.showResult({
       win: true,
@@ -606,16 +633,20 @@ export class Game {
       p.userData.life -= dt;
       let hit = false;
       if (this.predator && this.predator.visible && this.phase !== PHASE.ESCORT) {
-        if (p.position.distanceTo(this.predator.position) < this.predator.userData.radius + 0.3) {
+        const dx = p.position.x - this.predator.position.x;
+        const dz = p.position.z - this.predator.position.z;
+        const hitR = this.predator.userData.radius * this.predator.scale.x + 0.85;
+        if (dx * dx + dz * dz < hitR * hitR) {
           this.predator.userData.hp -= p.userData.damage;
           this.predator.userData.anim.state = 'hurt';
-          this._spawnSparks(p.position, 0xf4c14b, 6);
+          this._spawnSparks(p.position.clone().setY(1.2), 0xf4c14b, 6);
           this.missionScore += 10;
           this.ui.updateScore(this.missionScore);
           this.audio.hit();
           hit = true;
-          if (this.phase === PHASE.CHASE) {
+          if (this.phase === PHASE.INTRO || this.phase === PHASE.CHASE) {
             this.phase = PHASE.COMBAT;
+            this.phaseT = 0;
             this.ui.showAim(true);
           }
         }
