@@ -31,7 +31,7 @@ export class UI {
     this.$('btn-result-next')?.addEventListener('click', () => this.game.startNextMission());
     this.$('btn-mute').onclick = () => {
       const on = this.game.audio.toggle();
-      this.$('btn-mute').textContent = on ? 'SND' : 'OFF';
+      this.$('btn-mute').textContent = on ? 'VOL' : 'OFF';
       this.toast(on ? 'Sound on' : 'Sound muted');
     };
 
