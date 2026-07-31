@@ -66,6 +66,15 @@ async function main() {
   const phase1 = await page.evaluate(() => window.__DINO_GUARD_QA__.getPhase());
   console.log('Mission phase after start:', phase1);
 
+  // Exercise all three weapon modes
+  for (const mode of ['auto', 'zoom', 'scatter']) {
+    await page.evaluate((m) => {
+      window.__DINO_GUARD__.setWeaponMode(m);
+      window.__DINO_GUARD__.vehicle.userData.fireCooldown = 0;
+      window.__DINO_GUARD__._tryFire();
+    }, mode);
+    await wait(80);
+  }
   await page.evaluate(async () => {
     const g = window.__DINO_GUARD__;
     for (let i = 0; i < 12; i++) {
@@ -77,6 +86,12 @@ async function main() {
   await wait(800);
   const score = await page.evaluate(() => window.__DINO_GUARD_QA__.getScore());
   console.log('Score after firing:', score);
+  const modesOk = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    g.setWeaponMode('scatter');
+    return g.vehicle.userData.weaponMode === 'scatter';
+  });
+  console.log('Weapon mode switch:', modesOk);
 
   await page.evaluate(() => window.__DINO_GUARD_QA__.forceEscort());
   await wait(100);
@@ -108,10 +123,36 @@ async function main() {
   const waterOk = await page.evaluate(() => window.__DINO_GUARD__.vehicle?.userData?.def?.type === 'submarine');
   console.log('Water mission submarine:', waterOk);
 
+  const meta = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    return {
+      vehicles: window.__DINO_GUARD_QA__.VEHICLES.length,
+      police: window.__DINO_GUARD_QA__.VEHICLES.filter((v) => v.type === 'police').length,
+      subs: window.__DINO_GUARD_QA__.VEHICLES.filter((v) => v.type === 'submarine').length,
+      levels: window.__DINO_GUARD_QA__.LEVELS.length,
+      crewOnVehicle: g.vehicle?.userData?.crew?.length || 0,
+    };
+  });
+  console.log('Fleet meta:', meta);
+
+  // Boss water mission uses submarine
+  await page.evaluate(() => window.__DINO_GUARD_QA__.startLevel(7));
+  await wait(300);
+  const bossSub = await page.evaluate(() => window.__DINO_GUARD__.vehicle?.userData?.def?.type === 'submarine');
+  console.log('Boss water submarine:', bossSub);
+
   await browser.close();
   preview.kill();
 
-  const failed = errors.length > 0 || !waterOk || save.cleared.length < 1;
+  const failed =
+    errors.length > 0 ||
+    !waterOk ||
+    !bossSub ||
+    !modesOk ||
+    save.cleared.length < 1 ||
+    meta.police < 6 ||
+    meta.subs < 4 ||
+    meta.levels < 10;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

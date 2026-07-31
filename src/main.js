@@ -1,5 +1,5 @@
 import { Game } from './game/Game.js';
-import { LEVELS, VEHICLES } from './game/data.js';
+import { CREW, DINOSAURS, LEVELS, VEHICLES } from './game/data.js';
 
 const canvas = document.getElementById('game-canvas');
 const game = new Game(canvas);
@@ -8,6 +8,9 @@ window.__DINO_GUARD__ = game;
 window.__DINO_GUARD_QA__ = {
   LEVELS,
   VEHICLES,
+  CREW,
+  DINOSAURS,
+  dinosaurCount: () => Object.keys(DINOSAURS).length,
   startLevel(i = 0, vehicleId) {
     const level = LEVELS[i];
     const pick =
