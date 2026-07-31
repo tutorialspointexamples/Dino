@@ -114,7 +114,17 @@ export function createVehicle(def) {
   shadow.position.y = 0.03;
   root.add(shadow);
 
+  const marker = new THREE.Mesh(
+    new THREE.ConeGeometry(0.35, 0.6, 4),
+    new THREE.MeshBasicMaterial({ color: 0x60a5fa }),
+  );
+  marker.rotation.x = Math.PI;
+  marker.position.y = 2.8;
+  root.add(marker);
+  root.userData.marker = marker;
+
   root.userData.radius = 1.35;
+  root.scale.setScalar(1.25);
   root.userData.updateAnim = (dt, moving) => {
     const u = root.userData;
     if (u.wheels) {
@@ -131,6 +141,10 @@ export function createVehicle(def) {
       const blink = Math.sin(performance.now() * 0.02) > 0;
       u.sirens[0].visible = blink;
       u.sirens[1].visible = !blink;
+    }
+    if (u.marker) {
+      u.marker.position.y = 2.8 + Math.sin(performance.now() * 0.006) * 0.12;
+      u.marker.rotation.y += dt * 2.5;
     }
   };
 

@@ -49,10 +49,14 @@ body,
   align-items: center;
   justify-content: center;
   padding: 16px;
+  background: radial-gradient(ellipse at 50% 40%, rgba(13, 36, 24, 0.28), rgba(13, 36, 24, 0.55));
+}
+
+#screen-title {
   background:
-    radial-gradient(ellipse at 20% 10%, rgba(126, 200, 227, 0.35), transparent 45%),
-    radial-gradient(ellipse at 80% 90%, rgba(196, 92, 38, 0.25), transparent 40%),
-    linear-gradient(160deg, #1a4d2e 0%, #0d2418 55%, #1b3a28 100%);
+    radial-gradient(ellipse at 20% 10%, rgba(126, 200, 227, 0.18), transparent 45%),
+    radial-gradient(ellipse at 80% 90%, rgba(196, 92, 38, 0.12), transparent 40%),
+    linear-gradient(160deg, rgba(26, 77, 46, 0.35) 0%, rgba(13, 36, 24, 0.45) 55%, rgba(27, 58, 40, 0.4) 100%);
 }
 
 .screen.hidden,

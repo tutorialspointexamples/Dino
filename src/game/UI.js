@@ -91,12 +91,14 @@ export class UI {
     const launch = this.$('btn-launch');
     launch.disabled = true;
 
+    let firstFit = null;
     VEHICLES.forEach((v) => {
       const unlocked = isVehicleUnlocked(v, clearedCount);
       // land missions: jeep/police; water: submarine
       const fit = level.water ? v.type === 'submarine' : v.type !== 'submarine';
       const card = document.createElement('button');
       card.className = `item-card${!unlocked || !fit ? ' locked' : ''}`;
+      card.dataset.vid = v.id;
       card.innerHTML = `
         <div class="dino-swatch" style="background:linear-gradient(135deg,${hexCss(v.color)},${hexCss(v.accent)})"></div>
         <h3>${v.name}</h3>
@@ -114,7 +116,12 @@ export class UI {
         launch.disabled = false;
       };
       grid.appendChild(card);
+      if (!firstFit && unlocked && fit) firstFit = card;
     });
+    // Auto-select first usable vehicle (or last selected if still valid)
+    const preferred =
+      grid.querySelector(`.item-card[data-vid="${this.game.save.selectedVehicle}"]:not(.locked)`) || firstFit;
+    if (preferred) preferred.click();
   }
 
   showGarage() {

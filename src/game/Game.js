@@ -82,10 +82,13 @@ export class Game {
     this.clearSceneExtras();
     this.scene.background = new THREE.Color(0x7ec8e3);
     this.scene.fog = new THREE.Fog(0x8fbf88, 25, 60);
-    const hemi = new THREE.HemisphereLight(0xb1e1ff, 0x3f9d5a, 1);
+    const amb = new THREE.AmbientLight(0xffffff, 0.55);
+    amb.name = 'titleAmb';
+    this.scene.add(amb);
+    const hemi = new THREE.HemisphereLight(0xb1e1ff, 0x3f9d5a, 1.1);
     hemi.name = 'titleLight';
     this.scene.add(hemi);
-    const sun = new THREE.DirectionalLight(0xfff0c8, 1);
+    const sun = new THREE.DirectionalLight(0xfff0c8, 1.35);
     sun.position.set(10, 20, 8);
     sun.castShadow = true;
     sun.name = 'titleSun';
@@ -102,9 +105,9 @@ export class Game {
 
     this.titleDinos = [];
     const showcase = [
-      { id: 'trex', pos: [3, 0, -2] },
-      { id: 'baby_trike', pos: [-2.5, 0, 1] },
-      { id: 'mother_trike', pos: [-5, 0, -1] },
+      { id: 'trex', pos: [2.2, 0, -1] },
+      { id: 'baby_trike', pos: [-1.8, 0, 1.5] },
+      { id: 'mother_trike', pos: [-3.8, 0, -0.5] },
     ];
     for (const s of showcase) {
       const d = createDinosaur(DINOSAURS[s.id]);
@@ -114,18 +117,18 @@ export class Game {
       this.titleDinos.push(d);
     }
     const jeep = createVehicle(VEHICLES[0]);
-    jeep.position.set(0.5, 0, 3);
+    jeep.position.set(0.2, 0, 3.2);
     jeep.rotation.y = -0.4;
     this.scene.add(jeep);
     this.titleVehicle = jeep;
-    this.camera.position.set(6, 8, 12);
-    this.camera.lookAt(0, 1, 0);
+    this.camera.position.set(4, 5.5, 9);
+    this.camera.lookAt(0, 1.4, 0);
   }
 
   _clearTitleDiorama() {
     for (const o of [...this.scene.children]) {
       if (
-        ['titleLight', 'titleSun', 'titleGround'].includes(o.name) ||
+        ['titleLight', 'titleSun', 'titleGround', 'titleAmb'].includes(o.name) ||
         o.userData?.kind === 'dinosaur' ||
         o.userData?.kind === 'vehicle' ||
         o.name === 'world'
@@ -186,6 +189,11 @@ export class Game {
     this.mother.userData.anim.state = 'idle';
     this.scene.add(this.mother);
 
+    // Snap chase camera onto the jeep immediately
+    const back = new THREE.Vector3(0, 4.8, 7.5).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.vehicle.rotation.y);
+    this.camera.position.copy(this.vehicle.position).add(back);
+    this.camera.lookAt(this.vehicle.position.x, 1.4, this.vehicle.position.z - 4);
+
     this.ui.showHud(`Protect ${DINOSAURS[level.baby].name}!`);
     this.ui.toast(level.boss ? 'Boss dinosaur alert!' : 'Rescue mission started!');
     this.ui.showAim(false);
@@ -234,10 +242,11 @@ export class Game {
       this.titleVehicle.userData.updateAnim(dt, true);
       this.titleVehicle.rotation.y += dt * 0.2;
     }
-    const t = performance.now() * 0.0003;
-    this.camera.position.x = Math.sin(t) * 8;
-    this.camera.position.z = 12 + Math.cos(t) * 2;
-    this.camera.lookAt(0, 1.2, 0);
+    const t = performance.now() * 0.00035;
+    this.camera.position.x = Math.sin(t) * 5;
+    this.camera.position.y = 5.2;
+    this.camera.position.z = 8.5 + Math.cos(t) * 1.5;
+    this.camera.lookAt(0, 1.4, 0);
   }
 
   _updateMission(dt) {
@@ -329,18 +338,19 @@ export class Game {
     if (!this.vehicle) return;
     const mode = this.vehicle.userData.weaponMode;
     const zoom = mode === 'zoom' && this.phase === PHASE.COMBAT ? 1 : 0;
-    const back = THREE.MathUtils.lerp(12, 8, zoom);
-    const height = THREE.MathUtils.lerp(9, 6, zoom);
+    const back = THREE.MathUtils.lerp(7.5, 5.2, zoom);
+    const height = THREE.MathUtils.lerp(4.8, 3.4, zoom);
     const offset = new THREE.Vector3(0, height, back).applyAxisAngle(
       new THREE.Vector3(0, 1, 0),
       this.vehicle.rotation.y,
     );
     const target = this.vehicle.position.clone().add(offset);
-    this.camera.position.lerp(target, 1 - Math.pow(0.001, dt));
+    this.camera.position.lerp(target, 1 - Math.pow(0.0008, dt));
     const look = this.vehicle.position.clone();
-    look.y += 1.2;
+    look.y += 1.4;
+    look.add(new THREE.Vector3(0, 0, -4).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.vehicle.rotation.y));
     if (zoom && this.predator) {
-      look.lerp(this.predator.position, 0.45);
+      look.lerp(this.predator.position, 0.55);
     }
     this.camera.lookAt(look);
   }

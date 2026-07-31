@@ -176,9 +176,22 @@ export function createDinosaur(def) {
   shadow.position.y = 0.02;
   root.add(shadow);
 
-  root.userData.parts = { body, neck, head, tail, legs, shadow };
+  // Floating marker so kids can spot characters easily
+  const markerColor =
+    def.role === 'predator' ? 0xe85d4c : def.role === 'baby' ? 0xf4c14b : 0x62d26f;
+  const marker = new THREE.Mesh(
+    new THREE.ConeGeometry(0.28 * Math.max(def.scale, 0.7), 0.55 * Math.max(def.scale, 0.7), 4),
+    new THREE.MeshBasicMaterial({ color: markerColor }),
+  );
+  marker.rotation.x = Math.PI;
+  marker.position.y = 2.6 * def.scale + 0.8;
+  root.add(marker);
+
+  root.userData.parts = { body, neck, head, tail, legs, shadow, marker };
   root.userData.radius = 1.1 * def.scale;
   root.userData.speed = def.role === 'predator' ? 7.5 : def.role === 'mother' ? 6 : 3.5;
+  // Boost overall readability in third-person chase cam
+  root.scale.setScalar(1.35);
 
   root.userData.updateAnim = (dt, moving = false) => {
     const u = root.userData;
@@ -199,6 +212,10 @@ export function createDinosaur(def) {
       body.rotation.z = Math.sin(t * 30) * 0.08;
     } else {
       body.rotation.z = THREE.MathUtils.lerp(body.rotation.z, 0, 1 - Math.pow(0.001, dt));
+    }
+    if (u.parts.marker) {
+      u.parts.marker.position.y = 2.6 * def.scale + 0.8 + Math.sin(t * 4) * 0.15;
+      u.parts.marker.rotation.y += dt * 2;
     }
   };
 

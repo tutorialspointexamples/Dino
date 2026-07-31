@@ -10,9 +10,10 @@ export function buildWorld(level, scene) {
   const { colors, biome, water } = level;
 
   // Lighting
-  const hemi = new THREE.HemisphereLight(colors.sky, colors.ground, 0.85);
+  group.add(new THREE.AmbientLight(0xffffff, 0.45));
+  const hemi = new THREE.HemisphereLight(colors.sky, colors.ground, 0.95);
   group.add(hemi);
-  const sun = new THREE.DirectionalLight(0xfff2d0, 1.15);
+  const sun = new THREE.DirectionalLight(0xfff2d0, 1.25);
   sun.position.set(30, 40, 10);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
@@ -54,12 +55,15 @@ export function buildWorld(level, scene) {
   }
 
   if (biome === 'forest' || biome === 'swamp') {
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 42; i++) {
       const tree = makeTree(biome === 'swamp' ? 0x3a5a28 : 0x2f7a3e);
       const a = rand(0, Math.PI * 2);
-      const r = rand(8, 48);
+      const r = rand(14, 48);
       tree.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
-      if (tree.position.length() < 6) continue;
+      // Keep spawn / nest / chase lane clear for visibility
+      if (Math.hypot(tree.position.x, tree.position.z - 10) < 10) continue;
+      if (Math.hypot(tree.position.x, tree.position.z + 16) < 8) continue;
+      if (Math.abs(tree.position.x) < 4 && tree.position.z > -18 && tree.position.z < 12) continue;
       group.add(tree);
     }
   }
