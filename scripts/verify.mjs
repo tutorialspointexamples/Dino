@@ -76,6 +76,9 @@ ok(html.includes('Auto Aim') && html.includes('Zoom') && html.includes('Scatter'
 ok(html.includes('stick-zone') && html.includes('btn-fire'), 'touch controls');
 ok(html.includes('predator-bar'), 'predator HP HUD');
 ok(world.includes('blockers'), 'roadblock obstacles');
+ok(world.includes('nestBeacon') || world.includes('beacon'), 'nest escort beacon');
+ok(html.includes('btn-mute') && html.includes('nest-compass'), 'mute + nest compass UI');
+ok(world.includes('bubbles') || world.includes('vine'), 'biome props (vines/bubbles)');
 ok(world.includes('crater') || world.includes('meteor'), 'meteorite crater scenery');
 ok(dino.includes('CapsuleGeometry'), 'organic capsule dinosaur meshes');
 
