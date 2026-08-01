@@ -384,7 +384,15 @@ export class Game {
   }
 
   setWeaponMode(mode) {
-    if (this.vehicle) this.vehicle.userData.weaponMode = mode;
+    if (!this.vehicle) return;
+    this.vehicle.userData.weaponMode = mode;
+    // Immediate turret tint feedback (also refreshed in vehicle updateAnim)
+    const gun = this.vehicle.userData.gun;
+    if (gun?.material?.emissive) {
+      const tint = mode === 'zoom' ? 0x60a5fa : mode === 'scatter' ? 0xffe08a : 0xf4c14b;
+      gun.material.emissive.setHex(tint);
+      gun.material.emissiveIntensity = mode === 'scatter' ? 0.55 : mode === 'zoom' ? 0.7 : 0.35;
+    }
   }
 
   /** Skip the 3-2-1 alarm countdown (UI button + QA). */
@@ -649,7 +657,7 @@ export class Game {
         bar.style.transform = `scaleX(${Math.max(0, this.predator.userData.hp / this.predator.userData.maxHp)})`;
       }
     }
-    this._resolveBlockers();
+    this._resolveBlockers(dt);
     this._resolveCrocs(dt);
     this._updateFireflies(dt);
     this._updateWorldFX(dt);
@@ -756,10 +764,13 @@ export class Game {
     if (this.baby && nest) {
       this.baby.position.lerp(new THREE.Vector3(nest.x, 0, nest.z), 1 - Math.pow(0.02, dt));
       this.baby.rotation.y += dt * 2.2;
-      this.baby.userData.anim.state = 'idle';
+      // Victory hop dance for the rescued baby
+      this.baby.userData.anim.state = 'celebrate';
+      this.baby.position.y = this.level?.water ? 0.2 : 0;
     }
     if (this.mother?.visible && nest) {
       this._chase(this.mother, nest, this.mother.userData.speed * 0.8, dt);
+      this.mother.userData.anim.state = 'celebrate';
     }
     this._updateConfetti(dt);
     if (this._celebrateT > 0.35 && this._celebrateT < 0.4) {
@@ -776,6 +787,9 @@ export class Game {
     const flies = this.world?.userData?.fireflies;
     if (!flies) return;
     const t = performance.now() * 0.001;
+    let ax = 0;
+    let ay = 0;
+    let az = 0;
     for (const ff of flies) {
       const p = ff.userData.phase;
       const b = ff.userData.base;
@@ -784,6 +798,14 @@ export class Game {
       ff.position.z = b.z + Math.cos(t * 1.4 + p) * 0.8;
       ff.material.opacity = 0.45 + Math.sin(t * 5 + p) * 0.35;
       ff.material.transparent = true;
+      ax += ff.position.x;
+      ay += ff.position.y;
+      az += ff.position.z;
+    }
+    const glow = this.world?.userData?.fireflyLight;
+    if (glow && flies.length) {
+      glow.position.set(ax / flies.length, ay / flies.length + 0.6, az / flies.length);
+      glow.intensity = 0.55 + Math.sin(t * 3.2) * 0.45;
     }
   }
 
@@ -877,18 +899,60 @@ export class Game {
       caustic.position.x = Math.sin(t * 0.7) * 8;
       caustic.position.z = Math.cos(t * 0.55) * 8 - 2;
     }
+    // Swinging coral relics (store lore)
+    const corals = this.world?.userData?.swingingCoral;
+    if (corals) {
+      const t = performance.now() * 0.001;
+      for (const c of corals) {
+        const p = c.userData.phase || 0;
+        c.rotation.z = Math.sin(t * 1.6 + p) * 0.35;
+        c.rotation.x = Math.sin(t * 1.1 + p * 0.7) * 0.12;
+        if (c.material?.emissiveIntensity != null) {
+          c.material.emissiveIntensity = 0.1 + Math.sin(t * 2.5 + p) * 0.08;
+        }
+      }
+    }
+    // Deep-sea swirl whirlpool spin
+    const whirl = this.world?.userData?.whirlpool;
+    if (whirl) {
+      const t = performance.now() * 0.001;
+      whirl.root.rotation.y += dt * 1.35;
+      whirl.spiral.rotation.z = t * 2.2;
+      whirl.disc.material.opacity = 0.4 + Math.sin(t * 3) * 0.15;
+      whirl.disc.material.emissiveIntensity = 0.45 + Math.sin(t * 4) * 0.25;
+    }
+    // Crystal cave shimmer
+    const crystals = this.world?.userData?.caveCrystals;
+    if (crystals) {
+      const t = performance.now() * 0.001;
+      for (const c of crystals) {
+        c.material.emissiveIntensity = 0.3 + Math.sin(t * 2.8 + (c.userData.phase || 0)) * 0.35;
+      }
+    }
     this._updateMotherRings(dt);
   }
 
-  _resolveBlockers() {
+  _resolveBlockers(dt = 0.016) {
     const blocks = this.world?.userData?.blockers;
     if (!blocks || !this.vehicle) return;
+    if (this._blockToastT > 0) this._blockToastT -= dt;
     for (const b of blocks) {
+      if (b.userData.hitCooldown > 0) b.userData.hitCooldown -= dt;
       const d = this.vehicle.position.distanceTo(b.position);
       const min = (b.userData.radius || 1.4) + this.vehicle.userData.radius * 0.55;
       if (d < min && d > 0.001) {
         const push = this.vehicle.position.clone().sub(b.position).setY(0).normalize();
         this.vehicle.position.addScaledVector(push, (min - d) * 0.85);
+        // Roadblock bounce feedback — spark + soft toast throttle
+        if (!b.userData.hitCooldown || b.userData.hitCooldown <= 0) {
+          this._spawnSparks(this.vehicle.position.clone().setY(0.9), 0xc4a35a, 4);
+          this.shakeT = Math.max(this.shakeT, 0.12);
+          b.userData.hitCooldown = 0.7;
+          if (!this._blockToastT || this._blockToastT <= 0) {
+            this.ui.toast('Roadblock! Steer around!');
+            this._blockToastT = 2.2;
+          }
+        }
       }
     }
   }
@@ -1170,13 +1234,21 @@ export class Game {
     if (!this.vehicle) return;
     const mode = this.vehicle.userData.weaponMode;
     const zoom = mode === 'zoom' && this.phase === PHASE.COMBAT ? 1 : 0;
+    const axis = this.input.getAxis();
+    const throttle = Math.max(0, -axis.y);
+    const lookAhead = (this._boostActive ? 3.2 : 1.8) * throttle + (zoom ? 0.6 : 0);
+    const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      this.vehicle.rotation.y,
+    );
     const back = THREE.MathUtils.lerp(7.5, 5.2, zoom);
     const height = THREE.MathUtils.lerp(4.8, 3.4, zoom);
     const offset = new THREE.Vector3(0, height, back).applyAxisAngle(
       new THREE.Vector3(0, 1, 0),
       this.vehicle.rotation.y,
     );
-    const target = this.vehicle.position.clone().add(offset);
+    // Drive look-ahead: camera sits slightly ahead of the jeep when moving
+    const target = this.vehicle.position.clone().add(offset).addScaledVector(forward, lookAhead * 0.35);
     this.camera.position.lerp(target, 1 - Math.pow(0.0008, dt));
     if (this.shakeT > 0) {
       this.shakeT -= dt;
@@ -1189,7 +1261,7 @@ export class Game {
     this.camera.updateProjectionMatrix();
     const look = this.vehicle.position.clone();
     look.y += 1.4;
-    look.add(new THREE.Vector3(0, 0, -4).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.vehicle.rotation.y));
+    look.add(forward.clone().multiplyScalar(4 + lookAhead));
     if (zoom && this.predator) {
       look.lerp(this.predator.position, 0.55);
     }
@@ -1368,7 +1440,16 @@ export class Game {
       // Escort baby to nest
       const nest = this.world.userData.nestPos;
       this._chase(baby, nest, baby.userData.speed * 1.8, dt);
-      if (mother.visible) this._chase(mother, baby.position, mother.userData.speed * 1.1, dt);
+      // Mother bodyguards on the baby's flank (store: dinosaur companions help)
+      if (mother.visible) {
+        const toNest = nest.clone().sub(baby.position).setY(0);
+        if (toNest.lengthSq() < 0.01) toNest.set(0, 0, -1);
+        else toNest.normalize();
+        const flank = new THREE.Vector3(-toNest.z, 0, toNest.x).multiplyScalar(2.4);
+        const guardPos = baby.position.clone().add(flank).addScaledVector(toNest, -1.2);
+        this._chase(mother, guardPos, mother.userData.speed * 1.15, dt);
+        mother.userData.anim.state = 'run';
+      }
       if (predator) {
         predator.userData.anim.state = 'hurt';
         predator.position.y = THREE.MathUtils.lerp(predator.position.y, -2, dt);

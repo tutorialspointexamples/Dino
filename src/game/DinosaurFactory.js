@@ -263,8 +263,17 @@ export function createDinosaur(def) {
     const attackBoost = u.anim.state === 'attack' ? 1.4 : 1;
     const panicBoost = u.anim.panic ? 1.55 : 1;
 
-    body.position.y = Math.sin(t * 8 * walk * panicBoost * limpWalk) * 0.05 * s * (u.anim.panic ? 1.4 : 1);
-    neck.rotation.x = Math.sin(t * 3) * 0.1 + (u.anim.state === 'attack' ? -0.35 : 0);
+    const celebrating = u.anim.state === 'celebrate';
+    const hop = celebrating ? Math.abs(Math.sin(t * 10)) * 0.35 * s : 0;
+    body.position.y =
+      hop + Math.sin(t * 8 * walk * panicBoost * limpWalk) * 0.05 * s * (u.anim.panic ? 1.4 : 1);
+    if (celebrating) {
+      body.rotation.y = Math.sin(t * 6) * 0.35;
+      neck.rotation.x = -0.25 + Math.sin(t * 8) * 0.15;
+    } else {
+      body.rotation.y = THREE.MathUtils.lerp(body.rotation.y || 0, 0, 1 - Math.pow(0.01, dt));
+      neck.rotation.x = Math.sin(t * 3) * 0.1 + (u.anim.state === 'attack' ? -0.35 : 0);
+    }
     head.rotation.y = Math.sin(t * 2.2) * 0.15;
     head.rotation.x = u.anim.state === 'attack' ? Math.sin(t * 12) * 0.2 : Math.sin(t * 1.5) * 0.05;
     if (jaw) {

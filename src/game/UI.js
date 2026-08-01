@@ -74,15 +74,22 @@ export class UI {
     this.$('hub-progress').textContent = `${save.cleared.length}/${LEVELS.length}`;
     const grid = this.$('level-grid');
     grid.innerHTML = '';
+    // Highlight the next unlocked uncleared mission (kids' "play here" cue)
+    const nextIdx = LEVELS.findIndex(
+      (level, i) =>
+        !save.cleared.includes(level.id) && (i === 0 || save.cleared.includes(LEVELS[i - 1].id)),
+    );
     LEVELS.forEach((level, i) => {
       const unlocked = i === 0 || save.cleared.includes(LEVELS[i - 1].id);
       const cleared = save.cleared.includes(level.id);
+      const nextUp = i === nextIdx;
       const btn = document.createElement('button');
-      btn.className = `level-card${cleared ? ' cleared' : ''}${unlocked ? '' : ' locked'}`;
+      btn.className = `level-card${cleared ? ' cleared' : ''}${unlocked ? '' : ' locked'}${nextUp ? ' next-up' : ''}`;
       const best = save.bestStars?.[level.id] || 0;
       const babyName = DINOSAURS[level.baby]?.name?.replace(/^Baby\s+/, '') || 'Dino';
       const predName = DINOSAURS[level.predator]?.name || 'Predator';
       const badges = [
+        nextUp ? '<span class="lvl-badge next">NEXT</span>' : '',
         level.water ? '<span class="lvl-badge water">SUB</span>' : '',
         level.boss ? '<span class="lvl-badge boss">BOSS</span>' : '',
         cleared ? '<span class="lvl-badge clear">✓</span>' : '',
@@ -209,6 +216,27 @@ export class UI {
     const pctEl = this.$('master-pct');
     if (bar) bar.style.transform = `scaleX(${Math.max(0, Math.min(1, stamps.length / total))})`;
     if (pctEl) pctEl.textContent = `${pct}% · ${pct >= 100 ? 'Dinosaur Master!' : 'Collect stamps'}`;
+    // Collection progress tip (store: compete with friends on stamp progress)
+    const meter = this.$('master-meter');
+    if (meter && !meter.dataset.tipBound) {
+      meter.dataset.tipBound = '1';
+      meter.title = 'Tap to share your Dinosaur Master progress';
+      meter.style.cursor = 'pointer';
+      meter.addEventListener('click', () => {
+        const s = this.game.save.stamps.length;
+        const t = Object.keys(DINOSAURS).length;
+        const p = Math.round((s / Math.max(1, t)) * 100);
+        const line = `I'm ${p}% Dinosaur Master (${s}/${t} stamps) in Dinosaur Guard 2!`;
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(line).then(
+            () => this.toast('Progress copied — share with a friend!'),
+            () => this.toast(line),
+          );
+        } else {
+          this.toast(line);
+        }
+      });
+    }
     const grid = this.$('stamp-grid');
     grid.innerHTML = '';
     Object.values(DINOSAURS).forEach((d) => {

@@ -290,6 +290,18 @@ h2 {
 .lvl-badge.water { color: #7dd3fc; border-color: #38bdf8; }
 .lvl-badge.boss { color: #fecaca; border-color: #f87171; }
 .lvl-badge.clear { color: #86efac; border-color: #4ade80; }
+.lvl-badge.next { color: #fde68a; border-color: #f4c14b; background: rgba(244, 193, 75, 0.25); }
+
+.level-card.next-up {
+  border-color: var(--sun);
+  box-shadow: 0 0 0 2px rgba(244, 193, 75, 0.35), 0 8px 22px rgba(15, 40, 24, 0.35);
+  animation: nextMissionPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes nextMissionPulse {
+  0%, 100% { transform: translateY(0); box-shadow: 0 0 0 2px rgba(244, 193, 75, 0.3), 0 6px 16px rgba(15, 40, 24, 0.3); }
+  50% { transform: translateY(-3px); box-shadow: 0 0 0 4px rgba(244, 193, 75, 0.55), 0 10px 24px rgba(15, 40, 24, 0.4); }
+}
 
 .level-card h3,
 .item-card h3 {

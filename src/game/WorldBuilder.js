@@ -121,6 +121,7 @@ export function buildWorld(level, scene) {
   }
 
   if (biome === 'cave') {
+    const crystals = [];
     for (let i = 0; i < 35; i++) {
       const crystal = new THREE.Mesh(
         new THREE.ConeGeometry(rand(0.3, 0.8), rand(1.5, 4), 5),
@@ -135,8 +136,11 @@ export function buildWorld(level, scene) {
       const r = rand(6, 40);
       crystal.position.set(Math.cos(a) * r, rand(0.5, 1.2), Math.sin(a) * r);
       crystal.rotation.z = rand(-0.2, 0.2);
+      crystal.userData.phase = rand(0, Math.PI * 2);
       group.add(crystal);
+      crystals.push(crystal);
     }
+    group.userData.caveCrystals = crystals;
     // Store lore: dripping stalactites in rock caves
     const drips = [];
     for (let i = 0; i < 18; i++) {
@@ -182,6 +186,11 @@ export function buildWorld(level, scene) {
       fireflies.push(ff);
     }
     group.userData.fireflies = fireflies;
+    // Soft bioluminescent fill light for Firefly Lights Cave
+    const glow = new THREE.PointLight(0xf4c14b, 0.85, 28);
+    glow.position.set(0, 4, 0);
+    group.add(glow);
+    group.userData.fireflyLight = glow;
   }
 
   if (biome === 'crater') {
@@ -252,6 +261,41 @@ export function buildWorld(level, scene) {
     }
   }
 
+  // Store lore: water-eroded Danxia mountain terraces
+  if (level.id === 'danxia') {
+    const terraces = [];
+    for (let i = 0; i < 10; i++) {
+      const stack = new THREE.Group();
+      const layers = 3 + (i % 3);
+      let y = 0;
+      for (let L = 0; L < layers; L++) {
+        const h = rand(0.7, 1.4);
+        const rad = rand(1.4, 2.6) - L * 0.25;
+        const band = new THREE.Mesh(
+          new THREE.CylinderGeometry(rad * 0.85, rad, h, 10),
+          new THREE.MeshStandardMaterial({
+            color: L % 2 ? 0xc45c26 : 0x8b2e14,
+            roughness: 0.95,
+            flatShading: true,
+          }),
+        );
+        band.position.y = y + h / 2;
+        y += h * 0.92;
+        stack.add(band);
+      }
+      const a = rand(0, Math.PI * 2);
+      const r = rand(16, 42);
+      stack.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
+      // Keep rescue lane clear
+      if (Math.abs(stack.position.x) < 5 && stack.position.z > -18 && stack.position.z < 14) {
+        stack.position.x += stack.position.x >= 0 ? 8 : -8;
+      }
+      group.add(stack);
+      terraces.push(stack);
+    }
+    group.userData.danxiaTerraces = terraces;
+  }
+
   if (water || biome === 'ocean') {
     const waterMat = new THREE.MeshStandardMaterial({
       color: 0x2a8fb8,
@@ -266,16 +310,28 @@ export function buildWorld(level, scene) {
     group.add(waterMesh);
     group.userData.waterMesh = waterMesh;
 
+    // Store lore: swinging coral relics
+    const swingingCoral = [];
     for (let i = 0; i < 18; i++) {
       const coral = new THREE.Mesh(
         new THREE.ConeGeometry(0.4, rand(1, 2.5), 6),
-        new THREE.MeshStandardMaterial({ color: i % 2 ? 0xff8fab : 0xffc14d, roughness: 0.6 }),
+        new THREE.MeshStandardMaterial({
+          color: i % 2 ? 0xff8fab : 0xffc14d,
+          roughness: 0.6,
+          emissive: i % 2 ? 0xff8fab : 0xffc14d,
+          emissiveIntensity: 0.12,
+        }),
       );
       const a = rand(0, Math.PI * 2);
       const r = rand(10, 40);
       coral.position.set(Math.cos(a) * r, 0.2, Math.sin(a) * r);
+      coral.userData.phase = rand(0, Math.PI * 2);
+      coral.userData.baseRotZ = coral.rotation.z;
       group.add(coral);
+      swingingCoral.push(coral);
     }
+    group.userData.swingingCoral = swingingCoral;
+
     const bubbles = [];
     for (let i = 0; i < 24; i++) {
       const b = new THREE.Mesh(
@@ -300,6 +356,40 @@ export function buildWorld(level, scene) {
     caustic.position.set(4, 6, -2);
     group.add(caustic);
     group.userData.causticLight = caustic;
+
+    // Deep-Sea Swirl: rotating whirlpool current
+    if (level.id === 'deep_swirl') {
+      const whirl = new THREE.Group();
+      whirl.position.set(8, water ? 0.42 : 0.1, -4);
+      const disc = new THREE.Mesh(
+        new THREE.RingGeometry(1.2, 7.5, 40),
+        new THREE.MeshStandardMaterial({
+          color: 0x60a5fa,
+          emissive: 0x2563eb,
+          emissiveIntensity: 0.55,
+          transparent: true,
+          opacity: 0.55,
+          side: THREE.DoubleSide,
+          roughness: 0.35,
+        }),
+      );
+      disc.rotation.x = -Math.PI / 2;
+      whirl.add(disc);
+      const spiral = new THREE.Mesh(
+        new THREE.TorusGeometry(4.2, 0.18, 8, 48),
+        new THREE.MeshStandardMaterial({
+          color: 0xb6eaff,
+          emissive: 0x38bdf8,
+          emissiveIntensity: 0.7,
+          transparent: true,
+          opacity: 0.75,
+        }),
+      );
+      spiral.rotation.x = Math.PI / 2;
+      whirl.add(spiral);
+      group.add(whirl);
+      group.userData.whirlpool = { root: whirl, disc, spiral };
+    }
   }
 
   // Path ring markers

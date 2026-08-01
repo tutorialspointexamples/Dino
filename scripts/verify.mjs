@@ -170,6 +170,18 @@ ok(game.includes('_flashVehicleHit') && game.includes('_updateVehicleHitFlash'),
 ok(vehicle.includes('frontWheels') && vehicle.includes('_steer') && game.includes('updateAnim(dt, moving, axis.x)'), 'wheel steer + chassis lean');
 ok(game.includes('_boostActive ? this._baseFov + 7') && game.includes('updateProjectionMatrix'), 'boost camera FOV punch');
 
+// Branch ed9a polish iterations (10)
+ok(world.includes('swingingCoral') && game.includes('swingingCoral'), '1 swinging coral relics');
+ok(world.includes('whirlpool') && world.includes("level.id === 'deep_swirl'") && game.includes('whirlpool'), '2 deep-sea swirl whirlpool');
+ok(world.includes('danxiaTerraces') && world.includes("level.id === 'danxia'"), '3 Danxia water-eroded terraces');
+ok(vehicle.includes('userData.gun') && game.includes('gun.material.emissive') && vehicle.includes('weaponMode'), '4 weapon mode turret tint');
+ok(dino.includes("anim.state === 'celebrate'") && game.includes("anim.state = 'celebrate'"), '5 celebrate hop dance');
+ok(game.includes('_resolveBlockers') && game.includes('Roadblock!') && game.includes('_blockToastT'), '6 roadblock bounce feedback');
+ok(game.includes('guardPos') && game.includes('Mother bodyguards'), '7 mother escort flank bodyguard');
+ok(game.includes('lookAhead') && game.includes('Drive look-ahead'), '8 camera drive look-ahead');
+ok(read('src/game/UI.js').includes('next-up') && read('src/style.css').includes('nextMissionPulse') && read('src/game/UI.js').includes('Dinosaur Master'), '9 hub next-mission pulse + master share');
+ok(world.includes('fireflyLight') && game.includes('fireflyLight') && world.includes('caveCrystals'), '10 firefly biolum light + crystal shimmer');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

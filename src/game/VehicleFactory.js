@@ -110,11 +110,15 @@ export function createVehicle(def) {
     root.add(red);
     root.userData.sirens = [blue, red];
 
-    // bumper gun — aimed toward -Z (forward)
-    const gun = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.7, 10), mat(0x333333));
+    // bumper gun — aimed toward -Z (forward); emissive tint shows weapon mode
+    const gun = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.1, 0.7, 10),
+      mat(0x333333, { emissive: 0xf4c14b, emissiveIntensity: 0.25 }),
+    );
     gun.rotation.x = Math.PI / 2;
     gun.position.set(0, 0.85, -1.45);
     root.add(gun);
+    root.userData.gun = gun;
     root.userData.muzzle = new THREE.Object3D();
     root.userData.muzzle.position.set(0, 0.85, -1.9);
     root.add(root.userData.muzzle);
@@ -158,10 +162,14 @@ export function createVehicle(def) {
   }
   // Sub torpedo tube visual — forward (-Z)
   if (def.type === 'submarine') {
-    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 10), mat(0x333333));
+    const tube = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.1, 0.6, 10),
+      mat(0x333333, { emissive: 0xf4c14b, emissiveIntensity: 0.25 }),
+    );
     tube.rotation.x = Math.PI / 2;
     tube.position.set(0, 0.85, -1.55);
     root.add(tube);
+    root.userData.gun = tube;
     root.userData.muzzle.position.set(0, 0.85, -1.95);
   }
 
@@ -203,9 +211,18 @@ export function createVehicle(def) {
       u.chassis.rotation.z = THREE.MathUtils.lerp(u.chassis.rotation.z, lean, 1 - Math.pow(0.002, dt));
     }
     if (u.propellers) {
+      // Idle drift when stopped; full spin under throttle / boost
+      const propSpin = (moving ? 18 : 3.5) * dt * (u.sirenBoost ? 1.5 : 1);
       for (const p of u.propellers) {
-        p.rotation.x += 18 * dt * (u.sirenBoost ? 1.4 : 1);
+        p.rotation.x += propSpin;
       }
+    }
+    // Weapon mode tint on gun / torpedo tube
+    if (u.gun?.material) {
+      const mode = u.weaponMode || 'auto';
+      const tint = mode === 'zoom' ? 0x60a5fa : mode === 'scatter' ? 0xffe08a : 0xf4c14b;
+      u.gun.material.emissive?.setHex?.(tint);
+      u.gun.material.emissiveIntensity = mode === 'scatter' ? 0.55 : mode === 'zoom' ? 0.7 : 0.35;
     }
     if (u.sirens) {
       // Faster flash when alarm/combat boost is active

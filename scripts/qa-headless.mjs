@@ -460,6 +460,59 @@ async function main() {
   });
   console.log('134f iterations:', iter134f);
 
+  // Branch ed9a — 10 polish iterations
+  const iterEd9a = await page.evaluate(async () => {
+    const g = window.__game;
+    const LEVELS = (await import('/src/game/data.js')).LEVELS;
+    const deep = LEVELS.find((l) => l.id === 'deep_swirl');
+    const danxia = LEVELS.find((l) => l.id === 'danxia');
+    const firefly = LEVELS.find((l) => l.id === 'firefly_cave');
+    g.startMission(deep, 'sub_bubble');
+    g.skipCountdown();
+    const whirl = !!g.world?.userData?.whirlpool;
+    const coral = (g.world?.userData?.swingingCoral || []).length;
+    g.setWeaponMode('zoom');
+    const gunTint =
+      g.vehicle?.userData?.gun?.material?.emissive &&
+      g.vehicle.userData.gun.material.emissive.getHex() === 0x60a5fa;
+    g.startMission(danxia, 'patrol_jeep');
+    g.skipCountdown();
+    const terraces = (g.world?.userData?.danxiaTerraces || []).length;
+    g.startMission(firefly, 'patrol_jeep');
+    g.skipCountdown();
+    const fireflyLight = !!g.world?.userData?.fireflyLight;
+    const crystals = (g.world?.userData?.caveCrystals || []).length;
+    // Celebrate hop
+    g.phase = 'celebrate';
+    g._celebrateT = 0;
+    if (g.baby) g.baby.userData.anim.state = 'celebrate';
+    for (let i = 0; i < 8; i++) g._updateCelebrate(0.05);
+    const celebrate = g.baby?.userData?.anim?.state === 'celebrate';
+    // Roadblock feedback wired
+    const blockWired = g._resolveBlockers.toString().includes('Roadblock');
+    const flankWired = g._updatePhase.toString().includes('guardPos');
+    const lookAheadWired = g._updateCamera.toString().includes('lookAhead');
+    // Hub next-up pulse
+    g.ui.showHub();
+    const nextUp = !!document.querySelector('.level-card.next-up');
+    const masterMeter = !!document.getElementById('master-meter');
+    return {
+      whirl,
+      coral,
+      gunTint,
+      terraces,
+      fireflyLight,
+      crystals,
+      celebrate,
+      blockWired,
+      flankWired,
+      lookAheadWired,
+      nextUp,
+      masterMeter,
+    };
+  });
+  console.log('ed9a iterations:', iterEd9a);
+
   await browser.close();
   preview.kill();
 
@@ -542,7 +595,19 @@ async function main() {
     !iter134f.fovBoost ||
     !iter134f.retryVisible ||
     !iter134f.chevronRefresh ||
-    !iter134f.eggRadar;
+    !iter134f.eggRadar ||
+    !iterEd9a.whirl ||
+    iterEd9a.coral < 10 ||
+    !iterEd9a.gunTint ||
+    iterEd9a.terraces < 6 ||
+    !iterEd9a.fireflyLight ||
+    iterEd9a.crystals < 10 ||
+    !iterEd9a.celebrate ||
+    !iterEd9a.blockWired ||
+    !iterEd9a.flankWired ||
+    !iterEd9a.lookAheadWired ||
+    !iterEd9a.nextUp ||
+    !iterEd9a.masterMeter;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);
