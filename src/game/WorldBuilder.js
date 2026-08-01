@@ -107,17 +107,28 @@ export function buildWorld(level, scene) {
   }
 
   if (biome === 'swamp') {
+    // Store lore: vine swamp — hanging vines that sway in the humid air
+    const swingingVines = [];
     for (let i = 0; i < 16; i++) {
       const vine = new THREE.Mesh(
         new THREE.CylinderGeometry(0.05, 0.08, rand(3, 6), 6),
-        new THREE.MeshStandardMaterial({ color: 0x2f5a22, roughness: 0.9 }),
+        new THREE.MeshStandardMaterial({
+          color: 0x2f5a22,
+          roughness: 0.9,
+          emissive: 0x1a3a14,
+          emissiveIntensity: 0.08,
+        }),
       );
       const a = rand(0, Math.PI * 2);
       const r = rand(10, 40);
       vine.position.set(Math.cos(a) * r, vine.geometry.parameters[2] / 2, Math.sin(a) * r);
       vine.rotation.z = rand(-0.4, 0.4);
+      vine.userData.phase = rand(0, Math.PI * 2);
+      vine.userData.baseRotZ = vine.rotation.z;
       group.add(vine);
+      swingingVines.push(vine);
     }
+    group.userData.swingingVines = swingingVines;
   }
 
   if (biome === 'cave') {
@@ -196,17 +207,39 @@ export function buildWorld(level, scene) {
   if (biome === 'crater') {
     const rim = new THREE.Mesh(
       new THREE.TorusGeometry(12, 2.2, 10, 28),
-      new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 1 }),
+      new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 1, emissive: 0xc45c26, emissiveIntensity: 0.12 }),
     );
     rim.rotation.x = Math.PI / 2;
     rim.position.set(10, 0.4, -6);
     group.add(rim);
     const meteor = new THREE.Mesh(
       new THREE.DodecahedronGeometry(2.4),
-      new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0xc45c26, emissiveIntensity: 0.25 }),
+      new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0xc45c26, emissiveIntensity: 0.45 }),
     );
     meteor.position.set(10, 1.2, -6);
+    meteor.userData.phase = rand(0, Math.PI * 2);
     group.add(meteor);
+    group.userData.meteorCore = meteor;
+    // Impact glow light at crater center
+    const impactGlow = new THREE.PointLight(0xff6a2a, 1.4, 22);
+    impactGlow.position.set(10, 2.2, -6);
+    group.add(impactGlow);
+    group.userData.meteorImpactGlow = impactGlow;
+    // Smoke pillars rising from the meteorite hole
+    const smokePillars = [];
+    for (let i = 0; i < 8; i++) {
+      const smoke = new THREE.Mesh(
+        new THREE.SphereGeometry(rand(0.5, 1.1), 8, 6),
+        new THREE.MeshBasicMaterial({ color: 0x6b5a4a, transparent: true, opacity: 0.35, depthWrite: false }),
+      );
+      const a = (i / 8) * Math.PI * 2;
+      smoke.position.set(10 + Math.cos(a) * 3.2, rand(1.5, 3), -6 + Math.sin(a) * 3.2);
+      smoke.userData.baseY = smoke.position.y;
+      smoke.userData.phase = rand(0, Math.PI * 2);
+      group.add(smoke);
+      smokePillars.push(smoke);
+    }
+    group.userData.meteorSmoke = smokePillars;
   }
 
   if (biome === 'volcano') {
@@ -233,6 +266,30 @@ export function buildWorld(level, scene) {
     lava.position.set(18, 0.05, -10);
     group.add(lava);
     group.userData.lavaPool = lava;
+    // Flowing lava river ribbons across the volcano floor
+    const lavaRivers = [];
+    for (let i = 0; i < 4; i++) {
+      const river = new THREE.Mesh(
+        new THREE.PlaneGeometry(rand(2.2, 3.4), rand(10, 16)),
+        new THREE.MeshStandardMaterial({
+          color: 0xff4d2a,
+          emissive: 0xff2a00,
+          emissiveIntensity: 0.75,
+          roughness: 0.35,
+          transparent: true,
+          opacity: 0.9,
+        }),
+      );
+      river.rotation.x = -Math.PI / 2;
+      river.rotation.z = rand(-0.55, 0.55);
+      river.position.set(rand(-16, 22), 0.06, rand(-18, 8));
+      // Keep center rescue lane readable
+      if (Math.abs(river.position.x) < 4) river.position.x += river.position.x >= 0 ? 6 : -6;
+      river.userData.phase = rand(0, Math.PI * 2);
+      group.add(river);
+      lavaRivers.push(river);
+    }
+    group.userData.lavaRivers = lavaRivers;
     const ash = [];
     for (let i = 0; i < 36; i++) {
       const flake = new THREE.Mesh(
@@ -390,6 +447,31 @@ export function buildWorld(level, scene) {
       group.add(whirl);
       group.userData.whirlpool = { root: whirl, disc, spiral };
     }
+
+    // Tropical Ocean Current: flowing current ribbons kids can see
+    if (level.id === 'ocean_current') {
+      const currents = [];
+      for (let i = 0; i < 7; i++) {
+        const ribbon = new THREE.Mesh(
+          new THREE.PlaneGeometry(rand(1.2, 2.2), rand(8, 14)),
+          new THREE.MeshBasicMaterial({
+            color: i % 2 ? 0x7fd0c0 : 0xf4c14b,
+            transparent: true,
+            opacity: 0.28,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+          }),
+        );
+        ribbon.rotation.x = -Math.PI / 2;
+        ribbon.rotation.z = rand(-0.35, 0.35);
+        ribbon.position.set(rand(-18, 18), (water ? 0.48 : 0.14) + i * 0.01, rand(-16, 10));
+        ribbon.userData.phase = rand(0, Math.PI * 2);
+        ribbon.userData.drift = rand(2.5, 5);
+        group.add(ribbon);
+        currents.push(ribbon);
+      }
+      group.userData.oceanCurrents = currents;
+    }
   }
 
   // Path ring markers
@@ -401,7 +483,7 @@ export function buildWorld(level, scene) {
   path.position.y = 0.06;
   group.add(path);
 
-  // Rescue route from spawn (z≈12) toward nest (z≈-16) — kids-readable lane
+  // Rescue routes from spawn (z≈12) toward nest (z≈-16) — store: multiple route designs
   const routeMat = new THREE.MeshStandardMaterial({
     color: water ? 0x5ec8e8 : biome === 'volcano' ? 0x6b4226 : 0xc4a35a,
     roughness: 0.95,
@@ -412,6 +494,20 @@ export function buildWorld(level, scene) {
   route.rotation.x = -Math.PI / 2;
   route.position.set(0, 0.04, -2);
   group.add(route);
+  // Forked alternate lane so kids can choose left or right rescue path
+  const forkMat = routeMat.clone();
+  forkMat.opacity = 0.55;
+  forkMat.color = new THREE.Color(water ? 0x7fd0c0 : biome === 'swamp' ? 0x8aa86a : 0xd4b06a);
+  const forkA = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 18), forkMat);
+  forkA.rotation.x = -Math.PI / 2;
+  forkA.rotation.z = 0.38;
+  forkA.position.set(-5.5, 0.045, -1);
+  group.add(forkA);
+  const forkB = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 18), forkMat.clone());
+  forkB.rotation.x = -Math.PI / 2;
+  forkB.rotation.z = -0.38;
+  forkB.position.set(5.5, 0.045, -1);
+  group.add(forkB);
   // Soft side rails so the route reads as a designed path
   for (const sx of [-2.4, 2.4]) {
     const rail = new THREE.Mesh(
@@ -427,6 +523,7 @@ export function buildWorld(level, scene) {
     group.add(rail);
   }
   group.userData.rescueRoute = route;
+  group.userData.forkedRoutes = [forkA, forkB];
 
   // Mugger crocodiles hidden in water bays / swamp (store lore hazard)
   const crocs = [];
@@ -582,6 +679,7 @@ function makeTree(leafColor) {
 function makeKingFlower() {
   const g = new THREE.Group();
   g.userData.kind = 'kingFlower';
+  g.userData.phase = rand(0, Math.PI * 2);
   const stem = new THREE.Mesh(
     new THREE.CylinderGeometry(0.06, 0.09, 1.4, 6),
     new THREE.MeshStandardMaterial({ color: 0x2f7a3e, roughness: 0.9 }),
@@ -600,16 +698,22 @@ function makeKingFlower() {
   bloom.position.y = 1.45;
   bloom.scale.set(1, 0.55, 1);
   g.add(bloom);
+  g.userData.bloom = bloom;
+  const petals = [];
   for (let i = 0; i < 5; i++) {
     const petal = new THREE.Mesh(
       new THREE.SphereGeometry(0.22, 8, 6),
-      new THREE.MeshStandardMaterial({ color: 0xf4c14b, roughness: 0.7 }),
+      new THREE.MeshStandardMaterial({ color: 0xf4c14b, roughness: 0.7, emissive: 0xf4c14b, emissiveIntensity: 0.12 }),
     );
     const a = (i / 5) * Math.PI * 2;
     petal.position.set(Math.cos(a) * 0.38, 1.4, Math.sin(a) * 0.38);
     petal.scale.set(1, 0.4, 0.7);
+    petal.userData.baseR = 0.38;
+    petal.userData.angle = a;
     g.add(petal);
+    petals.push(petal);
   }
+  g.userData.petals = petals;
   return g;
 }
 

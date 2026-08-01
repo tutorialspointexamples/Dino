@@ -95,6 +95,8 @@ export class Game {
     this._chevronRefreshT = 0;
     this._baseFov = 55;
     this.heals = [];
+    this.garagePreview = null;
+    this._chaseRoarPunchT = 0;
     this.world = null;
     this.vehicle = null;
     this.baby = null;
@@ -234,6 +236,7 @@ export class Game {
   }
 
   _clearTitleDiorama() {
+    this.clearGaragePreview();
     for (const o of [...this.scene.children]) {
       if (
         ['titleLight', 'titleSun', 'titleGround', 'titleAmb'].includes(o.name) ||
@@ -251,6 +254,7 @@ export class Game {
   showTitleScene() {
     this.state = 'title';
     this.paused = false;
+    this.clearGaragePreview();
     this._clearTitleDiorama();
     this.clearSceneExtras();
     this._buildTitleDiorama();
@@ -259,11 +263,53 @@ export class Game {
   showHubScene() {
     this.state = 'hub';
     // keep title diorama spinning in background
+    this.clearGaragePreview();
+  }
+
+  /** 3D turntable preview when browsing garage / mission vehicle pick */
+  showGaragePreview(vehicleId) {
+    const def = VEHICLES.find((v) => v.id === vehicleId) || VEHICLES[0];
+    if (!def) return;
+    // Leaving a mission for menu browse — tear down world then show turntable
+    if (this.state === 'mission') {
+      this.paused = false;
+      this.audio.stopAmbient();
+      this.clearSceneExtras();
+      this._clearTitleDiorama();
+      this._buildTitleDiorama();
+    }
+    if (this.garagePreview?.userData?.defId === def.id && this.state === 'garage') return;
+    this.clearGaragePreview();
+    // Ensure title lights/ground exist while previewing from garage screens
+    if (!this.titleVehicle && !this.titleDinos?.length) {
+      this._buildTitleDiorama();
+    }
+    // Hide title jeep so the selected ride is the hero
+    if (this.titleVehicle) this.titleVehicle.visible = false;
+    const preview = createVehicle(def);
+    preview.position.set(0.2, 0, 3.2);
+    preview.rotation.y = -0.4;
+    preview.userData.defId = def.id;
+    preview.userData.kind = 'vehicle';
+    preview.userData.isGaragePreview = true;
+    this.scene.add(preview);
+    this.garagePreview = preview;
+    this.state = 'garage';
+  }
+
+  clearGaragePreview() {
+    if (this.garagePreview) {
+      this.scene.remove(this.garagePreview);
+      this.garagePreview = null;
+    }
+    if (this.titleVehicle) this.titleVehicle.visible = true;
   }
 
   startMission(level, vehicleId) {
+    this.clearGaragePreview();
     this._clearTitleDiorama();
     this.clearSceneExtras();
+    this._chaseRoarPunchT = 0;
     this.level = level;
     this._missionVehicleId = vehicleId;
     this.missionScore = 0;
@@ -547,7 +593,7 @@ export class Game {
     const dt = Math.min(0.05, (now - this._prevTime) / 1000);
     this._prevTime = now;
     if (this.state === 'mission') this._handlePauseHotkey();
-    if (this.state === 'title' || this.state === 'hub') {
+    if (this.state === 'title' || this.state === 'hub' || this.state === 'garage') {
       this._updateTitle(dt);
     } else if (this.state === 'mission' && !this.paused) {
       this._updateMission(dt);
@@ -560,15 +606,22 @@ export class Game {
       d.rotation.y += dt * 0.35;
       d.userData.updateAnim(dt, true);
     }
-    if (this.titleVehicle) {
+    if (this.titleVehicle?.visible) {
       this.titleVehicle.userData.updateAnim(dt, true);
       this.titleVehicle.rotation.y += dt * 0.2;
     }
+    // Garage / pick turntable — spin the selected vehicle hero
+    if (this.garagePreview) {
+      this.garagePreview.userData.updateAnim(dt, true);
+      this.garagePreview.rotation.y += dt * 0.85;
+      this.garagePreview.position.y = Math.sin(performance.now() * 0.002) * 0.08;
+    }
     const t = performance.now() * 0.00035;
-    this.camera.position.x = Math.sin(t) * 5;
-    this.camera.position.y = 5.2;
-    this.camera.position.z = 8.5 + Math.cos(t) * 1.5;
-    this.camera.lookAt(0, 1.4, 0);
+    const focusZ = this.garagePreview ? 3.2 : 0;
+    this.camera.position.x = Math.sin(t) * (this.garagePreview ? 3.2 : 5);
+    this.camera.position.y = this.garagePreview ? 4.2 : 5.2;
+    this.camera.position.z = (this.garagePreview ? 7.2 : 8.5) + Math.cos(t) * 1.2;
+    this.camera.lookAt(0, 1.2, focusZ * 0.35);
   }
 
   _updateMission(dt) {
@@ -877,8 +930,82 @@ export class Game {
     if (flowers) {
       const t = performance.now() * 0.001;
       for (const f of flowers) {
+        const p = f.userData.phase || 0;
         f.rotation.y = Math.sin(t * 0.8 + f.position.x) * 0.15;
         f.position.y = Math.sin(t * 2 + f.position.z) * 0.04;
+        // King flower petal bloom pulse (store rainforest wonder)
+        const bloom = 1 + Math.sin(t * 2.4 + p) * 0.12;
+        if (f.userData.bloom) {
+          f.userData.bloom.scale.set(bloom, 0.55 * bloom, bloom);
+          f.userData.bloom.material.emissiveIntensity = 0.2 + Math.sin(t * 3 + p) * 0.18;
+        }
+        for (const petal of f.userData.petals || []) {
+          const a = petal.userData.angle;
+          const r = (petal.userData.baseR || 0.38) * bloom;
+          petal.position.set(Math.cos(a + t * 0.4) * r, 1.4, Math.sin(a + t * 0.4) * r);
+          petal.rotation.y = t * 1.2 + a;
+          if (petal.material?.emissiveIntensity != null) {
+            petal.material.emissiveIntensity = 0.08 + Math.sin(t * 3.5 + a) * 0.1;
+          }
+        }
+      }
+    }
+    // Swinging vine swamp vines
+    const vines = this.world?.userData?.swingingVines;
+    if (vines) {
+      const t = performance.now() * 0.001;
+      for (const v of vines) {
+        const p = v.userData.phase || 0;
+        v.rotation.z = (v.userData.baseRotZ || 0) + Math.sin(t * 1.5 + p) * 0.28;
+        v.rotation.x = Math.sin(t * 1.1 + p * 0.6) * 0.1;
+        if (v.material?.emissiveIntensity != null) {
+          v.material.emissiveIntensity = 0.05 + Math.sin(t * 2.2 + p) * 0.05;
+        }
+      }
+    }
+    // Meteorite hole impact glow + smoke pillars
+    const meteor = this.world?.userData?.meteorCore;
+    if (meteor) {
+      const t = performance.now() * 0.001;
+      meteor.material.emissiveIntensity = 0.35 + Math.sin(t * 3.2 + (meteor.userData.phase || 0)) * 0.3;
+      meteor.rotation.y += dt * 0.35;
+      meteor.rotation.x = Math.sin(t * 0.8) * 0.08;
+    }
+    const impactGlow = this.world?.userData?.meteorImpactGlow;
+    if (impactGlow) {
+      impactGlow.intensity = 1.1 + Math.sin(performance.now() * 0.004) * 0.55;
+    }
+    const smoke = this.world?.userData?.meteorSmoke;
+    if (smoke) {
+      const t = performance.now() * 0.001;
+      for (const s of smoke) {
+        const p = s.userData.phase || 0;
+        s.position.y = s.userData.baseY + ((t * 0.9 + p) % 3.5);
+        s.scale.setScalar(0.85 + Math.sin(t * 2 + p) * 0.25);
+        s.material.opacity = 0.18 + Math.sin(t * 1.5 + p) * 0.12;
+      }
+    }
+    // Lava volcano river ribbons
+    const rivers = this.world?.userData?.lavaRivers;
+    if (rivers) {
+      const t = performance.now() * 0.001;
+      for (const r of rivers) {
+        const p = r.userData.phase || 0;
+        r.material.emissiveIntensity = 0.55 + Math.sin(t * 4 + p) * 0.35;
+        r.material.opacity = 0.75 + Math.sin(t * 2.2 + p) * 0.12;
+        r.position.y = 0.06 + Math.sin(t * 3 + p) * 0.015;
+      }
+    }
+    // Tropical ocean current ribbons
+    const currents = this.world?.userData?.oceanCurrents;
+    if (currents) {
+      const t = performance.now() * 0.001;
+      for (const c of currents) {
+        const p = c.userData.phase || 0;
+        c.position.z += (c.userData.drift || 3) * dt * 0.35;
+        if (c.position.z > 14) c.position.z = -18;
+        c.material.opacity = 0.18 + Math.sin(t * 2.5 + p) * 0.1;
+        c.rotation.z = Math.sin(t * 0.6 + p) * 0.2;
       }
     }
     const rain = this.world?.userData?.rainDrops;
@@ -995,6 +1122,11 @@ export class Game {
       v.position.z *= r / len;
     }
     v.position.y = this.level.water ? 0.35 : 0;
+    // Tropical Ocean Current: subtle sideways drift so currents feel real
+    if (this.level?.id === 'ocean_current' && this.world?.userData?.oceanCurrents) {
+      const drift = Math.sin(performance.now() * 0.0012) * 1.6 * dt;
+      v.position.x += drift;
+    }
     v.userData.updateAnim(dt, moving, axis.x);
     v.userData.fireCooldown = Math.max(0, v.userData.fireCooldown - dt);
 
@@ -1256,8 +1388,16 @@ export class Game {
       this.camera.position.x += (Math.random() - 0.5) * 0.35;
       this.camera.position.y += (Math.random() - 0.5) * 0.2;
     }
-    // Siren boost FOV punch — whoosh when dashing
-    const wantFov = this._boostActive ? this._baseFov + 7 : zoom ? this._baseFov - 4 : this._baseFov;
+    // Chase roar FOV punch decays, then siren boost / zoom take over
+    if (this._chaseRoarPunchT > 0) {
+      this._chaseRoarPunchT -= dt;
+      if (this._chaseRoarPunchT <= 0) this.ui.flashRoar?.(false);
+    }
+    const roarBoost = this._chaseRoarPunchT > 0 ? 8 * Math.min(1, this._chaseRoarPunchT / 0.55) : 0;
+    const wantFov =
+      this._baseFov +
+      roarBoost +
+      (this._boostActive ? 7 : zoom ? -4 : 0);
     this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, wantFov, 1 - Math.pow(0.002, dt));
     this.camera.updateProjectionMatrix();
     const look = this.vehicle.position.clone();
@@ -1294,6 +1434,14 @@ export class Game {
       this.phase = PHASE.CHASE;
       this.ui.setMission('Chase the predator — get close!');
       this.ui.setPhaseRibbon(true, 'CHASE', 'chase');
+      // Chase-start roar punch — camera + screen flash
+      this.audio.roar();
+      this.shakeT = Math.max(this.shakeT, 0.45);
+      this._chaseRoarPunchT = 0.55;
+      this.camera.fov = this._baseFov + 6;
+      this.camera.updateProjectionMatrix();
+      this.ui.flashRoar?.(true);
+      this.ui.toast('ROAR! The boss is chasing the baby!');
     }
 
     if (this.phase === PHASE.CHASE) {
@@ -1326,6 +1474,14 @@ export class Game {
         this.ui.setPhaseRibbon(true, 'MOTHER HELP', 'mother');
         this.ui.toast(`${DINOSAURS[this.level.mother].name} arrives!`);
         this.ui.crewCallout('Scout Mina', 'Mother dinosaur is charging in to help!');
+        // Educational paleontology tip when mother assists (learning through play)
+        const momFact = DINOSAURS[this.level.mother]?.facts;
+        const predFact = DINOSAURS[this.level.predator]?.facts;
+        if (momFact) {
+          this.ui.showPaleoTip?.(`Learn: ${DINOSAURS[this.level.mother].name} — ${momFact}`);
+        } else if (predFact) {
+          this.ui.showPaleoTip?.(`Learn: ${DINOSAURS[this.level.predator].name} — ${predFact}`);
+        }
         this.audio.mother();
         this.audio.roar();
         this.shakeT = Math.max(this.shakeT, 0.35);

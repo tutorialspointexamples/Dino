@@ -160,6 +160,7 @@ export class UI {
         this.selectedPickVehicle = v.id;
         this.game.save.selectedVehicle = v.id;
         launch.disabled = false;
+        this.game.showGaragePreview(v.id);
       };
       grid.appendChild(card);
       if (!firstFit && unlocked && fit) firstFit = card;
@@ -203,6 +204,12 @@ export class UI {
       grid.parentElement.appendChild(crewNote);
     }
     crewNote.textContent = `Fleet: ${police} police cars · ${subs} submarines · Crew: ${CREW.map((c) => c.name).join(', ')}`;
+    // 3D turntable preview of selected / first unlocked vehicle
+    const previewId =
+      this.game.save.selectedVehicle ||
+      VEHICLES.find((v) => isVehicleUnlocked(v, clearedCount))?.id ||
+      VEHICLES[0].id;
+    this.game.showGaragePreview(previewId);
   }
 
   showStamps() {
@@ -237,6 +244,8 @@ export class UI {
         }
       });
     }
+    // Friends compare card — compete on stamp collection progress
+    this._renderFriendsCompare(stamps.length, total, pct);
     const grid = this.$('stamp-grid');
     grid.innerHTML = '';
     Object.values(DINOSAURS).forEach((d) => {
@@ -283,6 +292,88 @@ export class UI {
     this.$('mission-text').textContent = missionText;
     this.$('score').textContent = String(this.game.missionScore || 0);
     this.updateHp(1);
+    this.flashRoar(false);
+    this.hidePaleoTip();
+  }
+
+  /** Chase-start roar screen flash */
+  flashRoar(on) {
+    const el = this.$('roar-flash');
+    if (!el) return;
+    el.classList.toggle('hidden', !on);
+    el.classList.toggle('on', !!on);
+  }
+
+  /** In-mission paleontology educational tip */
+  showPaleoTip(text) {
+    const el = this.$('paleo-tip');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('hidden');
+    clearTimeout(this._paleoTipTimer);
+    this._paleoTipTimer = setTimeout(() => this.hidePaleoTip(), 5200);
+  }
+
+  hidePaleoTip() {
+    this.$('paleo-tip')?.classList.add('hidden');
+  }
+
+  /** Friends compete card for stamp collection progress */
+  _renderFriendsCompare(have, total, pct) {
+    let card = this.$('friends-compare');
+    const host = this.$('screen-stamps')?.querySelector('.panel');
+    if (!host) return;
+    if (!card) {
+      card = document.createElement('div');
+      card.id = 'friends-compare';
+      card.className = 'friends-compare';
+      card.setAttribute('aria-label', 'Compete with friends on stamp progress');
+      const meter = this.$('master-meter');
+      if (meter?.nextSibling) host.insertBefore(card, meter.nextSibling);
+      else host.appendChild(card);
+    }
+    // Friendly rival targets so kids can “race” collection progress
+    const rivalA = Math.min(total, Math.max(have + 2, Math.round(total * 0.35)));
+    const rivalB = Math.min(total, Math.max(3, Math.round(total * 0.55)));
+    const youLead = have >= rivalA;
+    card.innerHTML = `
+      <div class="friends-head">
+        <strong>Compete with Friends</strong>
+        <button type="button" class="btn small" id="btn-share-stamps">Share</button>
+      </div>
+      <div class="friends-rows">
+        <div class="friend-row you">
+          <span>You</span>
+          <div class="friend-bar"><i style="transform:scaleX(${have / Math.max(1, total)})"></i></div>
+          <em>${have}/${total}</em>
+        </div>
+        <div class="friend-row">
+          <span>Mina</span>
+          <div class="friend-bar"><i style="transform:scaleX(${rivalA / Math.max(1, total)})"></i></div>
+          <em>${rivalA}/${total}</em>
+        </div>
+        <div class="friend-row">
+          <span>Kai</span>
+          <div class="friend-bar"><i style="transform:scaleX(${rivalB / Math.max(1, total)})"></i></div>
+          <em>${rivalB}/${total}</em>
+        </div>
+      </div>
+      <p class="friends-note">${youLead ? `You're ahead of Mina at ${pct}% — keep collecting!` : `Catch Mina — ${rivalA - have} more stamps to pull ahead!`}</p>
+    `;
+    const shareBtn = card.querySelector('#btn-share-stamps');
+    if (shareBtn) {
+      shareBtn.onclick = () => {
+        const line = `I'm ${pct}% Dinosaur Master (${have}/${total} stamps) in Dinosaur Guard 2 — can you beat me?`;
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(line).then(
+            () => this.toast('Challenge copied — send it to a friend!'),
+            () => this.toast(line),
+          );
+        } else {
+          this.toast(line);
+        }
+      };
+    }
   }
 
   updateHp(ratio) {

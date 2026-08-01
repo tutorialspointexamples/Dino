@@ -168,7 +168,7 @@ ok(game.includes('_chevronRefreshT') && game.includes("plot(egg, '#ffe8b0'"), 'e
 ok(world.includes('createMuzzleFlash') && game.includes('_updateMuzzleFlashes'), 'muzzle flash on fire');
 ok(game.includes('_flashVehicleHit') && game.includes('_updateVehicleHitFlash'), 'vehicle hit flash feedback');
 ok(vehicle.includes('frontWheels') && vehicle.includes('_steer') && game.includes('updateAnim(dt, moving, axis.x)'), 'wheel steer + chassis lean');
-ok(game.includes('_boostActive ? this._baseFov + 7') && game.includes('updateProjectionMatrix'), 'boost camera FOV punch');
+ok(game.includes('_boostActive ? 7') && game.includes('updateProjectionMatrix') && game.includes('_chaseRoarPunchT'), 'boost camera FOV punch + roar punch');
 
 // Branch ed9a polish iterations (10)
 ok(world.includes('swingingCoral') && game.includes('swingingCoral'), '1 swinging coral relics');
@@ -181,6 +181,18 @@ ok(game.includes('guardPos') && game.includes('Mother bodyguards'), '7 mother es
 ok(game.includes('lookAhead') && game.includes('Drive look-ahead'), '8 camera drive look-ahead');
 ok(read('src/game/UI.js').includes('next-up') && read('src/style.css').includes('nextMissionPulse') && read('src/game/UI.js').includes('Dinosaur Master'), '9 hub next-mission pulse + master share');
 ok(world.includes('fireflyLight') && game.includes('fireflyLight') && world.includes('caveCrystals'), '10 firefly biolum light + crystal shimmer');
+
+// Branch 7dce polish iterations (10)
+ok(world.includes('swingingVines') && game.includes('swingingVines'), '7dce-1 swinging swamp vines');
+ok(world.includes('meteorSmoke') && world.includes('meteorImpactGlow') && game.includes('meteorCore'), '7dce-2 meteorite impact glow + smoke');
+ok(world.includes('lavaRivers') && game.includes('lavaRivers'), '7dce-3 lava river ribbons');
+ok(world.includes('oceanCurrents') && world.includes("level.id === 'ocean_current'") && game.includes('ocean_current'), '7dce-4 ocean current ribbons + drift');
+ok(world.includes('forkedRoutes') && world.includes('forkA'), '7dce-5 forked dual rescue routes');
+ok(game.includes('showGaragePreview') && game.includes('garagePreview') && read('src/game/UI.js').includes('showGaragePreview'), '7dce-6 garage 3D turntable preview');
+ok(game.includes('_chaseRoarPunchT') && html.includes('roar-flash') && read('src/game/UI.js').includes('flashRoar'), '7dce-7 chase-start roar flash');
+ok(html.includes('paleo-tip') && read('src/game/UI.js').includes('showPaleoTip') && game.includes('showPaleoTip'), '7dce-8 paleontology tip on mother assist');
+ok(html.includes('friends-compare') && read('src/game/UI.js').includes('_renderFriendsCompare') && read('src/style.css').includes('friends-compare'), '7dce-9 friends stamp compete card');
+ok(world.includes('userData.petals') && game.includes('userData.petals') && game.includes('King flower petal bloom'), '7dce-10 king flower petal bloom pulse');
 
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');

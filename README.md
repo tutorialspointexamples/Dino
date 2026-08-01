@@ -56,20 +56,20 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (branch ed9a)
+### Verification iterations (branch 7dce)
 
-1. **Swinging coral relics** — ocean coral sways with soft emissive pulse  
-2. **Deep-sea swirl whirlpool** — rotating current visual on the boss water level  
-3. **Danxia terraces** — water-eroded layered mountain stacks  
-4. **Weapon turret tint** — gun/torpedo tube glows Auto / Zoom / Scatter colors  
-5. **Celebrate hop dance** — baby + mother victory bounce before results  
-6. **Roadblock bounce feedback** — sparks + toast when hitting blockers  
-7. **Mother flank bodyguard** — mother escorts beside the baby to the nest  
-8. **Camera look-ahead** — drive camera leans into the road ahead  
-9. **Hub NEXT pulse + stamp share** — next mission pulse; tap Dinosaur Master to copy progress  
-10. **Firefly biolum light + crystal shimmer** — cave glow light + pulsing crystals  
+1. **Swinging swamp vines** — vine swamp hangers sway with emissive pulse  
+2. **Meteorite impact glow + smoke** — crater core glow light + rising smoke pillars  
+3. **Lava river ribbons** — flowing emissive lava streams on the volcano floor  
+4. **Ocean current ribbons + drift** — tropical current lanes + subtle sub drift  
+5. **Forked dual rescue routes** — left/right alternate rescue path designs  
+6. **Garage 3D turntable** — spinning vehicle preview in garage / mission pick  
+7. **Chase-start roar flash** — screen flash + FOV punch when chase begins  
+8. **Paleontology tip** — educational fact toast when mother dinosaur assists  
+9. **Friends stamp compete card** — collection race UI + share challenge  
+10. **King flower petal bloom** — rainforest petals spin and pulse  
 
-Prior branches also cover limp anim, siren emissive, muzzle flash, boost FOV, radar eggs, and more (see `npm run verify`).
+Prior branches (ed9a+) also cover coral sway, whirlpool, Danxia terraces, turret tint, celebrate hop, roadblock feedback, mother flank, look-ahead camera, firefly biolum, limp anim, muzzle flash, and more (see `npm run verify`).
 
 ## Project layout
 

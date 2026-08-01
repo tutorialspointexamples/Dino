@@ -526,6 +526,85 @@ async function main() {
   });
   console.log('ed9a iterations:', iterEd9a);
 
+  // Branch 7dce polish iterations
+  const iter7dce = await page.evaluate(async () => {
+    const qa = window.__DINO_GUARD_QA__;
+    const g = window.__DINO_GUARD__;
+    // 1 swinging vines — vine swamp
+    qa.startLevel(4); // vine_swamp
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const vines = g.world?.userData?.swingingVines?.length || 0;
+    // 2 meteorite smoke/glow
+    qa.startLevel(8); // meteorite
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const meteorSmoke = g.world?.userData?.meteorSmoke?.length || 0;
+    const meteorGlow = !!g.world?.userData?.meteorImpactGlow;
+    const meteorCore = !!g.world?.userData?.meteorCore;
+    // 3 lava rivers
+    qa.startLevel(6); // lava_volcano
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const lavaRivers = g.world?.userData?.lavaRivers?.length || 0;
+    // 4 ocean currents
+    qa.startLevel(9); // ocean_current
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const currents = g.world?.userData?.oceanCurrents?.length || 0;
+    const driftWired = g.level?.id === 'ocean_current';
+    // 5 forked routes
+    const forks = g.world?.userData?.forkedRoutes?.length || 0;
+    // 6 garage preview
+    g.ui.showGarage();
+    await new Promise((r) => setTimeout(r, 60));
+    const garagePreview = !!g.garagePreview && g.state === 'garage';
+    // 7 roar flash wiring
+    const roarEl = !!document.getElementById('roar-flash');
+    const roarFn = typeof g.ui.flashRoar === 'function';
+    g.ui.flashRoar(true);
+    const roarOn = document.getElementById('roar-flash')?.classList.contains('on');
+    g.ui.flashRoar(false);
+    // 8 paleo tip
+    const paleoEl = !!document.getElementById('paleo-tip');
+    g.ui.showPaleoTip('Learn: Triceratops — test tip');
+    const paleoShown = !document.getElementById('paleo-tip')?.classList.contains('hidden');
+    g.ui.hidePaleoTip();
+    // 9 friends compare
+    g.ui.showStamps();
+    await new Promise((r) => setTimeout(r, 40));
+    const friends = !!document.getElementById('friends-compare')?.querySelector('.friends-rows');
+    const shareBtn = !!document.getElementById('btn-share-stamps');
+    // 10 king flower petals
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const flower = g.world?.userData?.kingFlowers?.[0];
+    const petals = flower?.userData?.petals?.length || 0;
+    const bloom = !!flower?.userData?.bloom;
+    return {
+      vines,
+      meteorSmoke,
+      meteorGlow,
+      meteorCore,
+      lavaRivers,
+      currents,
+      driftWired,
+      forks,
+      garagePreview,
+      roarEl,
+      roarFn,
+      roarOn,
+      paleoEl,
+      paleoShown,
+      friends,
+      shareBtn,
+      petals,
+      bloom,
+    };
+  });
+  console.log('7dce iterations:', iter7dce);
+
   await browser.close();
   preview.kill();
 
@@ -620,7 +699,25 @@ async function main() {
     !iterEd9a.flankWired ||
     !iterEd9a.lookAheadWired ||
     !iterEd9a.nextUp ||
-    !iterEd9a.masterMeter;
+    !iterEd9a.masterMeter ||
+    iter7dce.vines < 8 ||
+    iter7dce.meteorSmoke < 4 ||
+    !iter7dce.meteorGlow ||
+    !iter7dce.meteorCore ||
+    iter7dce.lavaRivers < 3 ||
+    iter7dce.currents < 4 ||
+    !iter7dce.driftWired ||
+    iter7dce.forks < 2 ||
+    !iter7dce.garagePreview ||
+    !iter7dce.roarEl ||
+    !iter7dce.roarFn ||
+    !iter7dce.roarOn ||
+    !iter7dce.paleoEl ||
+    !iter7dce.paleoShown ||
+    !iter7dce.friends ||
+    !iter7dce.shareBtn ||
+    iter7dce.petals < 5 ||
+    !iter7dce.bloom;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);
