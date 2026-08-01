@@ -156,6 +156,7 @@ ok(world.includes('causticLight') && game.includes('causticLight'), 'ocean caust
 ok(read('src/style.css').includes('stamp-fanfare') && read('src/game/Audio.js').includes('stamp()'), 'stamp unlock fanfare');
 ok(read('src/game/UI.js').includes('setRadarDanger') && read('src/style.css').includes('danger-pulse'), 'radar danger pulse');
 ok(html.includes('crew-intro') && game.includes('showCrewIntro') && game.includes('CREW.map'), 'guard crew intro roster');
+ok(read('src/style.css').includes('160px') && read('src/style.css').includes('boost-btn'), 'GUARD HUD clears radar + boost clickable');
 
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');

@@ -328,6 +328,7 @@ h2 {
 #hud .btn,
 #hud .mode,
 #hud .fire-btn,
+#hud .boost-btn,
 #hud .stick-zone {
   pointer-events: auto;
 }
@@ -336,7 +337,8 @@ h2 {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  padding: 12px;
+  /* Clear the 140px radar so GUARD HP stays readable */
+  padding: 12px 12px 12px calc(160px + env(safe-area-inset-left, 0px));
 }
 
 .hud-pill {
@@ -1258,6 +1260,13 @@ h2 {
     min-width: 120px;
   }
 
+  .hud-top {
+    /* Narrow screens: keep GUARD/SCORE clear of radar + mute */
+    padding-left: calc(12px + env(safe-area-inset-left, 0px));
+    padding-top: calc(158px + env(safe-area-inset-top, 0px));
+    flex-wrap: wrap;
+  }
+
   .phase-ribbon {
     top: calc(108px + env(safe-area-inset-top, 0px));
     font-size: 0.75rem;
@@ -1265,6 +1274,10 @@ h2 {
 
   .skip-countdown {
     top: calc(8px + env(safe-area-inset-top, 0px));
+  }
+
+  .crew-intro {
+    top: calc(210px + env(safe-area-inset-top, 0px));
   }
 }
 
