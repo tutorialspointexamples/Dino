@@ -461,12 +461,12 @@ async function main() {
   console.log('134f iterations:', iter134f);
 
   // Branch ed9a — 10 polish iterations
-  const iterEd9a = await page.evaluate(async () => {
-    const g = window.__game;
-    const LEVELS = (await import('/src/game/data.js')).LEVELS;
-    const deep = LEVELS.find((l) => l.id === 'deep_swirl');
-    const danxia = LEVELS.find((l) => l.id === 'danxia');
-    const firefly = LEVELS.find((l) => l.id === 'firefly_cave');
+  const iterEd9a = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    const qa = window.__DINO_GUARD_QA__;
+    const deep = qa.LEVELS.find((l) => l.id === 'deep_swirl');
+    const danxia = qa.LEVELS.find((l) => l.id === 'danxia');
+    const firefly = qa.LEVELS.find((l) => l.id === 'firefly_cave');
     g.startMission(deep, 'sub_bubble');
     g.skipCountdown();
     const whirl = !!g.world?.userData?.whirlpool;
@@ -475,10 +475,10 @@ async function main() {
     const gunTint =
       g.vehicle?.userData?.gun?.material?.emissive &&
       g.vehicle.userData.gun.material.emissive.getHex() === 0x60a5fa;
-    g.startMission(danxia, 'patrol_jeep');
+    g.startMission(danxia, 'police_scout');
     g.skipCountdown();
     const terraces = (g.world?.userData?.danxiaTerraces || []).length;
-    g.startMission(firefly, 'patrol_jeep');
+    g.startMission(firefly, 'police_scout');
     g.skipCountdown();
     const fireflyLight = !!g.world?.userData?.fireflyLight;
     const crystals = (g.world?.userData?.caveCrystals || []).length;
@@ -490,11 +490,24 @@ async function main() {
     const celebrate = g.baby?.userData?.anim?.state === 'celebrate';
     // Roadblock feedback wired
     const blockWired = g._resolveBlockers.toString().includes('Roadblock');
-    const flankWired = g._updatePhase.toString().includes('guardPos');
-    const lookAheadWired = g._updateCamera.toString().includes('lookAhead');
-    // Hub next-up pulse
+    // Mother flank bodyguard — exercise escort and read surviving marker
+    if (g.mother) g.mother.visible = true;
+    g._beginEscort();
+    for (let i = 0; i < 12; i++) g._updatePhase(0.05);
+    const flankWired = g.mother?.userData?.guardMode === 'flank_guard';
+    // Camera look-ahead marker set while driving forward
+    g.input.keys = g.input.keys || new Set();
+    g.input.keys.add('KeyW');
+    g._boostActive = false;
+    g._updateCamera(0.05);
+    const lookAheadWired = typeof g._camLookAhead === 'number' && g._camLookAhead > 0;
+    g.input.keys.delete('KeyW');
+    // Hub next-up pulse — clear saves for a visible NEXT card if all cleared
+    const clearedBackup = [...g.save.cleared];
+    g.save.cleared = [];
     g.ui.showHub();
     const nextUp = !!document.querySelector('.level-card.next-up');
+    g.save.cleared = clearedBackup;
     const masterMeter = !!document.getElementById('master-meter');
     return {
       whirl,

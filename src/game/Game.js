@@ -1237,6 +1237,7 @@ export class Game {
     const axis = this.input.getAxis();
     const throttle = Math.max(0, -axis.y);
     const lookAhead = (this._boostActive ? 3.2 : 1.8) * throttle + (zoom ? 0.6 : 0);
+    this._camLookAhead = lookAhead;
     const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(
       new THREE.Vector3(0, 1, 0),
       this.vehicle.rotation.y,
@@ -1447,6 +1448,7 @@ export class Game {
         else toNest.normalize();
         const flank = new THREE.Vector3(-toNest.z, 0, toNest.x).multiplyScalar(2.4);
         const guardPos = baby.position.clone().add(flank).addScaledVector(toNest, -1.2);
+        mother.userData.guardMode = 'flank_guard';
         this._chase(mother, guardPos, mother.userData.speed * 1.15, dt);
         mother.userData.anim.state = 'run';
       }
