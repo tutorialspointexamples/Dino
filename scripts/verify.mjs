@@ -133,6 +133,18 @@ ok(html.includes('result-perfect') && game.includes('perfect:'), 'perfect rescue
 ok(world.includes('createHealSpark') && game.includes('_spawnHealSpark'), 'mother heal sparkles');
 ok(read('src/game/Save.js').includes('recordBestStars') && read('src/game/Save.js').includes('bestStars'), 'best stars persistence');
 
+// Branch 3383 polish iterations
+ok(html.includes('btn-skip-countdown') && game.includes('skipCountdown'), 'skip countdown button');
+ok(html.includes('phase-ribbon') && read('src/game/UI.js').includes('setPhaseRibbon'), 'phase objective ribbon');
+ok(game.includes('_updatePredatorLimp') && game.includes('limp'), 'predator limp when low HP');
+ok(world.includes('createConfetti') && game.includes('_spawnConfettiBurst'), 'nest celebration confetti');
+ok(world.includes('createDustKick') && game.includes('_dustCooldown'), 'jeep dust kick FX');
+ok(html.includes('baby-bar') && read('src/game/UI.js').includes('updateBabyHp'), 'baby HP HUD bar');
+ok(html.includes('pick-level-fact') && read('src/game/UI.js').includes('Learn:'), 'mission educational fact briefing');
+ok(world.includes('createNestChevron') && game.includes('_spawnEscortChevrons'), 'escort nest chevrons');
+ok(game.includes('navigator.vibrate'), 'mobile fire haptics');
+ok(html.includes('stamp-detail') && read('src/game/UI.js').includes('showStampDetail'), 'stamp detail encyclopedia modal');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

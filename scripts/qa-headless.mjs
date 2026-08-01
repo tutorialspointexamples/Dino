@@ -323,6 +323,56 @@ async function main() {
   });
   console.log('228d iterations:', iter228d);
 
+  // Branch 3383 iterations: skip, ribbon, limp, confetti, dust, baby HP, fact, chevrons, haptics, stamp modal
+  const iter3383 = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    const qa = window.__DINO_GUARD_QA__;
+    g.startMission(qa.LEVELS[0], 'police_scout');
+    const skipBtn = !!document.getElementById('btn-skip-countdown') &&
+      !document.getElementById('btn-skip-countdown').classList.contains('hidden');
+    qa.skipCountdown();
+    const afterSkip = g.phase === 'intro';
+    const ribbon = !!document.getElementById('phase-ribbon');
+    g.predator.userData.hp = g.predator.userData.maxHp * 0.2;
+    g._updatePredatorLimp();
+    const limp = !!g.predator.userData.limp && g.predator.userData.speed < g._predatorBaseSpeed;
+    g._spawnConfettiBurst(g.baby.position.clone(), 8);
+    const confetti = g._confetti.length;
+    g._dustCooldown = 0;
+    g._driveVehicle(0.05, { x: 0, y: -1 });
+    const dust = g.trails.filter((t) => t.userData.kind === 'dust').length;
+    g.baby.userData.hp = g.baby.userData.maxHp * 0.2;
+    g.ui.updateBabyHp(0.2, true);
+    const babyCritical = document.getElementById('baby-hud')?.classList.contains('critical');
+    document.getElementById('btn-play')?.click();
+    document.querySelector('.level-card:not(.locked)')?.click();
+    const fact = (document.getElementById('pick-level-fact')?.textContent || '').includes('Learn:');
+    g.startMission(qa.LEVELS[0], 'police_scout');
+    qa.skipCountdown();
+    g._beginEscort();
+    const chevrons = g._chevrons.length;
+    const vibrateWired = g._tryFire.toString().includes('vibrate');
+    const stamps = Object.keys(qa.DINOSAURS);
+    g.save.stamps = stamps.slice(0, 3);
+    document.getElementById('btn-stamps')?.click();
+    document.querySelector('.stamp-card:not(.locked)')?.click();
+    const stampModal = !document.getElementById('stamp-detail')?.classList.contains('hidden');
+    return {
+      skipBtn,
+      afterSkip,
+      ribbon,
+      limp,
+      confetti,
+      dust,
+      babyCritical,
+      fact,
+      chevrons,
+      vibrateWired,
+      stampModal,
+    };
+  });
+  console.log('3383 iterations:', iter3383);
+
   await browser.close();
   preview.kill();
 
@@ -370,7 +420,18 @@ async function main() {
     iter228d.heals < 1 ||
     iter228d.stars < 3 ||
     !iter228d.perfect ||
-    iter228d.best < 3;
+    iter228d.best < 3 ||
+    !iter3383.skipBtn ||
+    !iter3383.afterSkip ||
+    !iter3383.ribbon ||
+    !iter3383.limp ||
+    iter3383.confetti < 8 ||
+    iter3383.dust < 1 ||
+    !iter3383.babyCritical ||
+    !iter3383.fact ||
+    iter3383.chevrons < 3 ||
+    !iter3383.vibrateWired ||
+    !iter3383.stampModal;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

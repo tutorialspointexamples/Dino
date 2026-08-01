@@ -56,16 +56,16 @@ npm run qa
 
 ### Verification iterations (this branch)
 
-1. **Restart Mission** from the pause menu  
-2. **Hit combo streak** HUD with score multiplier  
-3. **Predator hit flash** (emissive pulse on dart impact)  
-4. **Low HP vignette** when baby or Guard vehicle is critical  
-5. **Dinosaur footprints** left while chasing on land  
-6. **Submarine wake rings** in water biomes  
-7. **Level card roster** — baby / predator preview + best stars on the Jurassic Map  
-8. **Perfect Rescue** badge on 3-star wins  
-9. **Mother heal sparkles** while soothing the baby  
-10. **Best stars persistence** in save data + expanded verify / Playwright QA  
+1. **Skip countdown** button during the alarm 3-2-1  
+2. **Phase objective ribbon** (Chase / Combat / Mother / Escort / Headbutt)  
+3. **Predator limp** when HP drops below 35%  
+4. **Nest celebration confetti** burst  
+5. **Jeep dust kicks** on hard land acceleration  
+6. **Baby HP HUD** with critical pulse  
+7. **Educational fact briefing** on the vehicle-pick screen  
+8. **Escort nest chevrons** on the ground path  
+9. **Mobile fire haptics** via `navigator.vibrate`  
+10. **Stamp detail modal** encyclopedia cards 
 
 ## Project layout
 
