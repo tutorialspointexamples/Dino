@@ -88,6 +88,7 @@
             <h2 id="pick-level-name">Choose Vehicle</h2>
           </header>
           <p id="pick-level-desc" class="muted"></p>
+          <p id="pick-level-fact" class="pick-fact" aria-live="polite"></p>
           <div id="pick-vehicle-grid" class="card-grid"></div>
           <button id="btn-launch" class="btn primary launch" disabled>Launch Rescue</button>
         </div>
@@ -126,6 +127,12 @@
         <div id="danger-banner" class="danger-banner hidden">BABY IN DANGER!</div>
         <div id="alarm-ring" class="alarm-ring hidden" aria-hidden="true">ALARM</div>
         <div id="mission-countdown" class="mission-countdown hidden" aria-live="assertive">3</div>
+        <button id="btn-skip-countdown" class="btn small skip-countdown hidden" type="button">Skip ▶</button>
+        <div id="phase-ribbon" class="phase-ribbon hidden" aria-live="polite">READY</div>
+        <div class="hud-pill baby-hp" id="baby-hud">
+          <span class="pill-label">BABY</span>
+          <div class="bar baby"><i id="baby-bar"></i></div>
+        </div>
         <div id="crew-callout" class="crew-callout hidden" aria-live="polite">
           <strong id="crew-callout-name">Captain Rio</strong>
           <span id="crew-callout-text"></span>
@@ -171,6 +178,16 @@
           <p id="result-unlock" class="result-unlock muted hidden"></p>
           <button id="btn-result-next" class="btn primary hidden">Next Mission</button>
           <button id="btn-result-continue" class="btn">Map</button>
+        </div>
+      </div>
+
+      <div id="stamp-detail" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="stamp-detail-name">
+        <div class="panel narrow stamp-detail-panel">
+          <div id="stamp-detail-swatch" class="stamp-detail-swatch"></div>
+          <h2 id="stamp-detail-name">Dinosaur</h2>
+          <p id="stamp-detail-role" class="badge"></p>
+          <p id="stamp-detail-fact" class="muted"></p>
+          <button id="btn-stamp-detail-close" class="btn primary">Close</button>
         </div>
       </div>
 

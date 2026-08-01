@@ -34,6 +34,8 @@ export class UI {
       this.$('btn-mute').textContent = on ? 'VOL' : 'OFF';
       this.toast(on ? 'Sound on' : 'Sound muted');
     };
+    this.$('btn-skip-countdown')?.addEventListener('click', () => this.game.skipCountdown());
+    this.$('btn-stamp-detail-close')?.addEventListener('click', () => this.hideStampDetail());
 
     document.querySelectorAll('#weapon-modes .mode').forEach((btn) => {
       btn.onclick = () => {
@@ -45,9 +47,17 @@ export class UI {
   }
 
   hideAll() {
-    ['screen-title', 'screen-hub', 'screen-garage', 'screen-stamps', 'screen-vehicle-pick', 'screen-pause', 'screen-result', 'hud'].forEach(
-      (id) => this.$(id).classList.add('hidden'),
-    );
+    [
+      'screen-title',
+      'screen-hub',
+      'screen-garage',
+      'screen-stamps',
+      'screen-vehicle-pick',
+      'screen-pause',
+      'screen-result',
+      'stamp-detail',
+      'hud',
+    ].forEach((id) => this.$(id)?.classList.add('hidden'));
   }
 
   showTitle() {
@@ -106,6 +116,13 @@ export class UI {
     this.$('screen-vehicle-pick').classList.remove('hidden');
     this.$('pick-level-name').textContent = level.name;
     this.$('pick-level-desc').textContent = level.desc + (level.water ? ' (Water mission — pick a submarine!)' : '');
+    const baby = DINOSAURS[level.baby];
+    const factEl = this.$('pick-level-fact');
+    if (factEl) {
+      factEl.textContent = baby
+        ? `Learn: ${baby.name} — ${baby.facts}`
+        : 'Protect the baby dinosaur and escort them home!';
+    }
     const grid = this.$('pick-vehicle-grid');
     grid.innerHTML = '';
     const clearedCount = this.game.save.cleared.length;
@@ -195,15 +212,40 @@ export class UI {
     grid.innerHTML = '';
     Object.values(DINOSAURS).forEach((d) => {
       const have = stamps.includes(d.id);
-      const card = document.createElement('div');
-      card.className = `item-card${have ? '' : ' locked'}`;
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = `item-card stamp-card${have ? '' : ' locked'}`;
       card.innerHTML = `
         <div class="dino-swatch" style="background:linear-gradient(135deg,${hexCss(d.color)},${hexCss(d.accent)});opacity:${have ? 1 : 0.35}"></div>
         <h3>${have ? d.name : '???'}</h3>
         <p>${have ? d.facts : 'Rescue to collect this stamp'}</p>
       `;
+      card.onclick = () => {
+        if (!have) {
+          this.toast('Rescue this dinosaur to unlock the stamp!');
+          return;
+        }
+        this.showStampDetail(d);
+      };
       grid.appendChild(card);
     });
+  }
+
+  showStampDetail(d) {
+    const overlay = this.$('stamp-detail');
+    if (!overlay) return;
+    this.$('stamp-detail-name').textContent = d.name;
+    this.$('stamp-detail-role').textContent = (d.role || 'dinosaur').toUpperCase();
+    this.$('stamp-detail-fact').textContent = d.facts;
+    const swatch = this.$('stamp-detail-swatch');
+    if (swatch) {
+      swatch.style.background = `linear-gradient(135deg,${hexCss(d.color)},${hexCss(d.accent)})`;
+    }
+    overlay.classList.remove('hidden');
+  }
+
+  hideStampDetail() {
+    this.$('stamp-detail')?.classList.add('hidden');
   }
 
   showHud(missionText) {
@@ -401,5 +443,25 @@ export class UI {
     const a = Math.max(0, Math.min(1, amount));
     el.style.opacity = String(a * 0.85);
     el.classList.toggle('critical', a > 0.55);
+  }
+
+  showSkipCountdown(show) {
+    this.$('btn-skip-countdown')?.classList.toggle('hidden', !show);
+  }
+
+  setPhaseRibbon(show, text = '', kind = '') {
+    const el = this.$('phase-ribbon');
+    if (!el) return;
+    el.classList.toggle('hidden', !show);
+    el.classList.remove('chase', 'combat', 'mother', 'escort', 'headbutt');
+    if (kind) el.classList.add(kind);
+    if (text) el.textContent = text;
+  }
+
+  updateBabyHp(ratio, critical = false) {
+    const bar = this.$('baby-bar');
+    const hud = this.$('baby-hud');
+    if (bar) bar.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio))})`;
+    hud?.classList.toggle('critical', !!critical);
   }
 }

@@ -11,6 +11,9 @@ import {
   createFootprint,
   createWakeRing,
   createHealSpark,
+  createConfetti,
+  createDustKick,
+  createNestChevron,
 } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
@@ -74,6 +77,10 @@ export class Game {
     this._healFxCooldown = 0;
     this._hitFlashT = 0;
     this._missionVehicleId = null;
+    this._dustCooldown = 0;
+    this._confetti = [];
+    this._chevrons = [];
+    this._predatorBaseSpeed = 0;
     this.heals = [];
     this.world = null;
     this.vehicle = null;
@@ -118,13 +125,20 @@ export class Game {
     for (const s of this.sparks) this.scene.remove(s);
     for (const t of this.trails) this.scene.remove(t);
     for (const h of this.heals || []) this.scene.remove(h);
+    for (const c of this._confetti || []) this.scene.remove(c);
+    for (const c of this._chevrons || []) this.scene.remove(c);
     this.projectiles = [];
     this.sparks = [];
     this.trails = [];
     this.heals = [];
+    this._confetti = [];
+    this._chevrons = [];
     this._clearChargeTelegraph();
     this.ui?.setCombo?.(0);
     this.ui?.setHpVignette?.(0);
+    this.ui?.showSkipCountdown?.(false);
+    this.ui?.setPhaseRibbon?.(false);
+    this.ui?.updateBabyHp?.(1, false);
     this.shakeT = 0;
     this._weaponCycleT = 0;
     this._weaponCycleIdx = 0;
@@ -237,6 +251,9 @@ export class Game {
     this._wakeCooldown = 0;
     this._healFxCooldown = 0;
     this._hitFlashT = 0;
+    this._dustCooldown = 0;
+    this._confetti = [];
+    this._chevrons = [];
 
     this.world = buildWorld(level, this.scene);
 
@@ -265,7 +282,8 @@ export class Game {
     this.predator.userData.hp = level.boss ? 180 : 70;
     this.predator.userData.maxHp = this.predator.userData.hp;
     const basePredSpeed = DINOSAURS[level.predator].role === 'predator' ? 7.5 : 6;
-    this.predator.userData.speed = basePredSpeed * (level.boss ? 1.08 : 1) * (level.water ? 0.82 : 1);
+    this._predatorBaseSpeed = basePredSpeed * (level.boss ? 1.08 : 1) * (level.water ? 0.82 : 1);
+    this.predator.userData.speed = this._predatorBaseSpeed;
     this.scene.add(this.predator);
 
     this.mother = createDinosaur(DINOSAURS[level.mother]);
@@ -292,6 +310,9 @@ export class Game {
     this.ui.setWeaponModeUI('auto');
     this.ui.setAlarmRing(true);
     this.ui.showCountdown('3');
+    this.ui.showSkipCountdown(true);
+    this.ui.setPhaseRibbon(true, 'ALARM', 'combat');
+    this.ui.updateBabyHp(1, false);
     this.ui.crewCallout('Captain Rio', 'Alarm! Baby dinosaur in danger — roll out!');
     this.ui.toast(level.boss ? 'Alarm! Boss dinosaur alert!' : 'Alarm! Rescue countdown…');
     this.ui.showAim(false);
@@ -319,6 +340,22 @@ export class Game {
 
   setWeaponMode(mode) {
     if (this.vehicle) this.vehicle.userData.weaponMode = mode;
+  }
+
+  /** Skip the 3-2-1 alarm countdown (UI button + QA). */
+  skipCountdown() {
+    if (this.phase !== PHASE.COUNTDOWN) return;
+    this.phase = PHASE.INTRO;
+    this.phaseT = 0;
+    this._countdownStep = 0;
+    this.ui.hideCountdown();
+    this.ui.showSkipCountdown(false);
+    this.ui.setAlarmRing(false);
+    this.ui.setPhaseRibbon(true, 'CHASE', 'chase');
+    if (this.baby) this.baby.userData.anim.state = 'run';
+    if (this.predator) this.predator.userData.anim.state = 'chase';
+    this.ui.setMission(`Protect ${DINOSAURS[this.level.baby].name}!`);
+    this.ui.crewCallout('Scout Mina', 'Skipping ahead — protect the baby now!');
   }
 
   pause() {
@@ -531,12 +568,19 @@ export class Game {
     this._updateFootprints(dt);
     this._updateHitFlash(dt);
     this._updateCombo(dt);
+    this._updateConfetti(dt);
+    this._updateChevrons(dt);
+    this._updatePredatorLimp();
     this._updateRadar();
     this._updateEggs();
     this._updateHpVignette();
 
     if (this.vehicle) {
       this.ui.updateHp(this.vehicle.userData.hp / this.vehicle.userData.maxHp);
+    }
+    if (this.baby) {
+      const ratio = this.baby.userData.hp / (this.baby.userData.maxHp || 1);
+      this.ui.updateBabyHp(ratio, ratio < 0.35);
     }
     if (this.predator) {
       const bar = document.getElementById('predator-bar');
@@ -563,15 +607,18 @@ export class Game {
       this.ui.showCountdown('GO!');
       this.audio.go();
       this.ui.setAlarmRing(false);
+      this.ui.showSkipCountdown(false);
       this.ui.crewCallout('Scout Mina', 'Predator spotted — chase and protect the baby!');
     }
     if (this.phaseT >= 3.6) {
       this.ui.hideCountdown();
+      this.ui.showSkipCountdown(false);
       this.phase = PHASE.INTRO;
       this.phaseT = 0;
       if (this.baby) this.baby.userData.anim.state = 'run';
       if (this.predator) this.predator.userData.anim.state = 'chase';
       this.ui.setMission(`Protect ${DINOSAURS[this.level.baby].name}!`);
+      this.ui.setPhaseRibbon(true, 'CHASE', 'chase');
     }
     // Gentle idle bob during countdown
     if (this.predator) this.predator.userData.updateAnim(dt, false);
@@ -654,9 +701,12 @@ export class Game {
     if (this.mother?.visible && nest) {
       this._chase(this.mother, nest, this.mother.userData.speed * 0.8, dt);
     }
+    this._updateConfetti(dt);
     if (this._celebrateT > 0.35 && this._celebrateT < 0.4) {
       this._spawnSparks(this.baby.position.clone().setY(1.5), 0xf4c14b, 16);
       this._spawnSparks(this.baby.position.clone().setY(1.2), 0x62d26f, 12);
+      this._spawnConfettiBurst(this.baby.position.clone(), 28);
+      this.ui.setPhaseRibbon(true, 'SAFE!', 'escort');
       this.ui.crewCallout('Medic Luma', 'Baby safe at the nest — stamp unlocked!');
     }
     if (this._celebrateT >= 1.6) this._finishWin();
@@ -799,6 +849,20 @@ export class Game {
       this.trails.push(puff);
     }
 
+    // Land dust kicks when the jeep accelerates hard
+    if (!this.level.water && moving && -axis.y > 0.55) {
+      this._dustCooldown -= dt;
+      if (this._dustCooldown <= 0) {
+        this._dustCooldown = 0.12;
+        const dust = createDustKick(0xc4a35a);
+        dust.position.copy(v.position);
+        dust.position.y = 0.2;
+        dust.position.add(new THREE.Vector3(0, 0, 1.2).applyQuaternion(v.quaternion));
+        this.scene.add(dust);
+        this.trails.push(dust);
+      }
+    }
+
     // Submarine wake rings expand behind the hull
     if (this.level.water && moving) {
       this._wakeCooldown -= dt;
@@ -854,9 +918,90 @@ export class Game {
       this.projectiles.push(p);
     }
     this.audio.shoot();
+    // Soft haptic for mobile FIRE taps
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(mode === 'scatter' ? 18 : 10);
+      }
+    } catch {
+      /* ignore unsupported vibrate */
+    }
 
     if (this.predator) {
       v.userData.shotsAtPredator += mode === 'scatter' ? 3 : 1;
+    }
+  }
+
+  _updatePredatorLimp() {
+    if (!this.predator || !this._predatorBaseSpeed) return;
+    const ratio = this.predator.userData.hp / (this.predator.userData.maxHp || 1);
+    if (ratio < 0.35 && this.phase !== PHASE.ESCORT && this.phase !== PHASE.HEADBUTT) {
+      this.predator.userData.speed = this._predatorBaseSpeed * 0.62;
+      if (this.predator.userData.anim.state === 'chase') {
+        this.predator.userData.anim.state = 'hurt';
+      }
+      this.predator.userData.limp = true;
+    } else if (this.phase !== PHASE.HEADBUTT) {
+      this.predator.userData.speed = this._predatorBaseSpeed;
+      this.predator.userData.limp = false;
+    }
+  }
+
+  _spawnConfettiBurst(origin, count = 22) {
+    const palette = [0xf4c14b, 0x62d26f, 0x60a5fa, 0xe85d4c, 0xfff3a0];
+    for (let i = 0; i < count; i++) {
+      const c = createConfetti(palette[i % palette.length]);
+      c.position.copy(origin);
+      c.position.y += 1.2;
+      this.scene.add(c);
+      this._confetti.push(c);
+    }
+  }
+
+  _updateConfetti(dt) {
+    if (!this._confetti?.length) return;
+    for (let i = this._confetti.length - 1; i >= 0; i--) {
+      const c = this._confetti[i];
+      c.userData.velocity.y -= 9 * dt;
+      c.position.addScaledVector(c.userData.velocity, dt);
+      c.rotation.z += (c.userData.spin || 4) * dt;
+      c.userData.life -= dt;
+      c.material.opacity = Math.max(0, c.userData.life / 1.4);
+      if (c.userData.life <= 0) {
+        this.scene.remove(c);
+        this._confetti.splice(i, 1);
+      }
+    }
+  }
+
+  _spawnEscortChevrons() {
+    for (const c of this._chevrons || []) this.scene.remove(c);
+    this._chevrons = [];
+    const nest = this.world?.userData?.nestPos;
+    if (!nest || !this.baby) return;
+    const from = this.baby.position.clone();
+    const to = nest.clone();
+    const dir = to.clone().sub(from).setY(0);
+    const dist = dir.length();
+    if (dist < 2) return;
+    dir.normalize();
+    const steps = Math.min(6, Math.max(3, Math.floor(dist / 5)));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / (steps + 1);
+      const chev = createNestChevron(i === steps ? 0x62d26f : 0xf4c14b);
+      chev.position.set(from.x + dir.x * dist * t, 0.06, from.z + dir.z * dist * t);
+      chev.rotation.z = Math.atan2(dir.x, dir.z);
+      this.scene.add(chev);
+      this._chevrons.push(chev);
+    }
+  }
+
+  _updateChevrons(dt) {
+    if (!this._chevrons?.length) return;
+    const t = performance.now() * 0.001;
+    for (const c of this._chevrons) {
+      c.material.opacity = 0.45 + Math.sin(t * 4 + c.position.x) * 0.3;
+      c.position.y = 0.06 + Math.sin(t * 3 + c.position.z) * 0.02;
     }
   }
 
@@ -910,6 +1055,7 @@ export class Game {
     if (this.phase === PHASE.INTRO && this.phaseT > 1.2) {
       this.phase = PHASE.CHASE;
       this.ui.setMission('Chase the predator — get close!');
+      this.ui.setPhaseRibbon(true, 'CHASE', 'chase');
     }
 
     if (this.phase === PHASE.CHASE) {
@@ -919,6 +1065,7 @@ export class Game {
         this.phaseT = 0;
         this._weaponCycleT = 0;
         this.ui.setMission('Fire! Use Auto / Zoom / Scatter');
+        this.ui.setPhaseRibbon(true, 'COMBAT', 'combat');
         this.ui.showAim(true);
         this.ui.toast('Smart aiming unlocked!');
         this.ui.crewCallout('Gunner Kai', 'Smart aiming modes launching — Auto, Zoom, Scatter!');
@@ -938,9 +1085,13 @@ export class Game {
         this.phase = PHASE.MOTHER;
         this.phaseT = 0;
         this.ui.setMission('Mother dinosaur is helping!');
+        this.ui.setPhaseRibbon(true, 'MOTHER HELP', 'mother');
         this.ui.toast(`${DINOSAURS[this.level.mother].name} arrives!`);
         this.ui.crewCallout('Scout Mina', 'Mother dinosaur is charging in to help!');
         this.audio.mother();
+        this.audio.roar();
+        this.shakeT = Math.max(this.shakeT, 0.35);
+        this._spawnSparks(mother.position.clone().setY(1.6), 0xf4c14b, 10);
       }
       if (predator.userData.hp <= 0) {
         this._beginEscort();
@@ -951,6 +1102,7 @@ export class Game {
         this.phaseT = 0;
         predator.userData.anim.state = 'attack';
         this.ui.setMission('Watch out — headbutt!');
+        this.ui.setPhaseRibbon(true, 'HEADBUTT!', 'headbutt');
         this.ui.toast('Charge telegraph! Predator winds up a headbutt!');
         this.ui.crewCallout('Scout Mina', 'Red ring — dodge the charge!');
         this.ui.setHeadbuttAlarm(true);
@@ -988,6 +1140,7 @@ export class Game {
       if (vehicle.userData.shotsAtPredator >= 22) {
         this.phase = PHASE.HEADBUTT;
         this.phaseT = 0;
+        this.ui.setPhaseRibbon(true, 'HEADBUTT!', 'headbutt');
         this.ui.setHeadbuttAlarm(true);
         this.audio.roar();
       }
@@ -1096,12 +1249,15 @@ export class Game {
     this.ui.showAim(false);
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
+    this.ui.setPhaseRibbon(true, 'ESCORT TO NEST', 'escort');
+    this.ui.setMission('Escort baby to the glowing nest!');
     const tip = document.getElementById('tutorial-tip');
     if (tip) tip.classList.add('hidden');
     // Reveal escort eggs
     for (const egg of this.world?.userData?.eggs || []) {
       if (!egg.userData.collected) egg.visible = true;
     }
+    this._spawnEscortChevrons();
     this.ui.toast('Predator retreats! Escort the baby — grab glowing eggs!');
     this.missionScore += 200;
     this.ui.updateScore(this.missionScore);
@@ -1133,6 +1289,8 @@ export class Game {
     this.ui.setAlarmRing(false);
     document.getElementById('tutorial-tip')?.classList.add('hidden');
     this.ui.setMission('Safe at the nest — celebration!');
+    this.ui.setPhaseRibbon(true, 'CELEBRATE', 'escort');
+    this.ui.showSkipCountdown(false);
     this.ui.toast('Baby dinosaur rescued!');
     this.audio.win();
   }
@@ -1173,6 +1331,8 @@ export class Game {
     const hasNext = idx >= 0 && idx < LEVELS.length - 1;
     this.ui.updateNestCompass(false);
     this.ui.hideCrewCallout();
+    this.ui.setPhaseRibbon(false);
+    this.ui.showSkipCountdown(false);
     this.ui.showResult({
       win: true,
       message: `Great work, Guard! +${this.missionScore} points`,
@@ -1196,6 +1356,8 @@ export class Game {
     this.ui.updateNestCompass(false);
     document.getElementById('tutorial-tip')?.classList.add('hidden');
     this.audio.lose();
+    this.ui.setPhaseRibbon(false);
+    this.ui.showSkipCountdown(false);
     this.ui.showResult({ win: false, message, stars: 0, hasNext: false });
     this.state = 'result';
   }
@@ -1302,6 +1464,10 @@ export class Game {
         t.material.opacity = Math.max(0, t.userData.life * 0.75);
       } else if (t.userData.kind === 'footprint') {
         t.material.opacity = Math.max(0, t.userData.life * 0.25);
+      } else if (t.userData.kind === 'dust') {
+        if (t.userData.velocity) t.position.addScaledVector(t.userData.velocity, dt);
+        t.scale.multiplyScalar(1.03);
+        t.material.opacity = Math.max(0, t.userData.life * 0.85);
       } else {
         t.position.y += dt * 0.4;
         t.scale.multiplyScalar(1.02);

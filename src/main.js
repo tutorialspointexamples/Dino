@@ -21,16 +21,9 @@ window.__DINO_GUARD_QA__ = {
         : 'police_scout');
     game.startMission(level, pick);
   },
-  /** Skip countdown for automated QA */
+  /** Skip countdown for automated QA / skip button */
   skipCountdown() {
-    if (game.phase === 'countdown') {
-      game.phase = 'intro';
-      game.phaseT = 0;
-      game.ui.hideCountdown();
-      game.ui.setAlarmRing(false);
-      if (game.baby) game.baby.userData.anim.state = 'run';
-      if (game.predator) game.predator.userData.anim.state = 'chase';
-    }
+    game.skipCountdown();
   },
   forceEscort() {
     game.ui.hideCountdown();

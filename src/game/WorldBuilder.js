@@ -606,3 +606,60 @@ export function createHealSpark() {
   );
   return mesh;
 }
+
+/** Bright confetti flake for nest celebration. */
+export function createConfetti(color = 0xf4c14b) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.18, 0.08, 0.04),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1 }),
+  );
+  mesh.userData.life = 1.4;
+  mesh.userData.kind = 'confetti';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 5,
+    3 + Math.random() * 4,
+    (Math.random() - 0.5) * 5,
+  );
+  mesh.userData.spin = (Math.random() - 0.5) * 10;
+  return mesh;
+}
+
+/** Soft dust kick when the jeep accelerates on land. */
+export function createDustKick(color = 0xc4a35a) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28, 6, 6),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 }),
+  );
+  mesh.userData.life = 0.55;
+  mesh.userData.kind = 'dust';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 1.2,
+    0.8 + Math.random() * 0.6,
+    (Math.random() - 0.5) * 1.2,
+  );
+  return mesh;
+}
+
+/** Ground chevron pointing toward the nest during escort. */
+export function createNestChevron(color = 0xf4c14b) {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0.55);
+  shape.lineTo(0.42, -0.35);
+  shape.lineTo(0, -0.1);
+  shape.lineTo(-0.42, -0.35);
+  shape.closePath();
+  const mesh = new THREE.Mesh(
+    new THREE.ShapeGeometry(shape),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.75,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.06;
+  mesh.userData.kind = 'chevron';
+  return mesh;
+}
