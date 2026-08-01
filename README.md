@@ -1,16 +1,94 @@
-# Dino
+# Dinosaur Guard 2 — Rescue Adventure
 
-Sample project for [tutorialspointexamples/Dino](https://github.com/tutorialspointexamples/Dino).
+A browser-based **3D** kids rescue game inspired by [Dinosaur Guard 2](https://play.google.com/store/apps/details?id=com.imayi.dinoguard2), built with **Three.js** + Vite.
 
-## Getting started
+> Unity editor projects are not practical inside this cloud environment, so the complete playable game ships as a high-fidelity WebGL/Three.js experience with animated procedural dinosaurs, police cars, submarines, biomes, and the full Guard loop.
 
-This repository currently contains a starter sample file. Replace or extend it with your Dino game or tutorial content.
+## Features
+
+- **10 Jurassic biomes** — Tropical Rainforest, Crystal Cave, Firefly Lights Cave, Danxia Landforms, Vine Swamp, Coral Relics, Lava Volcano, Deep-Sea Swirl, Meteorite Hole, Tropical Ocean Current
+- **6 police cars + 4 guard submarines** with progressive unlocks
+- **4 named Guard crew** with in-mission callouts + mission-start roster
+- **27 animated dinosaur characters** (babies, mothers, predators, marine reptiles, pterosaurs)
+- **Alarm countdown** before each rescue (3-2-1-GO) with Skip
+- **Rescue missions**: predators chase babies; intercept and fire
+- **Weapon modes**: Auto Aim, Zoom, Scatter — auto-cycle + lock reticle + hotkeys 1/2/3
+- **Siren boost** (Shift / BOOST) for short speed bursts
+- **Mother dinosaur assist** with arrival ground ring
+- **Headbutt risk** + near-miss dodge bonus
+- **Escort to nest** after the predator retreats (beacon + compass + chevrons + celebration)
+- **Collectible dino eggs** during escort for bonus score
+- **Mugger crocodiles** in swamp / ocean biomes
+- **Designed rescue routes** + roadblocks
+- **Mini-map radar** with danger pulse when the baby is threatened
+- **Stamp book / encyclopedia** with fanfare unlock animation + detail modal
+- **Biome FX** (rain, fireflies, vines, bubbles, caustics, volcano ash/lava, sky clouds)
+- **Animated blink / jaw / wing / walk cycles** on procedural dinosaurs
+- **Touch joystick + FIRE + BOOST** controls for mobile; keyboard on desktop
+- **Offline-friendly** via `localStorage` + web app manifest
+
+## Controls
+
+| Action | Desktop | Touch |
+|--------|---------|-------|
+| Drive | WASD / Arrow keys | Virtual stick |
+| Fire | Space | FIRE button |
+| Boost | Shift | BOOST button |
+| Weapon mode | 1 / 2 / 3 or HUD buttons | HUD buttons |
+| Pause | Esc / P / II button | II button |
+
+## Run locally
 
 ```bash
-git clone https://github.com/tutorialspointexamples/Dino.git
-cd Dino
+npm install
+npm run dev
+```
+
+Open the printed local URL (default `http://localhost:5173`).
+
+QA unlocks: append `?debug=1` to unlock all levels and vehicles.
+
+## Build & verify
+
+```bash
+npm run build
+npm run verify
+npm run qa
+```
+
+### Verification iterations (branch 8c65)
+
+1. **Predator charge eye glow** — emissive pupils flare during headbutt / proximity threat  
+2. **Tire skid marks** — hard-turn jeep skids on land biomes  
+3. **Water splash spray** — surge/boost splash droplets + SFX in water missions  
+4. **Zoom scope vignette** — crosshair scope overlay when Zoom Aim is active  
+5. **Scatter pellet spark trails** — golden bead trails behind Scatter darts  
+6. **Victory camera orbit** — nest celebration orbits the rescued baby  
+7. **Distant herd silhouettes** — ambient park dinosaurs on the horizon  
+8. **Escort fossil pickups** — paleontology fossils for bonus score + radar blips  
+9. **Submarine depth gauge** — kid-friendly DEPTH meter on water missions  
+10. **Stamp book page flip** — page-turn animation + rustle when opening stamps  
+
+Prior branches (e9eb / 1c1b / 9f1d / 7dce / ed9a+) also cover volcano embers, mother shield, damage smoke, thank-you hearts, hub Saved counter, combo milestones, boost horn, nest hatch crack, padlock shake, plankton, cave headlights, sonar, SOS flares, and more (see `npm run verify`).
+
+## Project layout
+
+```
+src/
+  main.js
+  style.css
+  game/
+    Game.js            # loop, mission phases, combat
+    data.js            # levels, dinos, vehicles, crew
+    DinosaurFactory.js # animated procedural dinosaurs
+    VehicleFactory.js  # police cars / submarines + crew
+    WorldBuilder.js    # biome worlds + routes + crocs
+    Input.js           # keyboard + touch
+    UI.js              # hub / garage / stamps / HUD
+    Save.js            # local progress
+    Audio.js           # procedural SFX
 ```
 
 ## License
 
-Use this example for learning and tutorials.
+Example project for learning and tutorials.
