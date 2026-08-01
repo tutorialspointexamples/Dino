@@ -83,6 +83,27 @@ export function buildWorld(level, scene) {
       flowers.push(flower);
     }
     group.userData.kingFlowers = flowers;
+
+    // Soft rainfall for tropical rainforest atmosphere
+    const rain = [];
+    for (let i = 0; i < 48; i++) {
+      const drop = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.02, 0.02, rand(0.35, 0.7), 4),
+        new THREE.MeshBasicMaterial({
+          color: 0xa8d4f0,
+          transparent: true,
+          opacity: 0.45,
+          depthWrite: false,
+        }),
+      );
+      drop.position.set(rand(-28, 28), rand(4, 14), rand(-28, 28));
+      drop.userData.speed = rand(8, 14);
+      drop.userData.baseX = drop.position.x;
+      drop.userData.baseZ = drop.position.z;
+      group.add(drop);
+      rain.push(drop);
+    }
+    group.userData.rainDrops = rain;
   }
 
   if (biome === 'swamp') {
@@ -273,6 +294,12 @@ export function buildWorld(level, scene) {
       bubbles.push(b);
     }
     group.userData.bubbles = bubbles;
+
+    // Soft caustic / god-ray light for underwater biomes
+    const caustic = new THREE.PointLight(0x7fd0c0, 1.1, 42);
+    caustic.position.set(4, 6, -2);
+    group.add(caustic);
+    group.userData.causticLight = caustic;
   }
 
   // Path ring markers
@@ -661,5 +688,24 @@ export function createNestChevron(color = 0xf4c14b) {
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = 0.06;
   mesh.userData.kind = 'chevron';
+  return mesh;
+}
+
+/** Expanding ground ring when the mother dinosaur arrives to help. */
+export function createMotherRing(color = 0xf4c14b) {
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(0.6, 0.95, 32),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.08;
+  mesh.userData.life = 1.1;
+  mesh.userData.kind = 'motherRing';
   return mesh;
 }

@@ -290,13 +290,17 @@ export class UI {
     perfect = false,
     unlockText = '',
     hasNext = false,
+    timeText = '',
   }) {
     this.$('hud').classList.add('hidden');
     this.$('nest-compass')?.classList.add('hidden');
     this.setCombo(0);
     this.setHpVignette(0);
+    this.setAimLock(false);
+    this.setRadarDanger(false);
     this.hideCountdown();
     this.hideCrewCallout();
+    this.showCrewIntro(false);
     this.setAlarmRing(false);
     this.$('screen-result').classList.remove('hidden');
     this.$('result-title').textContent = win ? 'Rescue Complete!' : 'Mission Failed';
@@ -316,6 +320,15 @@ export class UI {
     if (perfectEl) {
       perfectEl.classList.toggle('hidden', !(win && perfect));
     }
+    const timeEl = this.$('result-time');
+    if (timeEl) {
+      if (timeText) {
+        timeEl.textContent = timeText;
+        timeEl.classList.remove('hidden');
+      } else {
+        timeEl.classList.add('hidden');
+      }
+    }
     const factEl = this.$('result-fact');
     if (win && fact) {
       factEl.textContent = fact;
@@ -325,11 +338,11 @@ export class UI {
     }
     const stamp = this.$('result-stamp');
     if (win && stampName) {
-      stamp.classList.remove('hidden', 'stamp-pop');
+      stamp.classList.remove('hidden', 'stamp-pop', 'stamp-fanfare');
       stamp.style.background = stampColor || '#3f9d5a';
       stamp.textContent = stampName;
       void stamp.offsetWidth;
-      stamp.classList.add('stamp-pop');
+      stamp.classList.add('stamp-pop', 'stamp-fanfare');
     } else {
       stamp.classList.add('hidden');
     }
@@ -463,5 +476,35 @@ export class UI {
     const hud = this.$('baby-hud');
     if (bar) bar.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio))})`;
     hud?.classList.toggle('critical', !!critical);
+  }
+
+  setAimLock(show, x = 0, y = 0, zoom = false) {
+    const el = this.$('aim-lock');
+    if (!el) return;
+    el.classList.toggle('hidden', !show);
+    el.classList.toggle('zoom', !!zoom);
+    if (show) {
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+    }
+  }
+
+  setRadarDanger(on) {
+    this.$('mini-map')?.classList.toggle('danger-pulse', !!on);
+  }
+
+  showCrewIntro(show, names = '') {
+    const el = this.$('crew-intro');
+    if (!el) return;
+    el.classList.toggle('hidden', !show);
+    const nameEl = this.$('crew-intro-names');
+    if (nameEl && names) nameEl.textContent = names;
+  }
+
+  setBoostHud(active, fuel = 1) {
+    const btn = this.$('btn-boost');
+    if (!btn) return;
+    btn.classList.toggle('active', !!active);
+    btn.style.setProperty('--boost-fuel', String(Math.max(0, Math.min(1, fuel))));
   }
 }

@@ -560,6 +560,10 @@ h2 {
   padding: 16px 20px 24px;
 }
 
+.touch-controls .boost-btn {
+  margin-left: auto;
+}
+
 .stick-zone {
   width: 130px;
   height: 130px;
@@ -598,6 +602,32 @@ h2 {
   font-weight: 800;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
   cursor: pointer;
+}
+
+.boost-btn {
+  --boost-fuel: 1;
+  width: 72px;
+  height: 72px;
+  margin: 0 10px 12px 0;
+  border-radius: 50%;
+  border: 3px solid rgba(244, 193, 75, 0.85);
+  background:
+    linear-gradient(180deg, rgba(244, 193, 75, calc(var(--boost-fuel) * 0.85)), rgba(60, 40, 10, 0.55) 70%),
+    radial-gradient(circle at 35% 30%, #5a8fd8, #1e3a8a);
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.boost-btn.active {
+  transform: scale(1.06);
+  border-color: #fff1b0;
+  filter: brightness(1.15);
 }
 
 .toast {
@@ -772,10 +802,110 @@ h2 {
   animation: stampPop 0.65s cubic-bezier(0.2, 1.5, 0.3, 1);
 }
 
+.result-stamp.stamp-fanfare {
+  box-shadow: 0 0 0 0 rgba(244, 193, 75, 0.55);
+  animation: stampPop 0.65s cubic-bezier(0.2, 1.5, 0.3, 1), stampFanfare 1.1s ease-out 0.2s;
+}
+
 @keyframes stampPop {
   0% { transform: scale(0.2) rotate(-12deg); opacity: 0; }
   60% { transform: scale(1.12) rotate(4deg); opacity: 1; }
   100% { transform: scale(1) rotate(0); }
+}
+
+@keyframes stampFanfare {
+  0% { box-shadow: 0 0 0 0 rgba(244, 193, 75, 0.6); }
+  70% { box-shadow: 0 0 0 18px rgba(244, 193, 75, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(244, 193, 75, 0); }
+}
+
+.result-time {
+  margin: 6px 0 0;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.aim-lock {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 54px;
+  height: 54px;
+  margin: -27px 0 0 -27px;
+  z-index: 14;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+}
+
+.aim-lock-ring {
+  position: absolute;
+  inset: 0;
+  border: 3px solid rgba(244, 193, 75, 0.95);
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(244, 193, 75, 0.45);
+  animation: lockSpin 2.4s linear infinite;
+}
+
+.aim-lock.zoom .aim-lock-ring {
+  border-color: #60a5fa;
+  box-shadow: 0 0 14px rgba(96, 165, 250, 0.55);
+}
+
+.aim-lock-label {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--cream);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+@keyframes lockSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.crew-intro {
+  position: absolute;
+  top: calc(96px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 13;
+  min-width: min(320px, 86vw);
+  padding: 10px 16px;
+  border-radius: 16px;
+  background: rgba(13, 36, 24, 0.88);
+  border: 2px solid rgba(244, 193, 75, 0.65);
+  text-align: center;
+  pointer-events: none;
+  animation: popIn 0.35s ease;
+}
+
+.crew-intro strong {
+  display: block;
+  font-family: var(--font-display);
+  color: var(--sun);
+  font-size: 1rem;
+}
+
+.crew-intro span {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(255, 248, 231, 0.9);
+}
+
+.mini-map.danger-pulse {
+  border-color: #e85d4c;
+  animation: radarDanger 0.55s ease-in-out infinite alternate;
+}
+
+@keyframes radarDanger {
+  from { box-shadow: 0 0 0 0 rgba(232, 93, 76, 0.35); }
+  to { box-shadow: 0 0 0 8px rgba(232, 93, 76, 0); }
 }
 
 .boot-splash {
@@ -1147,8 +1277,12 @@ h2 {
   #hud.headbutt-alarm .hud-top,
   .mission-countdown.pop,
   .result-stamp.stamp-pop,
+  .result-stamp.stamp-fanfare,
   .boot-bar i,
-  .alarm-ring {
+  .alarm-ring,
+  .aim-lock-ring,
+  .mini-map.danger-pulse,
+  .crew-intro {
     animation: none !important;
   }
 }

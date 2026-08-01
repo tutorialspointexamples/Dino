@@ -115,6 +115,14 @@
           <strong id="combo-count">x2</strong>
           <span>COMBO</span>
         </div>
+        <div id="aim-lock" class="aim-lock hidden" aria-hidden="true">
+          <span class="aim-lock-ring"></span>
+          <span class="aim-lock-label">LOCK</span>
+        </div>
+        <div id="crew-intro" class="crew-intro hidden" aria-live="polite">
+          <strong>Guard Crew Ready</strong>
+          <span id="crew-intro-names"></span>
+        </div>
         <div id="hp-vignette" class="hp-vignette" aria-hidden="true"></div>
         <div id="nest-compass" class="nest-compass hidden" aria-hidden="true">
           <div class="compass-arrow" id="compass-arrow"></div>
@@ -138,7 +146,7 @@
           <span id="crew-callout-text"></span>
         </div>
         <div id="tutorial-tip" class="tutorial-tip hidden"></div>
-        <p class="hint" id="control-hint">WASD / stick to drive · Space / FIRE · 1/2/3 weapons · Esc pause</p>
+          <p class="hint" id="control-hint">WASD / stick to drive · Space / FIRE · Shift / BOOST · 1/2/3 weapons · Esc pause</p>
         <div class="hud-aim hidden" id="aim-hint">SMART AIM READY — TAP / SPACE TO FIRE</div>
         <div class="weapon-modes" id="weapon-modes">
           <button data-mode="auto" class="mode active">Auto Aim</button>
@@ -149,6 +157,7 @@
           <div class="stick-zone" id="stick-zone">
             <div class="stick-base"><div class="stick-knob" id="stick-knob"></div></div>
           </div>
+          <button id="btn-boost" class="boost-btn" type="button" title="Siren boost (Shift)">BOOST</button>
           <button id="btn-fire" class="fire-btn">FIRE</button>
         </div>
         <button id="btn-mute" class="btn small mute" title="Toggle sound">VOL</button>
@@ -173,6 +182,7 @@
             <span data-star="1">★</span><span data-star="2">★</span><span data-star="3">★</span>
           </div>
           <p id="result-perfect" class="result-perfect hidden">PERFECT RESCUE!</p>
+          <p id="result-time" class="result-time muted hidden" aria-live="polite"></p>
           <p id="result-fact" class="result-fact muted hidden"></p>
           <div id="result-stamp" class="result-stamp hidden"></div>
           <p id="result-unlock" class="result-unlock muted hidden"></p>

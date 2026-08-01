@@ -373,6 +373,54 @@ async function main() {
   });
   console.log('3383 iterations:', iter3383);
 
+  // Branch 886a iterations: aim lock, mother ring, rain, boost, timer, near-miss, caustic, fanfare, radar pulse, crew intro
+  const iter886a = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    const qa = window.__DINO_GUARD_QA__;
+    g.startMission(qa.LEVELS[0], 'police_scout');
+    const crewIntro = !!document.getElementById('crew-intro');
+    const crewShown = !document.getElementById('crew-intro')?.classList.contains('hidden');
+    const boostBtn = !!document.getElementById('btn-boost');
+    const aimLock = !!document.getElementById('aim-lock');
+    const rain = g.world?.userData?.rainDrops?.length || 0;
+    g._spawnMotherRing(g.baby.position.clone());
+    const rings = g._motherRings?.length || 0;
+    g._updateMotherRings(0.05);
+    g.input.boostHeld = true;
+    g._boostFuel = 1;
+    g._driveVehicle(0.05, { x: 0, y: -1 });
+    const boosting = g._boostActive === true;
+    g.phase = 'combat';
+    g.setWeaponMode('auto');
+    g._updateAimLock();
+    const lockVisible = !document.getElementById('aim-lock')?.classList.contains('hidden');
+    g.ui.setRadarDanger(true);
+    const radarPulse = document.getElementById('mini-map')?.classList.contains('danger-pulse');
+    g.startMission(qa.LEVELS[5], 'sub_bubble');
+    const caustic = !!g.world?.userData?.causticLight;
+    g._missionElapsed = 95;
+    g._finishWin();
+    const timeText = document.getElementById('result-time')?.textContent || '';
+    const stampFanfare = document.getElementById('result-stamp')?.classList.contains('stamp-fanfare');
+    const nearMissWired = g._updatePhase.toString().includes('_nearMissAwarded');
+    return {
+      crewIntro,
+      crewShown,
+      boostBtn,
+      aimLock,
+      rain,
+      rings,
+      boosting,
+      lockVisible,
+      radarPulse,
+      caustic,
+      timeText,
+      stampFanfare,
+      nearMissWired,
+    };
+  });
+  console.log('886a iterations:', iter886a);
+
   await browser.close();
   preview.kill();
 
@@ -431,7 +479,20 @@ async function main() {
     !iter3383.fact ||
     iter3383.chevrons < 3 ||
     !iter3383.vibrateWired ||
-    !iter3383.stampModal;
+    !iter3383.stampModal ||
+    !iter886a.crewIntro ||
+    !iter886a.crewShown ||
+    !iter886a.boostBtn ||
+    !iter886a.aimLock ||
+    iter886a.rain < 20 ||
+    iter886a.rings < 1 ||
+    !iter886a.boosting ||
+    !iter886a.lockVisible ||
+    !iter886a.radarPulse ||
+    !iter886a.caustic ||
+    !iter886a.timeText.includes('1:35') ||
+    !iter886a.stampFanfare ||
+    !iter886a.nearMissWired;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

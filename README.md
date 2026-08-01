@@ -8,22 +8,23 @@ A browser-based **3D** kids rescue game inspired by [Dinosaur Guard 2](https://p
 
 - **10 Jurassic biomes** — Tropical Rainforest, Crystal Cave, Firefly Lights Cave, Danxia Landforms, Vine Swamp, Coral Relics, Lava Volcano, Deep-Sea Swirl, Meteorite Hole, Tropical Ocean Current
 - **6 police cars + 4 guard submarines** with progressive unlocks
-- **4 named Guard crew** with in-mission callouts
+- **4 named Guard crew** with in-mission callouts + mission-start roster
 - **27 animated dinosaur characters** (babies, mothers, predators, marine reptiles, pterosaurs)
-- **Alarm countdown** before each rescue (3-2-1-GO)
+- **Alarm countdown** before each rescue (3-2-1-GO) with Skip
 - **Rescue missions**: predators chase babies; intercept and fire
-- **Weapon modes**: Auto Aim, Zoom, Scatter — auto-cycle in combat + hotkeys 1/2/3
-- **Mother dinosaur assist** mid-fight
-- **Headbutt risk** if you overshoot the predator (camera shake + HUD alarm)
-- **Escort to nest** after the predator retreats (beacon + compass + celebration)
+- **Weapon modes**: Auto Aim, Zoom, Scatter — auto-cycle + lock reticle + hotkeys 1/2/3
+- **Siren boost** (Shift / BOOST) for short speed bursts
+- **Mother dinosaur assist** with arrival ground ring
+- **Headbutt risk** + near-miss dodge bonus
+- **Escort to nest** after the predator retreats (beacon + compass + chevrons + celebration)
 - **Collectible dino eggs** during escort for bonus score
 - **Mugger crocodiles** in swamp / ocean biomes
 - **Designed rescue routes** + roadblocks
-- **Mini-map radar** tracking baby, predator, mother, nest, and crocs
-- **Stamp book / encyclopedia** with unlock pop animation
-- **Biome FX** (fireflies, vines, bubbles, volcano ash/lava, sky clouds)
+- **Mini-map radar** with danger pulse when the baby is threatened
+- **Stamp book / encyclopedia** with fanfare unlock animation + detail modal
+- **Biome FX** (rain, fireflies, vines, bubbles, caustics, volcano ash/lava, sky clouds)
 - **Animated blink / jaw / wing / walk cycles** on procedural dinosaurs
-- **Touch joystick + FIRE** controls for mobile; keyboard on desktop
+- **Touch joystick + FIRE + BOOST** controls for mobile; keyboard on desktop
 - **Offline-friendly** via `localStorage` + web app manifest
 
 ## Controls
@@ -32,6 +33,7 @@ A browser-based **3D** kids rescue game inspired by [Dinosaur Guard 2](https://p
 |--------|---------|-------|
 | Drive | WASD / Arrow keys | Virtual stick |
 | Fire | Space | FIRE button |
+| Boost | Shift | BOOST button |
 | Weapon mode | 1 / 2 / 3 or HUD buttons | HUD buttons |
 | Pause | Esc / P / II button | II button |
 
@@ -54,18 +56,18 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (this branch)
+### Verification iterations (branch 886a)
 
-1. **Skip countdown** button during the alarm 3-2-1  
-2. **Phase objective ribbon** (Chase / Combat / Mother / Escort / Headbutt)  
-3. **Predator limp** when HP drops below 35%  
-4. **Nest celebration confetti** burst  
-5. **Jeep dust kicks** on hard land acceleration  
-6. **Baby HP HUD** with critical pulse  
-7. **Educational fact briefing** on the vehicle-pick screen  
-8. **Escort nest chevrons** on the ground path  
-9. **Mobile fire haptics** via `navigator.vibrate`  
-10. **Stamp detail modal** encyclopedia cards 
+1. **Smart aim lock reticle** tracking predators in Auto / Zoom  
+2. **Mother arrival ring** expanding ground FX  
+3. **Rainforest rainfall** particle atmosphere  
+4. **Siren boost** (Shift / BOOST) with fuel meter  
+5. **Mission rescue timer** on the result screen  
+6. **Headbutt near-miss** dodge bonus + SFX  
+7. **Ocean caustic light** shimmer for water biomes  
+8. **Stamp unlock fanfare** (audio + pulse animation)  
+9. **Radar danger pulse** when baby HP is critical  
+10. **Guard crew intro roster** at mission start  
 
 ## Project layout
 

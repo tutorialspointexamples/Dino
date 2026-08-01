@@ -8,6 +8,7 @@ export class Input {
 
     this.weaponHotkey = null;
     this.pausePressed = false;
+    this.boostHeld = false;
 
     window.addEventListener('keydown', (e) => {
       this.keys.add(e.code);
@@ -20,10 +21,12 @@ export class Input {
       if (e.code === 'Digit2' || e.code === 'Numpad2') this.weaponHotkey = 'zoom';
       if (e.code === 'Digit3' || e.code === 'Numpad3') this.weaponHotkey = 'scatter';
       if (e.code === 'Escape' || e.code === 'KeyP') this.pausePressed = true;
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.boostHeld = true;
     });
     window.addEventListener('keyup', (e) => {
       this.keys.delete(e.code);
       if (e.code === 'Space') this.fireHeld = false;
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.boostHeld = false;
     });
 
     this._bindStick();
@@ -40,6 +43,20 @@ export class Input {
       fireBtn.addEventListener('pointerdown', down);
       fireBtn.addEventListener('pointerup', up);
       fireBtn.addEventListener('pointerleave', up);
+    }
+    const boostBtn = document.getElementById('btn-boost');
+    if (boostBtn) {
+      const down = (e) => {
+        e.preventDefault();
+        this.boostHeld = true;
+      };
+      const up = () => {
+        this.boostHeld = false;
+      };
+      boostBtn.addEventListener('pointerdown', down);
+      boostBtn.addEventListener('pointerup', up);
+      boostBtn.addEventListener('pointerleave', up);
+      boostBtn.addEventListener('pointercancel', up);
     }
   }
 
@@ -116,5 +133,9 @@ export class Input {
     const v = this.pausePressed;
     this.pausePressed = false;
     return v;
+  }
+
+  isBoosting() {
+    return this.boostHeld || this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
   }
 }

@@ -147,6 +147,22 @@ export class AudioBus {
     });
   }
 
+  /** Stamp book fanfare when a rescue unlocks encyclopedia pages. */
+  stamp() {
+    [392, 523, 659, 784, 988].forEach((f, i) => {
+      setTimeout(() => this.tone({ freq: f, dur: 0.14, type: 'triangle', gain: 0.075 }), i * 85);
+    });
+  }
+
+  boost() {
+    this.tone({ freq: 440, dur: 0.1, type: 'sawtooth', gain: 0.05, slide: 260 });
+  }
+
+  nearMiss() {
+    this.tone({ freq: 990, dur: 0.12, type: 'triangle', gain: 0.07, slide: 140 });
+    setTimeout(() => this.tone({ freq: 1320, dur: 0.1, type: 'sine', gain: 0.05 }), 80);
+  }
+
   ui() {
     this.tone({ freq: 660, dur: 0.06, type: 'triangle', gain: 0.05 });
   }

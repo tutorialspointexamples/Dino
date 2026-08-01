@@ -145,6 +145,18 @@ ok(world.includes('createNestChevron') && game.includes('_spawnEscortChevrons'),
 ok(game.includes('navigator.vibrate'), 'mobile fire haptics');
 ok(html.includes('stamp-detail') && read('src/game/UI.js').includes('showStampDetail'), 'stamp detail encyclopedia modal');
 
+// Branch 886a polish iterations
+ok(html.includes('aim-lock') && game.includes('_updateAimLock') && read('src/game/UI.js').includes('setAimLock'), 'smart aim lock reticle');
+ok(world.includes('createMotherRing') && game.includes('_spawnMotherRing'), 'mother arrival ring FX');
+ok(world.includes('rainDrops') && game.includes('rainDrops'), 'rainforest rainfall particles');
+ok(html.includes('btn-boost') && read('src/game/Input.js').includes('isBoosting') && game.includes('_boostFuel'), 'siren boost / Shift dash');
+ok(html.includes('result-time') && game.includes('_missionElapsed') && game.includes('timeText'), 'mission rescue timer on result');
+ok(game.includes('_nearMissAwarded') && read('src/game/Audio.js').includes('nearMiss'), 'headbutt near-miss bonus');
+ok(world.includes('causticLight') && game.includes('causticLight'), 'ocean caustic light shimmer');
+ok(read('src/style.css').includes('stamp-fanfare') && read('src/game/Audio.js').includes('stamp()'), 'stamp unlock fanfare');
+ok(read('src/game/UI.js').includes('setRadarDanger') && read('src/style.css').includes('danger-pulse'), 'radar danger pulse');
+ok(html.includes('crew-intro') && game.includes('showCrewIntro') && game.includes('CREW.map'), 'guard crew intro roster');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DINOSAURS, LEVELS, VEHICLES } from './data.js';
+import { CREW, DINOSAURS, LEVELS, VEHICLES } from './data.js';
 import { loadSave, writeSave, markCleared, isVehicleUnlocked, recordBestStars } from './Save.js';
 import { createDinosaur } from './DinosaurFactory.js';
 import { createVehicle } from './VehicleFactory.js';
@@ -14,6 +14,7 @@ import {
   createConfetti,
   createDustKick,
   createNestChevron,
+  createMotherRing,
 } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
@@ -80,7 +81,14 @@ export class Game {
     this._dustCooldown = 0;
     this._confetti = [];
     this._chevrons = [];
+    this._motherRings = [];
     this._predatorBaseSpeed = 0;
+    this._boostFuel = 1;
+    this._boostActive = false;
+    this._boostSfxT = 0;
+    this._missionElapsed = 0;
+    this._nearMissAwarded = false;
+    this._headbuttClosest = 99;
     this.heals = [];
     this.world = null;
     this.vehicle = null;
@@ -127,18 +135,24 @@ export class Game {
     for (const h of this.heals || []) this.scene.remove(h);
     for (const c of this._confetti || []) this.scene.remove(c);
     for (const c of this._chevrons || []) this.scene.remove(c);
+    for (const r of this._motherRings || []) this.scene.remove(r);
     this.projectiles = [];
     this.sparks = [];
     this.trails = [];
     this.heals = [];
     this._confetti = [];
     this._chevrons = [];
+    this._motherRings = [];
     this._clearChargeTelegraph();
     this.ui?.setCombo?.(0);
     this.ui?.setHpVignette?.(0);
     this.ui?.showSkipCountdown?.(false);
     this.ui?.setPhaseRibbon?.(false);
     this.ui?.updateBabyHp?.(1, false);
+    this.ui?.setAimLock?.(false);
+    this.ui?.setRadarDanger?.(false);
+    this.ui?.showCrewIntro?.(false);
+    this.ui?.setBoostHud?.(false, 1);
     this.shakeT = 0;
     this._weaponCycleT = 0;
     this._weaponCycleIdx = 0;
@@ -254,6 +268,13 @@ export class Game {
     this._dustCooldown = 0;
     this._confetti = [];
     this._chevrons = [];
+    this._motherRings = [];
+    this._boostFuel = 1;
+    this._boostActive = false;
+    this._boostSfxT = 0;
+    this._missionElapsed = 0;
+    this._nearMissAwarded = false;
+    this._headbuttClosest = 99;
 
     this.world = buildWorld(level, this.scene);
 
@@ -313,6 +334,10 @@ export class Game {
     this.ui.showSkipCountdown(true);
     this.ui.setPhaseRibbon(true, 'ALARM', 'combat');
     this.ui.updateBabyHp(1, false);
+    this.ui.setAimLock(false);
+    this.ui.setRadarDanger(false);
+    this.ui.setBoostHud(false, 1);
+    this.ui.showCrewIntro(true, CREW.map((c) => c.name).join(' · '));
     this.ui.crewCallout('Captain Rio', 'Alarm! Baby dinosaur in danger — roll out!');
     this.ui.toast(level.boss ? 'Alarm! Boss dinosaur alert!' : 'Alarm! Rescue countdown…');
     this.ui.showAim(false);
@@ -322,6 +347,8 @@ export class Game {
     if (level.boss) this.audio.roar();
     this._eggsCollected = 0;
     this._attachChargeTelegraph();
+    // Hide crew roster after the alarm settles
+    setTimeout(() => this.ui?.showCrewIntro?.(false), 3200);
     // First-clear tutorial for rainforest
     if (level.id === 'rainforest' && !this.save.cleared.includes('rainforest')) {
       this.ui.showTutorial('Drive close to the big dino, then FIRE. Mother will help — escort baby to the glowing nest!');
@@ -521,6 +548,13 @@ export class Game {
   _updateMission(dt) {
     this.phaseT += dt;
     this._updateFloaters(dt);
+    if (
+      this.phase !== PHASE.WIN &&
+      this.phase !== PHASE.LOSE &&
+      this.phase !== PHASE.COUNTDOWN
+    ) {
+      this._missionElapsed += dt;
+    }
 
     // Countdown freezes chase until GO
     if (this.phase === PHASE.COUNTDOWN) {
@@ -530,6 +564,7 @@ export class Game {
       this._updateFireflies(dt);
       this._updateWorldFX(dt);
       this._updateRadar();
+      this._updateAimLock();
       return;
     }
 
@@ -540,6 +575,7 @@ export class Game {
       this._updateSparks(dt);
       this._updateWorldFX(dt);
       this._updateRadar();
+      this._updateAimLock();
       return;
     }
 
@@ -552,11 +588,12 @@ export class Game {
       this._weaponCycleT = 0;
     }
     this._autoCycleWeapons(dt);
-    if (this.vehicle) {
-      this.vehicle.userData.sirenBoost = [PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase);
-    }
     const axis = this.input.getAxis();
     this._driveVehicle(dt, axis);
+    if (this.vehicle) {
+      const combatSiren = [PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase);
+      this.vehicle.userData.sirenBoost = combatSiren || this._boostActive;
+    }
     this._updateCamera(dt);
     this._updatePhase(dt);
     this._updateChargeTelegraph(dt);
@@ -572,6 +609,7 @@ export class Game {
     this._updateChevrons(dt);
     this._updatePredatorLimp();
     this._updateRadar();
+    this._updateAimLock();
     this._updateEggs();
     this._updateHpVignette();
 
@@ -581,6 +619,8 @@ export class Game {
     if (this.baby) {
       const ratio = this.baby.userData.hp / (this.baby.userData.maxHp || 1);
       this.ui.updateBabyHp(ratio, ratio < 0.35);
+      const dangerOn = !document.getElementById('danger-banner')?.classList.contains('hidden');
+      this.ui.setRadarDanger(ratio < 0.4 || dangerOn);
     }
     if (this.predator) {
       const bar = document.getElementById('predator-bar');
@@ -799,6 +839,25 @@ export class Game {
         f.position.y = Math.sin(t * 2 + f.position.z) * 0.04;
       }
     }
+    const rain = this.world?.userData?.rainDrops;
+    if (rain) {
+      for (const drop of rain) {
+        drop.position.y -= drop.userData.speed * dt;
+        if (drop.position.y < 0.2) {
+          drop.position.y = 8 + Math.random() * 6;
+          drop.position.x = drop.userData.baseX + (Math.random() - 0.5) * 6;
+          drop.position.z = drop.userData.baseZ + (Math.random() - 0.5) * 6;
+        }
+      }
+    }
+    const caustic = this.world?.userData?.causticLight;
+    if (caustic) {
+      const t = performance.now() * 0.001;
+      caustic.intensity = 0.85 + Math.sin(t * 2.4) * 0.45;
+      caustic.position.x = Math.sin(t * 0.7) * 8;
+      caustic.position.z = Math.cos(t * 0.55) * 8 - 2;
+    }
+    this._updateMotherRings(dt);
   }
 
   _resolveBlockers() {
@@ -818,13 +877,30 @@ export class Game {
     const v = this.vehicle;
     if (!v) return;
     const moving = Math.abs(axis.x) + Math.abs(axis.y) > 0.05;
+    // Siren boost: hold Shift / BOOST for a short speed burst
+    const wantBoost = this.input.isBoosting() && moving && -axis.y > 0.15;
+    if (wantBoost && this._boostFuel > 0.05) {
+      this._boostFuel = Math.max(0, this._boostFuel - dt * 0.45);
+      this._boostActive = true;
+      this._boostSfxT -= dt;
+      if (this._boostSfxT <= 0) {
+        this.audio.boost();
+        this._boostSfxT = 0.35;
+      }
+    } else {
+      this._boostActive = false;
+      this._boostFuel = Math.min(1, this._boostFuel + dt * 0.22);
+    }
+    this.ui.setBoostHud(this._boostActive, this._boostFuel);
+
     if (moving) {
-      const steer = -axis.x * 2.2 * dt;
+      const steer = -axis.x * (this._boostActive ? 1.7 : 2.2) * dt;
       v.rotation.y += steer;
       const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(v.quaternion);
       // W/up is negative y in stick → forward
       const throttle = -axis.y;
-      const speed = v.userData.speed * (throttle >= 0 ? 1 : 0.55);
+      const boostMul = this._boostActive ? 1.45 : 1;
+      const speed = v.userData.speed * (throttle >= 0 ? 1 : 0.55) * boostMul;
       v.position.addScaledVector(forward, throttle * speed * dt);
     }
     // clamp arena
@@ -1092,6 +1168,7 @@ export class Game {
         this.audio.roar();
         this.shakeT = Math.max(this.shakeT, 0.35);
         this._spawnSparks(mother.position.clone().setY(1.6), 0xf4c14b, 10);
+        this._spawnMotherRing(mother.position.clone());
       }
       if (predator.userData.hp <= 0) {
         this._beginEscort();
@@ -1100,6 +1177,8 @@ export class Game {
       if (vehicle.userData.shotsAtPredator >= 28 && hpRatio > 0.35) {
         this.phase = PHASE.HEADBUTT;
         this.phaseT = 0;
+        this._nearMissAwarded = false;
+        this._headbuttClosest = 99;
         predator.userData.anim.state = 'attack';
         this.ui.setMission('Watch out — headbutt!');
         this.ui.setPhaseRibbon(true, 'HEADBUTT!', 'headbutt');
@@ -1140,6 +1219,8 @@ export class Game {
       if (vehicle.userData.shotsAtPredator >= 22) {
         this.phase = PHASE.HEADBUTT;
         this.phaseT = 0;
+        this._nearMissAwarded = false;
+        this._headbuttClosest = 99;
         this.ui.setPhaseRibbon(true, 'HEADBUTT!', 'headbutt');
         this.ui.setHeadbuttAlarm(true);
         this.audio.roar();
@@ -1149,7 +1230,28 @@ export class Game {
     if (this.phase === PHASE.HEADBUTT) {
       this.ui.setHeadbuttAlarm(true);
       this._chase(predator, vehicle.position, predator.userData.speed * 1.6, dt);
-      if (predator.position.distanceTo(vehicle.position) < 2.4) {
+      const chargeDist = predator.position.distanceTo(vehicle.position);
+      this._headbuttClosest = Math.min(this._headbuttClosest, chargeDist);
+      // Near-miss bonus when the charge grazes past without a full hit
+      if (
+        !this._nearMissAwarded &&
+        chargeDist > 2.4 &&
+        chargeDist < 3.6 &&
+        this._headbuttClosest < 3.2
+      ) {
+        const moving =
+          Math.abs(this.input.getAxis().x) + Math.abs(this.input.getAxis().y) > 0.2 || this._boostActive;
+        if (moving) {
+          this._nearMissAwarded = true;
+          this.missionScore += 75;
+          this.ui.updateScore(this.missionScore);
+          this.ui.toast('Near miss! +75');
+          this.ui.crewCallout('Scout Mina', 'Nice dodge — that was close!');
+          this.audio.nearMiss();
+          this._spawnSparks(vehicle.position.clone().setY(1.2), 0x60a5fa, 8);
+        }
+      }
+      if (chargeDist < 2.4) {
         vehicle.userData.hp -= 28;
         this._spawnSparks(vehicle.position, 0xe85d4c, 10);
         this.audio.headbutt();
@@ -1163,10 +1265,12 @@ export class Game {
         predator.userData.anim.state = 'chase';
         this.ui.setHeadbuttAlarm(false);
         this.ui.setMission('Keep protecting the baby!');
+        this._nearMissAwarded = false;
+        this._headbuttClosest = 99;
         if (vehicle.userData.hp <= 0) this._fail('Your vehicle was wrecked by a headbutt!');
       }
       if (predator.userData.hp <= 0) this._beginEscort();
-    } else if (this.phase !== PHASE.HEADBUTT) {
+    } else {
       this.ui.setHeadbuttAlarm(false);
     }
 
@@ -1329,10 +1433,18 @@ export class Game {
     }
     const idx = LEVELS.findIndex((l) => l.id === this.level.id);
     const hasNext = idx >= 0 && idx < LEVELS.length - 1;
+    const elapsed = Math.max(0, Math.round(this._missionElapsed || 0));
+    const mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
+    const timeText = `Rescue time: ${mins}:${String(secs).padStart(2, '0')}`;
+    this.audio.stamp();
     this.ui.updateNestCompass(false);
     this.ui.hideCrewCallout();
     this.ui.setPhaseRibbon(false);
     this.ui.showSkipCountdown(false);
+    this.ui.setAimLock(false);
+    this.ui.setRadarDanger(false);
+    this.ui.setBoostHud(false, this._boostFuel);
     this.ui.showResult({
       win: true,
       message: `Great work, Guard! +${this.missionScore} points`,
@@ -1343,6 +1455,7 @@ export class Game {
       perfect: stars >= 3,
       unlockText,
       hasNext,
+      timeText,
     });
     this.state = 'result';
   }
@@ -1358,7 +1471,19 @@ export class Game {
     this.audio.lose();
     this.ui.setPhaseRibbon(false);
     this.ui.showSkipCountdown(false);
-    this.ui.showResult({ win: false, message, stars: 0, hasNext: false });
+    this.ui.setAimLock(false);
+    this.ui.setRadarDanger(false);
+    this.ui.setBoostHud(false, this._boostFuel);
+    const elapsed = Math.max(0, Math.round(this._missionElapsed || 0));
+    const mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
+    this.ui.showResult({
+      win: false,
+      message,
+      stars: 0,
+      hasNext: false,
+      timeText: `Time: ${mins}:${String(secs).padStart(2, '0')}`,
+    });
     this.state = 'result';
   }
 
@@ -1607,6 +1732,51 @@ export class Game {
         this.ui.toast(`Dino egg collected! +50 (${this._eggsCollected}/5)`);
       }
     }
+  }
+
+  _spawnMotherRing(origin) {
+    const ring = createMotherRing(0xf4c14b);
+    ring.position.set(origin.x, 0.08, origin.z);
+    this.scene.add(ring);
+    this._motherRings.push(ring);
+  }
+
+  _updateMotherRings(dt) {
+    if (!this._motherRings?.length) return;
+    for (let i = this._motherRings.length - 1; i >= 0; i--) {
+      const ring = this._motherRings[i];
+      ring.userData.life -= dt;
+      const grow = 1 + (1.1 - ring.userData.life) * 3.2;
+      ring.scale.setScalar(grow);
+      ring.material.opacity = Math.max(0, ring.userData.life * 0.75);
+      if (ring.userData.life <= 0) {
+        this.scene.remove(ring);
+        this._motherRings.splice(i, 1);
+      }
+    }
+  }
+
+  _updateAimLock() {
+    const mode = this.vehicle?.userData?.weaponMode;
+    const combat =
+      this.predator?.visible &&
+      [PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase) &&
+      (mode === 'auto' || mode === 'zoom');
+    if (!combat || !this.predator || !this.camera) {
+      this.ui.setAimLock(false);
+      return;
+    }
+    // Project predator to screen for the lock reticle
+    const pos = this.predator.position.clone();
+    pos.y += 1.6;
+    pos.project(this.camera);
+    if (pos.z > 1) {
+      this.ui.setAimLock(false);
+      return;
+    }
+    const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-pos.y * 0.5 + 0.5) * window.innerHeight;
+    this.ui.setAimLock(true, x, y, mode === 'zoom');
   }
 
   _updateRadar() {
