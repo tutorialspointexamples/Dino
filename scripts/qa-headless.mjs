@@ -436,7 +436,8 @@ async function main() {
     g._flashVehicleHit(0xe85d4c);
     const vehicleFlash = g._vehicleHitFlashT > 0;
     g.predator.userData.limp = true;
-    g.predator.userData.updateAnim(0.016, true);
+    g.predator.userData.anim.state = 'chase';
+    for (let i = 0; i < 40; i++) g.predator.userData.updateAnim(0.05, true);
     const limpLean = Math.abs(g.predator.userData.parts.body.rotation.z) > 0.05;
     g._boostActive = true;
     g._updateCamera(0.05);
