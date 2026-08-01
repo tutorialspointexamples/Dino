@@ -31,6 +31,7 @@
           <p class="tagline">Drive the Guard jeep, stop predators, and collect dinosaur stamps!</p>
           <div class="title-actions">
             <button id="btn-play" class="btn primary">Start Mission</button>
+            <button id="btn-continue" class="btn continue-btn hidden" type="button">Continue Rescue</button>
             <button id="btn-garage" class="btn">Garage</button>
             <button id="btn-stamps" class="btn">Stamp Book</button>
           </div>
@@ -147,6 +148,11 @@
           <div class="compass-arrow" id="compass-arrow"></div>
           <span>NEST</span>
         </div>
+        <div id="nest-proximity" class="nest-proximity hidden" aria-live="polite" title="Distance to nest">
+          <span class="nest-prox-label">NEST</span>
+          <div class="nest-prox-track"><i id="nest-prox-bar"></i></div>
+          <strong id="nest-prox-value">--m</strong>
+        </div>
         <div id="mini-map" class="mini-map" aria-label="Mission radar">
           <canvas id="radar-canvas" width="140" height="140"></canvas>
           <span class="radar-label">RADAR</span>
@@ -237,6 +243,7 @@
       </div>
 
       <div id="toast" class="toast hidden"></div>
+      <div id="photo-flash" class="photo-flash hidden" aria-hidden="true"></div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

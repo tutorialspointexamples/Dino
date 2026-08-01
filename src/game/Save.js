@@ -6,6 +6,7 @@ const defaultSave = () => ({
   selectedVehicle: 'police_scout',
   score: 0,
   bestStars: {},
+  lastLevelId: null,
 });
 
 export function loadSave() {

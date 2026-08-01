@@ -111,6 +111,27 @@ export function buildWorld(level, scene) {
     lightning.name = 'rainLightning';
     group.add(lightning);
     group.userData.lightningLight = lightning;
+
+    // Floating pollen / spore motes for rainforest atmosphere (0a2e)
+    const pollen = [];
+    for (let i = 0; i < 36; i++) {
+      const mote = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06 + Math.random() * 0.05, 6, 6),
+        new THREE.MeshBasicMaterial({
+          color: i % 2 ? 0xffe08a : 0xc5e878,
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false,
+        }),
+      );
+      mote.position.set(rand(-24, 24), rand(0.8, 6), rand(-24, 24));
+      mote.userData.phase = rand(0, Math.PI * 2);
+      mote.userData.base = mote.position.clone();
+      mote.userData.kind = 'pollen';
+      group.add(mote);
+      pollen.push(mote);
+    }
+    group.userData.forestPollen = pollen;
   }
 
   if (biome === 'swamp') {
@@ -776,6 +797,32 @@ export function buildWorld(level, scene) {
   }
   group.userData.fossils = fossils;
 
+  // Escort amber gems — golden Jurassic resin collectibles
+  const ambers = [];
+  for (let i = 0; i < 3; i++) {
+    const amber = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.32, 0),
+      new THREE.MeshStandardMaterial({
+        color: 0xffb347,
+        emissive: 0xff8c1a,
+        emissiveIntensity: 0.55,
+        roughness: 0.35,
+        metalness: 0.2,
+        transparent: true,
+        opacity: 0.92,
+      }),
+    );
+    const a = (i / 3) * Math.PI * 2 + 0.7;
+    amber.position.set(Math.cos(a) * 9.5, 0.55, -12 + Math.sin(a) * 4.5);
+    amber.userData.kind = 'amber';
+    amber.userData.collected = false;
+    amber.userData.phase = rand(0, Math.PI * 2);
+    amber.visible = false;
+    group.add(amber);
+    ambers.push(amber);
+  }
+  group.userData.ambers = ambers;
+
   // Distant herd silhouettes for land biomes (park atmosphere)
   if (!water && (biome === 'forest' || biome === 'swamp' || biome === 'desert' || biome === 'crater')) {
     const ambientHerd = [];
@@ -1347,5 +1394,73 @@ export function createScatterTrail(color = 0xffe08a) {
   );
   mesh.userData.life = 0.28;
   mesh.userData.kind = 'scatterTrail';
+  return mesh;
+}
+
+/** Expanding sonic roar ring when the predator bellows. */
+export function createRoarRing(color = 0xe85d4c) {
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(0.4, 0.65, 28),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.75,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.userData.life = 0.85;
+  mesh.userData.kind = 'roarRing';
+  return mesh;
+}
+
+/** Big mother-arrival shockwave pulse on the ground. */
+export function createMotherShockwave(color = 0xf4c14b) {
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(0.6, 1.1, 36),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.7,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.userData.life = 1.1;
+  mesh.userData.kind = 'motherShockwave';
+  return mesh;
+}
+
+/** Dizzy stun star that floats off a retreating predator. */
+export function createStunStar(color = 0xffe08a) {
+  const mesh = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.18, 0),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 }),
+  );
+  mesh.userData.life = 1.2;
+  mesh.userData.kind = 'stunStar';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 1.4,
+    1.6 + Math.random() * 1.1,
+    (Math.random() - 0.5) * 1.4,
+  );
+  return mesh;
+}
+
+/** Soft chirp bubble rising from a happy baby during escort. */
+export function createChirpBubble(color = 0xffffff) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 8, 8),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7 }),
+  );
+  mesh.userData.life = 1.0;
+  mesh.userData.kind = 'chirpBubble';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 0.4,
+    1.4 + Math.random() * 0.6,
+    (Math.random() - 0.5) * 0.4,
+  );
   return mesh;
 }

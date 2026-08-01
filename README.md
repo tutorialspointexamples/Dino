@@ -56,20 +56,20 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (branch 8c65)
+### Verification iterations (branch 0a2e)
 
-1. **Predator charge eye glow** — emissive pupils flare during headbutt / proximity threat  
-2. **Tire skid marks** — hard-turn jeep skids on land biomes  
-3. **Water splash spray** — surge/boost splash droplets + SFX in water missions  
-4. **Zoom scope vignette** — crosshair scope overlay when Zoom Aim is active  
-5. **Scatter pellet spark trails** — golden bead trails behind Scatter darts  
-6. **Victory camera orbit** — nest celebration orbits the rescued baby  
-7. **Distant herd silhouettes** — ambient park dinosaurs on the horizon  
-8. **Escort fossil pickups** — paleontology fossils for bonus score + radar blips  
-9. **Submarine depth gauge** — kid-friendly DEPTH meter on water missions  
-10. **Stamp book page flip** — page-turn animation + rustle when opening stamps  
+1. **Predator roar sonic rings** — expanding ground rings when the boss bellows  
+2. **Mother arrival shockwave** — big golden pulse when mom charges in  
+3. **Escort amber gems** — Jurassic resin collectibles + radar blips  
+4. **Predator retreat stun stars** — dizzy stars when the boss flees  
+5. **Chase search spotlight** — jeep searchlight sweeps during chase/combat  
+6. **Continue last mission** — title CTA resumes the last Jurassic Map rescue  
+7. **Baby chirp bubbles** — happy escort chirps + floating bubbles  
+8. **Stamp photo flash** — shutter flash when a stamp unlocks on the result screen  
+9. **Rainforest floating pollen** — drifting spore motes in Tropical Rainforest  
+10. **Nest proximity HUD** — distance meter that pulses when the nest is near  
 
-Prior branches (e9eb / 1c1b / 9f1d / 7dce / ed9a+) also cover volcano embers, mother shield, damage smoke, thank-you hearts, hub Saved counter, combo milestones, boost horn, nest hatch crack, padlock shake, plankton, cave headlights, sonar, SOS flares, and more (see `npm run verify`).
+Prior branches (8c65 / e9eb / 1c1b / 9f1d / 7dce / ed9a+) also cover predator eye glow, tire skids, water splash, zoom scope, scatter trails, victory orbit, herd silhouettes, fossils, depth gauge, stamp page flip, volcano embers, mother shield, damage smoke, thank-you hearts, and more (see `npm run verify`).
 
 ## Project layout
 

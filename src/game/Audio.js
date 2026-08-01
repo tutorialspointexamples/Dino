@@ -239,6 +239,31 @@ export class AudioBus {
     setTimeout(() => this.tone({ freq: 280, dur: 0.06, type: 'triangle', gain: 0.025, slide: -80 }), 40);
   }
 
+  /** Amber gem collectible chime */
+  amber() {
+    this.tone({ freq: 640, dur: 0.09, type: 'triangle', gain: 0.055, slide: 90 });
+    setTimeout(() => this.tone({ freq: 860, dur: 0.11, type: 'sine', gain: 0.045 }), 70);
+  }
+
+  /** Baby chirp during escort */
+  chirp() {
+    this.tone({ freq: 880, dur: 0.07, type: 'sine', gain: 0.04, slide: 120 });
+    setTimeout(() => this.tone({ freq: 1040, dur: 0.06, type: 'triangle', gain: 0.03 }), 50);
+  }
+
+  /** Stamp photo-flash shutter click */
+  photoFlash() {
+    this.tone({ freq: 180, dur: 0.04, type: 'square', gain: 0.04 });
+    setTimeout(() => this.tone({ freq: 920, dur: 0.05, type: 'sine', gain: 0.035 }), 30);
+  }
+
+  /** Soft stun twinkle when predator retreats */
+  stun() {
+    [740, 980, 1180].forEach((f, i) => {
+      setTimeout(() => this.tone({ freq: f, dur: 0.07, type: 'triangle', gain: 0.04 }), i * 55);
+    });
+  }
+
   ui() {
     this.tone({ freq: 660, dur: 0.06, type: 'triangle', gain: 0.05 });
   }

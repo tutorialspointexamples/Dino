@@ -14,6 +14,7 @@ export class UI {
 
   bind() {
     this.$('btn-play').onclick = () => this.showHub();
+    this.$('btn-continue')?.addEventListener('click', () => this.game.continueLastMission?.());
     this.$('btn-garage').onclick = () => this.showGarage();
     this.$('btn-stamps').onclick = () => this.showStamps();
     this.$('btn-hub-back').onclick = () => this.showTitle();
@@ -74,7 +75,49 @@ export class UI {
   showTitle() {
     this.hideAll();
     this.$('screen-title').classList.remove('hidden');
+    this.refreshContinueButton();
     this.game.showTitleScene();
+  }
+
+  /** Show Continue Rescue when a last-played mission is saved */
+  refreshContinueButton() {
+    const btn = this.$('btn-continue');
+    if (!btn) return;
+    const id = this.game.save?.lastLevelId;
+    const level = id ? LEVELS.find((l) => l.id === id) : null;
+    if (level) {
+      btn.classList.remove('hidden');
+      btn.textContent = `Continue: ${level.name}`;
+      btn.title = `Resume ${level.name}`;
+    } else {
+      btn.classList.add('hidden');
+    }
+  }
+
+  setNestProximity(show, meters = 0, near = false) {
+    const el = this.$('nest-proximity');
+    if (!el) return;
+    el.classList.toggle('hidden', !show);
+    el.classList.toggle('near', !!near && show);
+    const bar = this.$('nest-prox-bar');
+    const val = this.$('nest-prox-value');
+    const norm = Math.max(0, Math.min(1, 1 - meters / 28));
+    if (bar) bar.style.transform = `scaleX(${0.12 + norm * 0.88})`;
+    if (val) val.textContent = `${Math.max(0, Math.round(meters))}m`;
+  }
+
+  flashStampPhoto() {
+    const flash = this.$('photo-flash');
+    if (!flash) return;
+    flash.classList.remove('hidden', 'flash');
+    void flash.offsetWidth;
+    flash.classList.add('flash');
+    this.game.audio.photoFlash?.();
+    clearTimeout(this._photoFlashTimer);
+    this._photoFlashTimer = setTimeout(() => {
+      flash.classList.remove('flash');
+      flash.classList.add('hidden');
+    }, 480);
   }
 
   showHub() {
@@ -549,6 +592,8 @@ export class UI {
       void stamp.offsetWidth;
       stamp.classList.add('stamp-pop', 'stamp-fanfare', 'ink-splash');
       this.game.audio.inkStamp?.();
+      // Stamp photo-flash shutter for collectible moment
+      this.flashStampPhoto();
     } else {
       stamp.classList.add('hidden');
       stamp.classList.remove('ink-splash');

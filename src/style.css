@@ -1897,6 +1897,126 @@ h2 {
   }
 }
 
+/* Continue last rescue — title CTA */
+.continue-btn {
+  border-color: rgba(244, 193, 75, 0.55);
+  background: linear-gradient(180deg, rgba(244, 193, 75, 0.28), rgba(31, 107, 58, 0.35));
+  box-shadow: 0 0 0 1px rgba(244, 193, 75, 0.25);
+}
+
+.continue-btn:not(.hidden) {
+  animation: continuePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes continuePulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 1px rgba(244, 193, 75, 0.25);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 0 14px rgba(244, 193, 75, 0.45);
+  }
+}
+
+/* Nest proximity meter during escort */
+.nest-proximity {
+  position: absolute;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(168px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 72px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(12, 40, 24, 0.72);
+  border: 1px solid rgba(98, 210, 111, 0.45);
+  color: #e8ffe8;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.nest-proximity.near {
+  border-color: rgba(244, 193, 75, 0.7);
+  box-shadow: 0 0 12px rgba(244, 193, 75, 0.35);
+  animation: nestProxPulse 0.9s ease-in-out infinite;
+}
+
+.nest-prox-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  opacity: 0.85;
+}
+
+.nest-prox-track {
+  width: 54px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.nest-prox-track i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  transform: scaleX(0.2);
+  background: linear-gradient(90deg, #62d26f, #f4c14b);
+  border-radius: inherit;
+}
+
+#nest-prox-value {
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+@keyframes nestProxPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+/* Stamp photo flash overlay */
+.photo-flash {
+  position: fixed;
+  inset: 0;
+  background: #fffef5;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.photo-flash.flash {
+  animation: photoFlashPop 0.45s ease-out forwards;
+}
+
+@keyframes photoFlashPop {
+  0% {
+    opacity: 0.92;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .nest-proximity {
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    bottom: calc(220px + env(safe-area-inset-bottom, 0px));
+    min-width: 64px;
+    padding: 6px 8px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .title-bg,
   .brand,
@@ -1916,7 +2036,10 @@ h2 {
   .alarm-ring,
   .aim-lock-ring,
   .mini-map.danger-pulse,
-  .crew-intro {
+  .crew-intro,
+  .continue-btn,
+  .nest-proximity.near,
+  .photo-flash.flash {
     animation: none !important;
   }
 }

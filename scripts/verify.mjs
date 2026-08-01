@@ -242,6 +242,18 @@ ok(world.includes("kind = 'fossil'") && game.includes('_updateFossils') && read(
 ok(html.includes('depth-gauge') && read('src/game/UI.js').includes('setDepthGauge') && game.includes('_updateDepthGauge'), '8c65-9 submarine depth gauge');
 ok(html.includes('stamp-book-panel') && read('src/style.css').includes('stampPageFlip') && read('src/game/UI.js').includes('page-flip') && read('src/game/Audio.js').includes('pageFlip()'), '8c65-10 stamp book page flip');
 
+// Branch 0a2e polish iterations (10)
+ok(world.includes('createRoarRing') && game.includes('_spawnRoarRing') && game.includes("kind === 'roarRing'"), '0a2e-1 predator roar sonic rings');
+ok(world.includes('createMotherShockwave') && game.includes('_spawnMotherShockwave'), '0a2e-2 mother arrival shockwave');
+ok(world.includes("kind = 'amber'") && game.includes('_updateAmbers') && read('src/game/Audio.js').includes('amber()'), '0a2e-3 escort amber gems');
+ok(world.includes('createStunStar') && game.includes('_spawnStunStars') && read('src/game/Audio.js').includes('stun()'), '0a2e-4 predator retreat stun stars');
+ok(game.includes('_attachSearchLight') && game.includes('_updateSearchLight') && game.includes('searchLight'), '0a2e-5 chase search spotlight');
+ok(read('src/game/Save.js').includes('lastLevelId') && game.includes('continueLastMission') && html.includes('btn-continue'), '0a2e-6 continue last mission');
+ok(world.includes('createChirpBubble') && game.includes('_updateChirpBubbles') && read('src/game/Audio.js').includes('chirp()'), '0a2e-7 baby escort chirp bubbles');
+ok(html.includes('photo-flash') && read('src/game/UI.js').includes('flashStampPhoto') && read('src/game/Audio.js').includes('photoFlash()'), '0a2e-8 stamp photo flash');
+ok(world.includes('forestPollen') && game.includes('forestPollen'), '0a2e-9 rainforest floating pollen');
+ok(html.includes('nest-proximity') && read('src/game/UI.js').includes('setNestProximity') && game.includes('_updateNestProximity'), '0a2e-10 nest proximity HUD');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

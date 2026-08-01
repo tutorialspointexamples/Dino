@@ -27,6 +27,10 @@ import {
   createSkidMark,
   createWaterSplash,
   createScatterTrail,
+  createRoarRing,
+  createMotherShockwave,
+  createStunStar,
+  createChirpBubble,
 } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
@@ -128,7 +132,10 @@ export class Game {
     this._splashCooldown = 0;
     this._splashSfxT = 0;
     this._fossilsCollected = 0;
+    this._ambersCollected = 0;
     this._celebrateOrbit = 0;
+    this._chirpT = 0;
+    this._searchLight = null;
     this.titleSpotlight = null;
     this.world = null;
     this.vehicle = null;
@@ -222,10 +229,14 @@ export class Game {
     this._clearChargeTelegraph();
     this._eggsCollected = 0;
     this._fossilsCollected = 0;
+    this._ambersCollected = 0;
     this._celebrateOrbit = 0;
+    this._chirpT = 0;
+    this._clearSearchLight();
     this._squealCooldown = 0;
     this.ui.setZoomScope?.(false);
     this.ui.setDepthGauge?.(false);
+    this.ui.setNestProximity?.(false);
     this.audio.stopAmbient();
   }
 
@@ -392,6 +403,10 @@ export class Game {
     this.phaseT = 0;
     this.paused = false;
     this.state = 'mission';
+    // Remember last played mission for Continue Rescue
+    this.save.lastLevelId = level.id;
+    this.save.selectedVehicle = vehicleId;
+    writeSave(this.save);
     this._hitCombo = 0;
     this._comboTimer = 0;
     this._footprintCooldown = 0;
@@ -430,6 +445,7 @@ export class Game {
       if (h.lamp?.material) h.lamp.material.emissiveIntensity = needLights ? 0.8 : 0.12;
     }
     this.scene.add(this.vehicle);
+    this._attachSearchLight();
     this._lightningT = 2.5 + Math.random() * 2;
     this._lightningFlashT = 0;
     this._sonarT = 0;
@@ -503,9 +519,12 @@ export class Game {
     if (level.boss) this.audio.roar();
     this._eggsCollected = 0;
     this._fossilsCollected = 0;
+    this._ambersCollected = 0;
     this._celebrateOrbit = 0;
+    this._chirpT = 0;
     this.ui.setZoomScope?.(false);
     this.ui.setDepthGauge?.(!!level.water, 0.35);
+    this.ui.setNestProximity?.(false);
     this._attachChargeTelegraph();
     // Hide crew roster after the alarm settles
     setTimeout(() => this.ui?.showCrewIntro?.(false), 3200);
@@ -594,6 +613,36 @@ export class Game {
     this.audio.stopAmbient();
     this.startMission(this.level, vehicleId);
     this.ui.toast('Mission restarted — Guard roll out!');
+  }
+
+  /** Resume the last-played Jurassic Map mission from the title screen */
+  continueLastMission() {
+    const id = this.save?.lastLevelId;
+    const level = id ? LEVELS.find((l) => l.id === id) : null;
+    if (!level) {
+      this.ui.showHub();
+      return;
+    }
+    const idx = LEVELS.findIndex((l) => l.id === level.id);
+    const unlocked = idx === 0 || this.save.cleared.includes(LEVELS[idx - 1]?.id);
+    if (!unlocked && !new URLSearchParams(location.search).has('debug')) {
+      this.ui.toast('That rescue is still locked — clear the previous biome first!');
+      this.ui.showHub();
+      return;
+    }
+    let vehicleId = this.save.selectedVehicle || 'police_scout';
+    const vDef = VEHICLES.find((v) => v.id === vehicleId);
+    if (level.water && vDef?.type !== 'submarine') {
+      vehicleId =
+        VEHICLES.find((v) => v.type === 'submarine' && isVehicleUnlocked(v, this.save.cleared.length))?.id ||
+        VEHICLES.find((v) => v.type === 'submarine')?.id ||
+        vehicleId;
+    } else if (!level.water && vDef?.type === 'submarine') {
+      vehicleId =
+        VEHICLES.find((v) => v.type === 'police' && isVehicleUnlocked(v, this.save.cleared.length))?.id ||
+        'police_scout';
+    }
+    this.startMission(level, vehicleId);
   }
 
   startNextMission() {
@@ -821,7 +870,11 @@ export class Game {
     this._updateZoomScope();
     this._updateDepthGauge(dt);
     this._updateFossils();
+    this._updateAmbers();
     this._updateAmbientHerd(dt);
+    this._updateSearchLight(dt);
+    this._updateChirpBubbles(dt);
+    this._updateNestProximity();
     this.ui.updateMissionClock(this._missionElapsed);
 
     if (this.vehicle) {
@@ -1179,6 +1232,19 @@ export class Game {
         }
       }
     }
+    // Rainforest floating pollen / spores
+    const pollen = this.world?.userData?.forestPollen;
+    if (pollen) {
+      const t = performance.now() * 0.001;
+      for (const mote of pollen) {
+        const p = mote.userData.phase || 0;
+        const b = mote.userData.base || mote.position;
+        mote.position.x = b.x + Math.sin(t * 0.7 + p) * 1.4;
+        mote.position.y = b.y + Math.sin(t * 1.1 + p * 1.3) * 0.55;
+        mote.position.z = b.z + Math.cos(t * 0.55 + p) * 1.2;
+        mote.material.opacity = 0.35 + Math.sin(t * 2.2 + p) * 0.25;
+      }
+    }
     // Rainforest lightning flash + thunder
     const lightning = this.world?.userData?.lightningLight;
     if (lightning && rain) {
@@ -1441,6 +1507,7 @@ export class Game {
         this._proximityRoarT = 2.4;
         this.audio.roar();
         this.shakeT = Math.max(this.shakeT, 0.18 + tension * 0.2);
+        this._spawnRoarRing(this.predator.position);
       }
     }
   }
@@ -1892,6 +1959,7 @@ export class Game {
       this.ui.toast('ROAR! The boss is chasing the baby!');
       this.ui.crewCallout('Scout Mina', 'ROAR! Predator on the move — intercept!');
       this._radioChatter('Chase active — intercept the predator!');
+      this._spawnRoarRing(this.predator?.position);
     }
 
     if (this.phase === PHASE.CHASE) {
@@ -1938,6 +2006,7 @@ export class Game {
         this.shakeT = Math.max(this.shakeT, 0.35);
         this._spawnSparks(mother.position.clone().setY(1.6), 0xf4c14b, 10);
         this._spawnMotherRing(mother.position.clone());
+        this._spawnMotherShockwave(mother.position.clone());
         this._spawnMotherShield(mother);
         this._radioChatter('Mother assist inbound — cover the baby!');
       }
@@ -2074,6 +2143,7 @@ export class Game {
         const rel = toNest - vehicle.rotation.y;
         this.ui.updateNestCompass(true, -rel);
       }
+      this.ui.setNestProximity?.(true, Math.max(0, nestDist - 3), nestDist < 8);
       // Complete when baby arrives — generous radius + short dwell
       if (nestDist < 3.5) {
         this._escortDwelling = (this._escortDwelling || 0) + dt;
@@ -2133,6 +2203,7 @@ export class Game {
     this._escortDwelling = 0;
     if (this.predator) this.predator.userData.anim.state = 'hurt';
     this._spawnRetreatSmoke();
+    this._spawnStunStars();
     this.ui.showAim(false);
     this.ui.setDanger(false);
     this.ui.setSosBanner?.(false);
@@ -2141,15 +2212,18 @@ export class Game {
     this.ui.setMission('Escort baby to the glowing nest!');
     const tip = document.getElementById('tutorial-tip');
     if (tip) tip.classList.add('hidden');
-    // Reveal escort eggs + fossils
+    // Reveal escort eggs + fossils + amber gems
     for (const egg of this.world?.userData?.eggs || []) {
       if (!egg.userData.collected) egg.visible = true;
     }
     for (const fossil of this.world?.userData?.fossils || []) {
       if (!fossil.userData.collected) fossil.visible = true;
     }
+    for (const amber of this.world?.userData?.ambers || []) {
+      if (!amber.userData.collected) amber.visible = true;
+    }
     this._spawnEscortChevrons();
-    this.ui.toast('Predator retreats! Escort the baby — grab eggs & fossils!');
+    this.ui.toast('Predator retreats! Escort the baby — grab eggs, fossils & amber!');
     this._radioChatter('Escort mode — follow the nest beacon!');
     this.missionScore += 200;
     this.ui.updateScore(this.missionScore);
@@ -2183,6 +2257,7 @@ export class Game {
     this.ui.setMission('Safe at the nest — celebration!');
     this.ui.setPhaseRibbon(true, 'CELEBRATE', 'escort');
     this.ui.showSkipCountdown(false);
+    this.ui.setNestProximity?.(false);
     this.ui.toast('Baby dinosaur rescued!');
     this.audio.win();
     this._revealNestCrack();
@@ -2399,6 +2474,19 @@ export class Game {
       } else if (s.userData.kind === 'scatterTrail') {
         s.scale.multiplyScalar(0.9);
         s.material.opacity = Math.max(0, s.userData.life * 3);
+      } else if (s.userData.kind === 'roarRing' || s.userData.kind === 'motherShockwave') {
+        const maxLife = s.userData.kind === 'motherShockwave' ? 1.1 : 0.85;
+        const grow = 1 + (maxLife - s.userData.life) * (s.userData.kind === 'motherShockwave' ? 5.5 : 4.2);
+        s.scale.setScalar(grow);
+        s.material.opacity = Math.max(0, (s.userData.life / maxLife) * 0.75);
+      } else if (s.userData.kind === 'stunStar') {
+        s.userData.velocity.y -= 1.2 * dt;
+        s.rotation.x += dt * 6;
+        s.rotation.y += dt * 8;
+        s.material.opacity = Math.max(0, s.userData.life / 1.2);
+      } else if (s.userData.kind === 'chirpBubble') {
+        s.scale.multiplyScalar(1.02);
+        s.material.opacity = Math.max(0, s.userData.life * 0.7);
       } else {
         s.scale.multiplyScalar(0.96);
       }
@@ -2738,6 +2826,122 @@ export class Game {
     }
   }
 
+  /** Amber gem collectibles during escort */
+  _updateAmbers() {
+    if (this.phase !== PHASE.ESCORT && this.phase !== PHASE.CELEBRATE) return;
+    const ambers = this.world?.userData?.ambers;
+    if (!ambers || !this.vehicle) return;
+    const t = performance.now() * 0.001;
+    for (const amber of ambers) {
+      if (amber.userData.collected) continue;
+      amber.rotation.y = t * 2.4 + (amber.userData.phase || 0);
+      amber.rotation.x = Math.sin(t * 2 + (amber.userData.phase || 0)) * 0.4;
+      amber.position.y = 0.55 + Math.sin(t * 3.2 + (amber.userData.phase || 0)) * 0.12;
+      const dx = amber.position.x - this.vehicle.position.x;
+      const dz = amber.position.z - this.vehicle.position.z;
+      if (dx * dx + dz * dz < 2.5 * 2.5) {
+        amber.userData.collected = true;
+        amber.visible = false;
+        this._ambersCollected = (this._ambersCollected || 0) + 1;
+        this.missionScore += 100;
+        this.ui.updateScore(this.missionScore);
+        this.audio.amber?.();
+        this._spawnSparks(amber.position.clone().setY(0.7), 0xffb347, 10);
+        this.ui.toast(`Amber gem! +100 (${this._ambersCollected}/3)`);
+        this.ui.crewCallout('Medic Luma', 'Jurassic amber — resin treasure!');
+      }
+    }
+  }
+
+  /** Expanding sonic roar ring from the predator */
+  _spawnRoarRing(origin) {
+    if (!origin) return;
+    const ring = createRoarRing(0xe85d4c);
+    ring.position.set(origin.x, 0.12, origin.z);
+    this.scene.add(ring);
+    this.sparks.push(ring);
+  }
+
+  /** Mother arrival ground shockwave */
+  _spawnMotherShockwave(origin) {
+    if (!origin) return;
+    const wave = createMotherShockwave(0xf4c14b);
+    wave.position.set(origin.x, 0.1, origin.z);
+    this.scene.add(wave);
+    this.sparks.push(wave);
+  }
+
+  /** Dizzy stun stars when the predator retreats */
+  _spawnStunStars() {
+    if (!this.predator) return;
+    this.audio.stun?.();
+    for (let i = 0; i < 6; i++) {
+      const star = createStunStar(i % 2 ? 0xffe08a : 0xffffff);
+      star.position.copy(this.predator.position);
+      star.position.y = 1.6 + Math.random() * 0.6;
+      star.position.x += (Math.random() - 0.5) * 0.8;
+      star.position.z += (Math.random() - 0.5) * 0.8;
+      this.scene.add(star);
+      this.sparks.push(star);
+    }
+  }
+
+  /** Jeep / sub search spotlight during chase & combat */
+  _attachSearchLight() {
+    this._clearSearchLight();
+    if (!this.vehicle || this.level?.water) return;
+    const spot = new THREE.SpotLight(0xfff2c8, 1.1, 28, 0.38, 0.4, 1);
+    spot.name = 'searchLight';
+    spot.position.set(0, 1.6, -0.2);
+    const target = new THREE.Object3D();
+    target.position.set(0, 0.3, -12);
+    this.vehicle.add(spot);
+    this.vehicle.add(target);
+    spot.target = target;
+    this._searchLight = { spot, target };
+  }
+
+  _clearSearchLight() {
+    if (!this._searchLight) return;
+    const { spot, target } = this._searchLight;
+    spot.parent?.remove(spot);
+    target?.parent?.remove(target);
+    this._searchLight = null;
+  }
+
+  _updateSearchLight(_dt) {
+    const sl = this._searchLight;
+    if (!sl?.spot) return;
+    const chase =
+      [PHASE.INTRO, PHASE.CHASE, PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase) &&
+      !this.level?.water;
+    const pulse = chase ? 1.0 + Math.sin(performance.now() * 0.005) * 0.25 : 0;
+    sl.spot.intensity = pulse;
+  }
+
+  /** Baby chirp bubbles during escort */
+  _updateChirpBubbles(dt) {
+    if (this.phase !== PHASE.ESCORT || !this.baby) {
+      return;
+    }
+    this._chirpT = (this._chirpT || 0) - dt;
+    if (this._chirpT > 0) return;
+    this._chirpT = 1.6 + Math.random() * 0.8;
+    const bubble = createChirpBubble(0xffffff);
+    bubble.position.copy(this.baby.position);
+    bubble.position.y = 1.4;
+    this.scene.add(bubble);
+    this.sparks.push(bubble);
+    this.audio.chirp?.();
+  }
+
+  /** Nest proximity HUD — hide outside escort */
+  _updateNestProximity() {
+    if (this.phase !== PHASE.ESCORT) {
+      this.ui.setNestProximity?.(false);
+    }
+  }
+
   /** Distant herd silhouettes gently bob on the horizon */
   _updateAmbientHerd(dt) {
     const herd = this.world?.userData?.ambientHerd;
@@ -2866,6 +3070,11 @@ export class Game {
     for (const fossil of this.world?.userData?.fossils || []) {
       if (!fossil.visible || fossil.userData.collected) continue;
       plot(fossil, '#c4a35a', 3);
+    }
+    // Amber gems — orange blips
+    for (const amber of this.world?.userData?.ambers || []) {
+      if (!amber.visible || amber.userData.collected) continue;
+      plot(amber, '#ffb347', 3);
     }
     // Vehicle always center
     ctx.fillStyle = '#ffffff';

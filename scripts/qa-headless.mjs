@@ -997,6 +997,106 @@ async function main() {
   });
   console.log('8c65 iterations:', iter8c65);
 
+  // Branch 0a2e polish iterations
+  const iter0a2e = await page.evaluate(async () => {
+    const qa = window.__DINO_GUARD_QA__;
+    const g = window.__DINO_GUARD__;
+    // 1 roar sonic rings
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    g.phase = 'chase';
+    g.phaseT = 1.3;
+    g._updatePhase(0.02);
+    const roarRings = g.sparks.filter((s) => s.userData.kind === 'roarRing').length;
+    // 2 mother shockwave
+    g.phase = 'combat';
+    g.phaseT = 3;
+    g.predator.userData.hp = g.predator.userData.maxHp * 0.5;
+    g.mother.visible = false;
+    g._updatePhase(0.02);
+    const shockwave = g.sparks.some((s) => s.userData.kind === 'motherShockwave');
+    // 3 amber gems
+    qa.forceEscort();
+    await new Promise((r) => setTimeout(r, 40));
+    for (const a of g.world?.userData?.ambers || []) {
+      a.visible = true;
+      a.userData.collected = false;
+    }
+    const amberCount = g.world?.userData?.ambers?.length || 0;
+    if (g.world?.userData?.ambers?.[0] && g.vehicle) {
+      g.vehicle.position.copy(g.world.userData.ambers[0].position);
+      g._updateAmbers();
+    }
+    const amberGot = (g._ambersCollected || 0) >= 1;
+    const amberSfx = typeof g.audio.amber === 'function';
+    // 4 stun stars
+    const stunBefore = g.sparks.filter((s) => s.userData.kind === 'stunStar').length;
+    g._spawnStunStars();
+    const stunAfter = g.sparks.filter((s) => s.userData.kind === 'stunStar').length;
+    const stunSfx = typeof g.audio.stun === 'function';
+    // 5 search spotlight
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const searchAttached = !!g._searchLight?.spot;
+    g.phase = 'chase';
+    g._updateSearchLight(0.02);
+    const searchOn = (g._searchLight?.spot?.intensity || 0) > 0.5;
+    // 6 continue last mission
+    const lastId = g.save.lastLevelId;
+    const continueBtn = !!document.getElementById('btn-continue');
+    g.ui.refreshContinueButton?.();
+    const continueVisible = !document.getElementById('btn-continue')?.classList.contains('hidden');
+    const continueFn = typeof g.continueLastMission === 'function';
+    // 7 chirp bubbles
+    g.phase = 'escort';
+    g._chirpT = 0;
+    g._updateChirpBubbles(0.02);
+    const chirpBubble = g.sparks.some((s) => s.userData.kind === 'chirpBubble');
+    const chirpSfx = typeof g.audio.chirp === 'function';
+    // 8 stamp photo flash
+    g.ui.flashStampPhoto?.();
+    const photoFlash = !!document.getElementById('photo-flash');
+    const photoOn = document.getElementById('photo-flash')?.classList.contains('flash');
+    const photoSfx = typeof g.audio.photoFlash === 'function';
+    // 9 forest pollen
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const pollen = g.world?.userData?.forestPollen?.length || 0;
+    // 10 nest proximity HUD
+    g.phase = 'escort';
+    g.ui.setNestProximity?.(true, 12, false);
+    const nestProx = !document.getElementById('nest-proximity')?.classList.contains('hidden');
+    const nestProxFn = typeof g.ui.setNestProximity === 'function';
+    return {
+      roarRings,
+      shockwave,
+      amberCount,
+      amberGot,
+      amberSfx,
+      stunBefore,
+      stunAfter,
+      stunSfx,
+      searchAttached,
+      searchOn,
+      lastId,
+      continueBtn,
+      continueVisible,
+      continueFn,
+      chirpBubble,
+      chirpSfx,
+      photoFlash,
+      photoOn,
+      photoSfx,
+      pollen,
+      nestProx,
+      nestProxFn,
+    };
+  });
+  console.log('0a2e iterations:', iter0a2e);
+
   await browser.close();
   preview.kill();
 
@@ -1180,7 +1280,28 @@ async function main() {
     !iter8c65.depthShown ||
     !/\d+m/.test(iter8c65.depthText) ||
     !iter8c65.pageFlip ||
-    !iter8c65.pageSfx;
+    !iter8c65.pageSfx ||
+    iter0a2e.roarRings < 1 ||
+    !iter0a2e.shockwave ||
+    iter0a2e.amberCount < 3 ||
+    !iter0a2e.amberGot ||
+    !iter0a2e.amberSfx ||
+    iter0a2e.stunAfter <= iter0a2e.stunBefore ||
+    !iter0a2e.stunSfx ||
+    !iter0a2e.searchAttached ||
+    !iter0a2e.searchOn ||
+    !iter0a2e.lastId ||
+    !iter0a2e.continueBtn ||
+    !iter0a2e.continueVisible ||
+    !iter0a2e.continueFn ||
+    !iter0a2e.chirpBubble ||
+    !iter0a2e.chirpSfx ||
+    !iter0a2e.photoFlash ||
+    !iter0a2e.photoOn ||
+    !iter0a2e.photoSfx ||
+    iter0a2e.pollen < 20 ||
+    !iter0a2e.nestProx ||
+    !iter0a2e.nestProxFn;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);
