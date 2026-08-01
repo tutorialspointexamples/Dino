@@ -56,20 +56,22 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (branch 7dce)
+### Verification iterations (branch c535)
 
-1. **Swinging swamp vines** — vine swamp hangers sway with emissive pulse  
-2. **Meteorite impact glow + smoke** — crater core glow light + rising smoke pillars  
-3. **Lava river ribbons** — flowing emissive lava streams on the volcano floor  
-4. **Ocean current ribbons + drift** — tropical current lanes + subtle sub drift  
-5. **Forked dual rescue routes** — left/right alternate rescue path designs  
-6. **Garage 3D turntable** — spinning vehicle preview in garage / mission pick  
-7. **Chase-start roar flash** — screen flash + FOV punch when chase begins  
-8. **Paleontology tip** — educational fact toast when mother dinosaur assists  
-9. **Friends stamp compete card** — collection race UI + share challenge  
-10. **King flower petal bloom** — rainforest petals spin and pulse  
+1. **Predator roar sonic rings** — expanding ground rings on chase-start / boss alarm  
+2. **Mother arrival shockwave** — blue shockwave + protect shield when mother assists  
+3. **Escort amber gems** — glowing amber collectibles on radar / score / Perfect stars  
+4. **Predator retreat stun stars** — floating stars when the predator is driven off  
+5. **Chase search spotlight** — soft SpotLight during alarm countdown and chase  
+6. **Continue Rescue CTA** — title button resumes `lastLevelId` with Captain Rio callout  
+7. **Baby escort chirp bubbles** — chirp SFX + rising bubbles during escort  
+8. **Stamp photo flash** — camera flash on result stamp + encyclopedia detail  
+9. **Rainforest pollen motes** — drifting golden pollen in the Tropical Rainforest  
+10. **Nest proximity HUD** — meter + distance while escorting the baby home  
 
-Prior branches (ed9a+) also cover coral sway, whirlpool, Danxia terraces, turret tint, celebrate hop, roadblock feedback, mother flank, look-ahead camera, firefly biolum, limp anim, muzzle flash, and more (see `npm run verify`).
+Gap-fix also covers fossils, victory camera orbit, zoom scope, damage smoke, padlock shake, stamp habitat filters, baby SOS flares, sticky HUD cleanup on fail/quit, and amber/fossils counting toward Perfect Rescue.
+
+Prior branches (7dce / ed9a+) also cover coral sway, whirlpool, Danxia terraces, garage turntable, roar flash, paleo tip, friends compete, king flowers, and more (see `npm run verify`).
 
 ## Project layout
 

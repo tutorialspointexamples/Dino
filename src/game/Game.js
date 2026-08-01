@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CREW, DINOSAURS, LEVELS, VEHICLES } from './data.js';
-import { loadSave, writeSave, markCleared, isVehicleUnlocked, recordBestStars } from './Save.js';
+import { loadSave, writeSave, markCleared, isVehicleUnlocked, recordBestStars, setLastLevelId } from './Save.js';
 import { createDinosaur } from './DinosaurFactory.js';
 import { createVehicle } from './VehicleFactory.js';
 import {
@@ -16,6 +16,13 @@ import {
   createNestChevron,
   createMotherRing,
   createMuzzleFlash,
+  createRoarRing,
+  createShockwave,
+  createStunStar,
+  createChirpBubble,
+  createSosFlare,
+  createMotherShield,
+  createDamageSmoke,
 } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
@@ -70,8 +77,21 @@ export class Game {
     this._celebrateT = 0;
     this._squealCooldown = 0;
     this._eggsCollected = 0;
+    this._ambersCollected = 0;
+    this._fossilsCollected = 0;
     this._lastStars = 0;
     this._chargeTelegraph = null;
+    this._roarRings = [];
+    this._shockwaves = [];
+    this._stunStars = [];
+    this._chirpBubbles = [];
+    this._sosFlares = [];
+    this._motherShields = [];
+    this._damageSmoke = [];
+    this._searchLight = null;
+    this._chirpCooldown = 0;
+    this._sosCooldown = 0;
+    this._smokeCooldown = 0;
     this._hitCombo = 0;
     this._comboTimer = 0;
     this._footprintCooldown = 0;
@@ -145,6 +165,14 @@ export class Game {
     for (const c of this._chevrons || []) this.scene.remove(c);
     for (const r of this._motherRings || []) this.scene.remove(r);
     for (const f of this._muzzleFlashes || []) this.scene.remove(f);
+    for (const r of this._roarRings || []) this.scene.remove(r);
+    for (const s of this._shockwaves || []) this.scene.remove(s);
+    for (const s of this._stunStars || []) this.scene.remove(s);
+    for (const c of this._chirpBubbles || []) this.scene.remove(c);
+    for (const s of this._sosFlares || []) this.scene.remove(s);
+    for (const s of this._motherShields || []) this.scene.remove(s);
+    for (const s of this._damageSmoke || []) this.scene.remove(s);
+    this._clearSearchLight();
     this.projectiles = [];
     this.sparks = [];
     this.trails = [];
@@ -153,6 +181,13 @@ export class Game {
     this._chevrons = [];
     this._motherRings = [];
     this._muzzleFlashes = [];
+    this._roarRings = [];
+    this._shockwaves = [];
+    this._stunStars = [];
+    this._chirpBubbles = [];
+    this._sosFlares = [];
+    this._motherShields = [];
+    this._damageSmoke = [];
     this._vehicleHitFlashT = 0;
     this._chevronRefreshT = 0;
     this.camera.fov = this._baseFov || 55;
@@ -168,6 +203,9 @@ export class Game {
     this.ui?.showCrewIntro?.(false);
     this.ui?.setBoostHud?.(false, 1);
     this.ui?.updateMissionClock?.(0);
+    this.ui?.setNestProximity?.(false);
+    this.ui?.setZoomScope?.(false);
+    this.ui?.flashRoar?.(false);
     this.shakeT = 0;
     this._weaponCycleT = 0;
     this._weaponCycleIdx = 0;
@@ -183,7 +221,12 @@ export class Game {
     this.ui.setAlarmRing(false);
     this._clearChargeTelegraph();
     this._eggsCollected = 0;
+    this._ambersCollected = 0;
+    this._fossilsCollected = 0;
     this._squealCooldown = 0;
+    this._chirpCooldown = 0;
+    this._sosCooldown = 0;
+    this._smokeCooldown = 0;
     this.audio.stopAmbient();
   }
 
@@ -350,6 +393,13 @@ export class Game {
     this._confetti = [];
     this._chevrons = [];
     this._motherRings = [];
+    this._roarRings = [];
+    this._shockwaves = [];
+    this._stunStars = [];
+    this._chirpBubbles = [];
+    this._sosFlares = [];
+    this._motherShields = [];
+    this._damageSmoke = [];
     this._boostFuel = 1;
     this._boostActive = false;
     this._boostSfxT = 0;
@@ -359,9 +409,16 @@ export class Game {
     this._muzzleFlashes = [];
     this._vehicleHitFlashT = 0;
     this._chevronRefreshT = 0;
+    this._chirpCooldown = 0;
+    this._sosCooldown = 0;
+    this._smokeCooldown = 0;
+    this._ambersCollected = 0;
+    this._fossilsCollected = 0;
     this.camera.fov = this._baseFov;
     this.camera.updateProjectionMatrix();
     this.ui.updateMissionClock(0);
+    setLastLevelId(this.save, level.id);
+    this.ui.refreshContinueCta?.();
 
     this.world = buildWorld(level, this.scene);
 
@@ -431,9 +488,16 @@ export class Game {
     this.audio.alarm();
     this.audio.countdown();
     this.audio.startAmbient();
-    if (level.boss) this.audio.roar();
+    if (level.boss) {
+      this.audio.roar();
+      // Boss alarm — immediate sonic roar ring
+      this._spawnRoarRing(this.predator.position.clone());
+    }
     this._eggsCollected = 0;
+    this._ambersCollected = 0;
+    this._fossilsCollected = 0;
     this._attachChargeTelegraph();
+    this._ensureSearchLight(0.35);
     // Hide crew roster after the alarm settles
     setTimeout(() => this.ui?.showCrewIntro?.(false), 3200);
     // First-clear tutorial for rainforest
@@ -501,6 +565,11 @@ export class Game {
     this.paused = false;
     this.ui.hidePause();
     this.audio.stopAmbient();
+    this.ui.setNestProximity?.(false);
+    this.ui.setZoomScope?.(false);
+    this.ui.flashRoar?.(false);
+    this.ui.updateNestCompass(false);
+    this._clearSearchLight();
     this.showTitleScene();
     this.ui.showHub();
   }
@@ -598,9 +667,12 @@ export class Game {
     const jeepRatio = this.vehicle
       ? Math.max(0, this.vehicle.userData.hp / (this.vehicle.userData.maxHp || 1))
       : 0;
+    // Amber + fossils count toward Perfect Rescue alongside eggs
+    const collectibles =
+      (this._eggsCollected || 0) + (this._ambersCollected || 0) + (this._fossilsCollected || 0);
     let stars = 1;
     if (babyRatio > 0.35 && jeepRatio > 0.25) stars = 2;
-    if (babyRatio > 0.65 && jeepRatio > 0.45 && this._eggsCollected >= 2) stars = 3;
+    if (babyRatio > 0.65 && jeepRatio > 0.45 && collectibles >= 2) stars = 3;
     return stars;
   }
 
@@ -669,6 +741,7 @@ export class Game {
       this._updateActors(dt);
       this._updateFireflies(dt);
       this._updateWorldFX(dt);
+      this._updateSearchLight(dt, 0.45);
       this._updateRadar();
       this._updateAimLock();
       return;
@@ -676,7 +749,7 @@ export class Game {
 
     if (this.phase === PHASE.CELEBRATE) {
       this._updateCelebrate(dt);
-      this._updateCamera(dt);
+      this._updateVictoryCamera(dt);
       this._updateActors(dt);
       this._updateSparks(dt);
       this._updateWorldFX(dt);
@@ -719,7 +792,13 @@ export class Game {
     this._updateRadar();
     this._updateAimLock();
     this._updateEggs();
+    this._updateAmbers();
+    this._updateFossils();
     this._updateHpVignette();
+    this._updateSearchLight(dt, 1);
+    this._updateDamageSmoke(dt);
+    this._updateEscortChirps(dt);
+    this._updateSosFlares(dt);
     this.ui.updateMissionClock(this._missionElapsed);
 
     if (this.vehicle) {
@@ -1083,7 +1162,40 @@ export class Game {
         c.material.emissiveIntensity = 0.3 + Math.sin(t * 2.8 + (c.userData.phase || 0)) * 0.35;
       }
     }
+    // Rainforest pollen motes
+    const pollen = this.world?.userData?.pollen;
+    if (pollen) {
+      const t = performance.now() * 0.001;
+      for (const mote of pollen) {
+        const b = mote.userData.base;
+        const p = mote.userData.phase || 0;
+        const drift = mote.userData.drift || 0.5;
+        mote.position.x = b.x + Math.sin(t * drift + p) * 1.6;
+        mote.position.y = b.y + Math.sin(t * 0.9 + p * 1.2) * 0.7;
+        mote.position.z = b.z + Math.cos(t * drift * 0.8 + p) * 1.6;
+        mote.material.opacity = 0.35 + Math.sin(t * 3 + p) * 0.25;
+      }
+    }
+    // Amber / fossil bob during escort
+    for (const amber of this.world?.userData?.ambers || []) {
+      if (amber.userData.collected || !amber.visible) continue;
+      amber.rotation.y += dt * 2.2;
+      amber.position.y = 0.55 + Math.sin(performance.now() * 0.004 + amber.position.x) * 0.12;
+      if (amber.material?.emissiveIntensity != null) {
+        amber.material.emissiveIntensity = 0.45 + Math.sin(performance.now() * 0.006) * 0.2;
+      }
+    }
+    for (const fossil of this.world?.userData?.fossils || []) {
+      if (fossil.userData.collected || !fossil.visible) continue;
+      fossil.rotation.y += dt * 0.8;
+    }
     this._updateMotherRings(dt);
+    this._updateRoarRings(dt);
+    this._updateShockwaves(dt);
+    this._updateStunStars(dt);
+    this._updateChirpBubbles(dt);
+    this._updateSosFx(dt);
+    this._updateMotherShields(dt);
   }
 
   _resolveBlockers(dt = 0.016) {
@@ -1389,10 +1501,24 @@ export class Game {
     }
   }
 
+  /** Victory orbit camera — skips chase cam so celebrate path is not overwritten. */
+  _updateVictoryCamera(dt) {
+    const focus = this.baby?.position || this.vehicle?.position || new THREE.Vector3();
+    const t = performance.now() * 0.0007;
+    const radius = 8.5;
+    this.camera.position.x = focus.x + Math.sin(t) * radius;
+    this.camera.position.y = focus.y + 4.6;
+    this.camera.position.z = focus.z + Math.cos(t) * radius;
+    this.camera.lookAt(focus.x, focus.y + 1.2, focus.z);
+    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, this._baseFov - 2, 0.08);
+    this.camera.updateProjectionMatrix();
+  }
+
   _updateCamera(dt) {
     if (!this.vehicle) return;
     const mode = this.vehicle.userData.weaponMode;
-    const zoom = mode === 'zoom' && this.phase === PHASE.COMBAT ? 1 : 0;
+    const zoom =
+      mode === 'zoom' && [PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase) ? 1 : 0;
     const axis = this.input.getAxis();
     const throttle = Math.max(0, -axis.y);
     const lookAhead = (this._boostActive ? 3.2 : 1.8) * throttle + (zoom ? 0.6 : 0);
@@ -1461,13 +1587,15 @@ export class Game {
       this.phase = PHASE.CHASE;
       this.ui.setMission('Chase the predator — get close!');
       this.ui.setPhaseRibbon(true, 'CHASE', 'chase');
-      // Chase-start roar punch — camera + screen flash
+      // Chase-start roar punch — camera + screen flash + sonic rings
       this.audio.roar();
       this.shakeT = Math.max(this.shakeT, 0.45);
       this._chaseRoarPunchT = 0.75;
       this.camera.fov = this._baseFov + 10;
       this.camera.updateProjectionMatrix();
       this.ui.flashRoar?.(true);
+      this._spawnRoarRing(predator.position.clone());
+      this._ensureSearchLight(1.1);
       this.ui.toast('ROAR! The boss is chasing the baby!');
       this.ui.crewCallout('Scout Mina', 'ROAR! Predator on the move — intercept!');
     }
@@ -1515,6 +1643,8 @@ export class Game {
         this.shakeT = Math.max(this.shakeT, 0.35);
         this._spawnSparks(mother.position.clone().setY(1.6), 0xf4c14b, 10);
         this._spawnMotherRing(mother.position.clone());
+        this._spawnShockwave(mother.position.clone());
+        this._spawnMotherShield(mother);
       }
       if (predator.userData.hp <= 0) {
         this._beginEscort();
@@ -1643,6 +1773,9 @@ export class Game {
       }
       const nestDist = Math.hypot(baby.position.x - nest.x, baby.position.z - nest.z);
       this.ui.setMission(`Escort the baby to the nest! (${Math.max(0, nestDist - 3).toFixed(0)}m)`);
+      // Nest proximity HUD meter for kids
+      const prox = 1 - Math.min(1, nestDist / 28);
+      this.ui.setNestProximity?.(true, prox, Math.max(0, nestDist - 3));
       // Nest compass relative to camera-forward / vehicle heading
       if (vehicle) {
         const toNest = Math.atan2(nest.x - vehicle.position.x, nest.z - vehicle.position.z);
@@ -1659,6 +1792,8 @@ export class Game {
       // Safety: if escort runs long, auto-complete once baby is near nest lane
       if (this.phaseT > 20 && nestDist < 8) this._win();
       if (this.phaseT > 35) this._win();
+    } else {
+      this.ui.setNestProximity?.(false);
     }
 
     // Fail if predator reaches baby hard
@@ -1678,6 +1813,11 @@ export class Game {
         if (this._squealCooldown <= 0) {
           this.audio.squeal();
           this._squealCooldown = 1.1;
+        }
+        this._sosCooldown -= dt;
+        if (this._sosCooldown <= 0) {
+          this._spawnSosFlare(baby.position.clone().setY(1.8));
+          this._sosCooldown = 0.55;
         }
       } else if (baby.userData.anim) {
         baby.userData.anim.panic = false;
@@ -1706,20 +1846,33 @@ export class Game {
     this.phase = PHASE.ESCORT;
     this.phaseT = 0;
     this._escortDwelling = 0;
-    if (this.predator) this.predator.userData.anim.state = 'hurt';
+    if (this.predator) {
+      this.predator.userData.anim.state = 'hurt';
+      this._spawnStunStars(this.predator.position.clone().setY(2.2), 8);
+    }
     this.ui.showAim(false);
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
+    this.ui.flashRoar?.(false);
+    this.ui.setZoomScope?.(false);
     this.ui.setPhaseRibbon(true, 'ESCORT TO NEST', 'escort');
     this.ui.setMission('Escort baby to the glowing nest!');
     const tip = document.getElementById('tutorial-tip');
     if (tip) tip.classList.add('hidden');
-    // Reveal escort eggs
+    // Searchlight off when escort begins
+    this._clearSearchLight();
+    // Reveal escort eggs / amber / fossils
     for (const egg of this.world?.userData?.eggs || []) {
       if (!egg.userData.collected) egg.visible = true;
     }
+    for (const amber of this.world?.userData?.ambers || []) {
+      if (!amber.userData.collected) amber.visible = true;
+    }
+    for (const fossil of this.world?.userData?.fossils || []) {
+      if (!fossil.userData.collected) fossil.visible = true;
+    }
     this._spawnEscortChevrons();
-    this.ui.toast('Predator retreats! Escort the baby — grab glowing eggs!');
+    this.ui.toast('Predator retreats! Escort the baby — grab eggs, amber & fossils!');
     this.missionScore += 200;
     this.ui.updateScore(this.missionScore);
     // Nudge baby toward nest so completion is reliable
@@ -1747,13 +1900,18 @@ export class Game {
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
     this.ui.updateNestCompass(false);
+    this.ui.setNestProximity?.(false);
+    this.ui.setZoomScope?.(false);
     this.ui.setAlarmRing(false);
+    this.ui.flashRoar?.(false);
+    this._clearSearchLight();
     document.getElementById('tutorial-tip')?.classList.add('hidden');
     this.ui.setMission('Safe at the nest — celebration!');
     this.ui.setPhaseRibbon(true, 'CELEBRATE', 'escort');
     this.ui.showSkipCountdown(false);
     this.ui.toast('Baby dinosaur rescued!');
     this.audio.win();
+    this.audio.chirp?.();
   }
 
   _finishWin() {
@@ -1824,6 +1982,10 @@ export class Game {
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
     this.ui.updateNestCompass(false);
+    this.ui.setNestProximity?.(false);
+    this.ui.setZoomScope?.(false);
+    this.ui.flashRoar?.(false);
+    this._clearSearchLight();
     document.getElementById('tutorial-tip')?.classList.add('hidden');
     this.audio.lose();
     this.ui.setPhaseRibbon(false);
@@ -2186,6 +2348,14 @@ export class Game {
       if (!egg.visible || egg.userData.collected) continue;
       plot(egg, '#ffe8b0', 3);
     }
+    for (const amber of this.world?.userData?.ambers || []) {
+      if (!amber.visible || amber.userData.collected) continue;
+      plot(amber, '#ff9f1a', 3);
+    }
+    for (const fossil of this.world?.userData?.fossils || []) {
+      if (!fossil.visible || fossil.userData.collected) continue;
+      plot(fossil, '#d6c4a0', 3);
+    }
     // Vehicle always center
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
@@ -2194,5 +2364,249 @@ export class Game {
     ctx.lineTo(cx - 5, cy + 5);
     ctx.closePath();
     ctx.fill();
+  }
+
+  _spawnRoarRing(origin) {
+    const ring = createRoarRing(0xe85d4c);
+    ring.position.set(origin.x, 0.12, origin.z);
+    this.scene.add(ring);
+    this._roarRings.push(ring);
+  }
+
+  _updateRoarRings(dt) {
+    for (let i = (this._roarRings || []).length - 1; i >= 0; i--) {
+      const ring = this._roarRings[i];
+      ring.userData.life -= dt;
+      const grow = 1 + (0.85 - ring.userData.life) * 4.5;
+      ring.scale.setScalar(grow);
+      ring.material.opacity = Math.max(0, ring.userData.life * 0.9);
+      if (ring.userData.life <= 0) {
+        this.scene.remove(ring);
+        this._roarRings.splice(i, 1);
+      }
+    }
+  }
+
+  _spawnShockwave(origin) {
+    const wave = createShockwave(0x60a5fa);
+    wave.position.set(origin.x, 0.1, origin.z);
+    this.scene.add(wave);
+    this._shockwaves.push(wave);
+  }
+
+  _updateShockwaves(dt) {
+    for (let i = (this._shockwaves || []).length - 1; i >= 0; i--) {
+      const wave = this._shockwaves[i];
+      wave.userData.life -= dt;
+      wave.scale.setScalar(1 + (0.7 - wave.userData.life) * 6);
+      wave.material.opacity = Math.max(0, wave.userData.life * 1.1);
+      if (wave.userData.life <= 0) {
+        this.scene.remove(wave);
+        this._shockwaves.splice(i, 1);
+      }
+    }
+  }
+
+  _spawnStunStars(origin, count = 6) {
+    for (let i = 0; i < count; i++) {
+      const star = createStunStar(i % 2 ? 0xffe08a : 0xffffff);
+      star.position.copy(origin);
+      this.scene.add(star);
+      this._stunStars.push(star);
+    }
+  }
+
+  _updateStunStars(dt) {
+    for (let i = (this._stunStars || []).length - 1; i >= 0; i--) {
+      const star = this._stunStars[i];
+      star.position.addScaledVector(star.userData.velocity, dt);
+      star.userData.velocity.y -= 3.2 * dt;
+      star.rotation.z += (star.userData.spin || 4) * dt;
+      star.userData.life -= dt;
+      star.material.opacity = Math.max(0, star.userData.life);
+      if (star.userData.life <= 0) {
+        this.scene.remove(star);
+        this._stunStars.splice(i, 1);
+      }
+    }
+  }
+
+  _spawnChirpBubble(origin) {
+    const bubble = createChirpBubble(0xffffff);
+    bubble.position.copy(origin);
+    this.scene.add(bubble);
+    this._chirpBubbles.push(bubble);
+  }
+
+  _updateChirpBubbles(dt) {
+    for (let i = (this._chirpBubbles || []).length - 1; i >= 0; i--) {
+      const b = this._chirpBubbles[i];
+      b.position.addScaledVector(b.userData.velocity, dt);
+      b.userData.life -= dt;
+      b.material.opacity = Math.max(0, b.userData.life);
+      b.scale.multiplyScalar(1.01);
+      if (b.userData.life <= 0) {
+        this.scene.remove(b);
+        this._chirpBubbles.splice(i, 1);
+      }
+    }
+  }
+
+  _updateEscortChirps(dt) {
+    if (this.phase !== PHASE.ESCORT || !this.baby) return;
+    this._chirpCooldown -= dt;
+    if (this._chirpCooldown > 0) return;
+    this._chirpCooldown = 1.35;
+    this._spawnChirpBubble(this.baby.position.clone().setY(1.6));
+    this.audio.chirp?.();
+  }
+
+  _spawnSosFlare(origin) {
+    const flare = createSosFlare(0xff6b4a);
+    flare.position.copy(origin);
+    this.scene.add(flare);
+    this._sosFlares.push(flare);
+  }
+
+  _updateSosFlares(dt) {
+    // cooldown only — particles updated in world FX
+    void dt;
+  }
+
+  _updateSosFx(dt) {
+    for (let i = (this._sosFlares || []).length - 1; i >= 0; i--) {
+      const f = this._sosFlares[i];
+      f.position.addScaledVector(f.userData.velocity, dt);
+      f.userData.life -= dt;
+      f.material.opacity = Math.max(0, f.userData.life * 1.2);
+      if (f.userData.life <= 0) {
+        this.scene.remove(f);
+        this._sosFlares.splice(i, 1);
+      }
+    }
+  }
+
+  _spawnMotherShield(mother) {
+    if (!mother) return;
+    const shield = createMotherShield(0x62d26f);
+    shield.position.copy(mother.position).setY(1.2);
+    this.scene.add(shield);
+    this._motherShields.push(shield);
+  }
+
+  _updateMotherShields(dt) {
+    for (let i = (this._motherShields || []).length - 1; i >= 0; i--) {
+      const s = this._motherShields[i];
+      s.userData.life -= dt;
+      if (this.mother?.visible) {
+        s.position.x = this.mother.position.x;
+        s.position.z = this.mother.position.z;
+        s.position.y = 1.2 + Math.sin(performance.now() * 0.004) * 0.1;
+      }
+      s.material.opacity = Math.max(0, Math.min(0.28, s.userData.life * 0.12));
+      s.scale.setScalar(1 + Math.sin(performance.now() * 0.005) * 0.05);
+      if (s.userData.life <= 0) {
+        this.scene.remove(s);
+        this._motherShields.splice(i, 1);
+      }
+    }
+  }
+
+  _ensureSearchLight(intensity = 1) {
+    if (!this.scene) return;
+    if (!this._searchLight) {
+      this._searchLight = new THREE.SpotLight(0xfff2c8, intensity, 40, 0.45, 0.45, 1);
+      this._searchLight.castShadow = false;
+      this._searchLight.name = 'chaseSearchLight';
+      this.scene.add(this._searchLight);
+      this.scene.add(this._searchLight.target);
+    }
+    this._searchLight.intensity = intensity;
+    this._searchLight.visible = true;
+  }
+
+  _clearSearchLight() {
+    if (!this._searchLight) return;
+    this._searchLight.visible = false;
+    this._searchLight.intensity = 0;
+  }
+
+  _updateSearchLight(dt, intensityScale = 1) {
+    void dt;
+    if (!this._searchLight) return;
+    const active =
+      this.phase === PHASE.COUNTDOWN ||
+      this.phase === PHASE.INTRO ||
+      this.phase === PHASE.CHASE ||
+      this.phase === PHASE.COMBAT;
+    if (!active || !this.predator) {
+      this._searchLight.visible = false;
+      return;
+    }
+    this._searchLight.visible = true;
+    const soft = this.phase === PHASE.COUNTDOWN ? 0.45 : 1;
+    this._searchLight.intensity = (0.85 + Math.sin(performance.now() * 0.004) * 0.25) * soft * intensityScale;
+    const p = this.predator.position;
+    this._searchLight.position.set(p.x, 10, p.z + 2);
+    this._searchLight.target.position.set(p.x, 0.2, p.z);
+    this._searchLight.target.updateMatrixWorld();
+  }
+
+  _updateDamageSmoke(dt) {
+    if (!this.vehicle) return;
+    const ratio = this.vehicle.userData.hp / (this.vehicle.userData.maxHp || 1);
+    this._smokeCooldown -= dt;
+    if (ratio < 0.4 && this._smokeCooldown <= 0 && this.phase !== PHASE.WIN && this.phase !== PHASE.LOSE) {
+      this._smokeCooldown = 0.22;
+      const smoke = createDamageSmoke(ratio < 0.22 ? 0x374151 : 0x6b7280);
+      smoke.position.copy(this.vehicle.position).setY(1.1);
+      this.scene.add(smoke);
+      this._damageSmoke.push(smoke);
+    }
+    for (let i = (this._damageSmoke || []).length - 1; i >= 0; i--) {
+      const s = this._damageSmoke[i];
+      s.position.addScaledVector(s.userData.velocity, dt);
+      s.userData.life -= dt;
+      s.material.opacity = Math.max(0, s.userData.life * 0.7);
+      s.scale.multiplyScalar(1.02);
+      if (s.userData.life <= 0) {
+        this.scene.remove(s);
+        this._damageSmoke.splice(i, 1);
+      }
+    }
+  }
+
+  _updateAmbers() {
+    if (this.phase !== PHASE.ESCORT || !this.vehicle) return;
+    for (const amber of this.world?.userData?.ambers || []) {
+      if (amber.userData.collected) continue;
+      if (this.vehicle.position.distanceTo(amber.position) < 2.2) {
+        amber.userData.collected = true;
+        amber.visible = false;
+        this._ambersCollected = (this._ambersCollected || 0) + 1;
+        this.missionScore += 75;
+        this.ui.updateScore(this.missionScore);
+        this.audio.collect();
+        this._spawnSparks(amber.position.clone().setY(1), 0xff9f1a, 8);
+        this.ui.toast(`Amber gem! +75 (${this._ambersCollected}/3)`);
+      }
+    }
+  }
+
+  _updateFossils() {
+    if (this.phase !== PHASE.ESCORT || !this.vehicle) return;
+    for (const fossil of this.world?.userData?.fossils || []) {
+      if (fossil.userData.collected) continue;
+      if (this.vehicle.position.distanceTo(fossil.position) < 2.3) {
+        fossil.userData.collected = true;
+        fossil.visible = false;
+        this._fossilsCollected = (this._fossilsCollected || 0) + 1;
+        this.missionScore += 60;
+        this.ui.updateScore(this.missionScore);
+        this.audio.collect();
+        this._spawnSparks(fossil.position.clone().setY(0.8), 0xd6c4a0, 6);
+        this.ui.toast(`Fossil find! +60 (${this._fossilsCollected}/3)`);
+      }
+    }
   }
 }

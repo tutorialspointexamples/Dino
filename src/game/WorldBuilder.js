@@ -104,6 +104,27 @@ export function buildWorld(level, scene) {
       rain.push(drop);
     }
     group.userData.rainDrops = rain;
+
+    // Soft pollen motes drifting through the rainforest canopy
+    const pollen = [];
+    for (let i = 0; i < 36; i++) {
+      const mote = new THREE.Mesh(
+        new THREE.SphereGeometry(rand(0.04, 0.09), 6, 6),
+        new THREE.MeshBasicMaterial({
+          color: i % 3 === 0 ? 0xffe08a : 0xf4c14b,
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false,
+        }),
+      );
+      mote.position.set(rand(-22, 22), rand(1.2, 6), rand(-22, 22));
+      mote.userData.base = mote.position.clone();
+      mote.userData.phase = rand(0, Math.PI * 2);
+      mote.userData.drift = rand(0.3, 0.9);
+      group.add(mote);
+      pollen.push(mote);
+    }
+    group.userData.pollen = pollen;
   }
 
   if (biome === 'swamp') {
@@ -597,6 +618,52 @@ export function buildWorld(level, scene) {
   }
   group.userData.eggs = eggs;
 
+  // Amber gems — warm glowing collectibles during escort
+  const ambers = [];
+  for (let i = 0; i < 3; i++) {
+    const amber = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.32, 0),
+      new THREE.MeshStandardMaterial({
+        color: 0xffb347,
+        emissive: 0xff8c1a,
+        emissiveIntensity: 0.55,
+        roughness: 0.35,
+        metalness: 0.15,
+      }),
+    );
+    const a = (i / 3) * Math.PI * 2 + 1.1;
+    amber.position.set(Math.cos(a) * 6.5, 0.55, -16 + Math.sin(a) * 4.2);
+    amber.userData.kind = 'amber';
+    amber.userData.collected = false;
+    amber.visible = false;
+    group.add(amber);
+    ambers.push(amber);
+  }
+  group.userData.ambers = ambers;
+
+  // Fossil shards — paleo collectibles for Perfect Rescue
+  const fossils = [];
+  for (let i = 0; i < 3; i++) {
+    const fossil = new THREE.Mesh(
+      new THREE.BoxGeometry(0.45, 0.12, 0.55),
+      new THREE.MeshStandardMaterial({
+        color: 0xd6c4a0,
+        emissive: 0xa89070,
+        emissiveIntensity: 0.2,
+        roughness: 0.85,
+      }),
+    );
+    const a = (i / 3) * Math.PI * 2 + 2.2;
+    fossil.position.set(Math.cos(a) * 9.5, 0.2, -16 + Math.sin(a) * 5.5);
+    fossil.rotation.y = a;
+    fossil.userData.kind = 'fossil';
+    fossil.userData.collected = false;
+    fossil.visible = false;
+    group.add(fossil);
+    fossils.push(fossil);
+  }
+  group.userData.fossils = fossils;
+
   // Soft sky clouds for atmosphere (not flat single-color sky alone)
   const clouds = [];
   for (let i = 0; i < 10; i++) {
@@ -919,5 +986,125 @@ export function createMotherRing(color = 0xf4c14b) {
   mesh.position.y = 0.08;
   mesh.userData.life = 1.1;
   mesh.userData.kind = 'motherRing';
+  return mesh;
+}
+
+/** Sonic roar ring that expands from a predator bellow. */
+export function createRoarRing(color = 0xe85d4c) {
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(0.5, 0.85, 36),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.12;
+  mesh.userData.life = 0.85;
+  mesh.userData.kind = 'roarRing';
+  return mesh;
+}
+
+/** Fast mother-arrival shockwave disc. */
+export function createShockwave(color = 0x60a5fa) {
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(0.4, 1.1, 40),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.9,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.1;
+  mesh.userData.life = 0.7;
+  mesh.userData.kind = 'shockwave';
+  return mesh;
+}
+
+/** Floating stun star when the predator retreats. */
+export function createStunStar(color = 0xffe08a) {
+  const mesh = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.18, 0),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1 }),
+  );
+  mesh.userData.life = 1.2;
+  mesh.userData.kind = 'stunStar';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 2.2,
+    1.8 + Math.random() * 1.4,
+    (Math.random() - 0.5) * 2.2,
+  );
+  mesh.userData.spin = (Math.random() - 0.5) * 12;
+  return mesh;
+}
+
+/** Soft chirp bubble above the baby during escort. */
+export function createChirpBubble(color = 0xffffff) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 8, 8),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.75 }),
+  );
+  mesh.userData.life = 0.9;
+  mesh.userData.kind = 'chirp';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 0.4,
+    1.4 + Math.random() * 0.6,
+    (Math.random() - 0.5) * 0.4,
+  );
+  return mesh;
+}
+
+/** Baby SOS flare spark when threatened. */
+export function createSosFlare(color = 0xff6b4a) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.16, 6, 6),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 }),
+  );
+  mesh.userData.life = 0.65;
+  mesh.userData.kind = 'sos';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 0.8,
+    2.2 + Math.random(),
+    (Math.random() - 0.5) * 0.8,
+  );
+  return mesh;
+}
+
+/** Soft protect shield dome around mother/baby. */
+export function createMotherShield(color = 0x62d26f) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1.8, 16, 12),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  mesh.userData.life = 2.4;
+  mesh.userData.kind = 'motherShield';
+  return mesh;
+}
+
+/** Thin vehicle damage smoke puff at low Guard HP. */
+export function createDamageSmoke(color = 0x6b7280) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 6, 6),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55 }),
+  );
+  mesh.userData.life = 0.7;
+  mesh.userData.kind = 'damageSmoke';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 0.5,
+    1.1 + Math.random() * 0.6,
+    (Math.random() - 0.5) * 0.5,
+  );
   return mesh;
 }

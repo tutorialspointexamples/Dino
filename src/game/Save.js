@@ -6,6 +6,7 @@ const defaultSave = () => ({
   selectedVehicle: 'police_scout',
   score: 0,
   bestStars: {},
+  lastLevelId: null,
 });
 
 export function loadSave() {
@@ -14,10 +15,18 @@ export function loadSave() {
     if (!raw) return defaultSave();
     const data = { ...defaultSave(), ...JSON.parse(raw) };
     if (!data.bestStars || typeof data.bestStars !== 'object') data.bestStars = {};
+    if (data.lastLevelId == null) data.lastLevelId = null;
     return data;
   } catch {
     return defaultSave();
   }
+}
+
+/** Remember last launched mission for Continue Rescue CTA. */
+export function setLastLevelId(save, levelId) {
+  save.lastLevelId = levelId || null;
+  writeSave(save);
+  return save.lastLevelId;
 }
 
 export function writeSave(data) {

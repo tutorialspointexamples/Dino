@@ -31,6 +31,7 @@
           <p class="tagline">Drive the Guard jeep, stop predators, and collect dinosaur stamps!</p>
           <div class="title-actions">
             <button id="btn-play" class="btn primary">Start Mission</button>
+            <button id="btn-continue" class="btn continue-cta hidden" type="button">Continue Rescue</button>
             <button id="btn-garage" class="btn">Garage</button>
             <button id="btn-stamps" class="btn">Stamp Book</button>
           </div>
@@ -75,6 +76,12 @@
               <span id="master-pct">0%</span>
             </div>
             <div class="master-bar"><i id="master-bar"></i></div>
+          </div>
+          <div id="stamp-habitat-filters" class="stamp-habitat-filters" role="group" aria-label="Stamp habitat filters">
+            <button type="button" class="btn small habitat-filter active" data-habitat="all">All</button>
+            <button type="button" class="btn small habitat-filter" data-habitat="land">Land</button>
+            <button type="button" class="btn small habitat-filter" data-habitat="sea">Sea</button>
+            <button type="button" class="btn small habitat-filter" data-habitat="flyer">Flyer</button>
           </div>
           <div id="friends-compare" class="friends-compare" aria-label="Compete with friends on stamp progress"></div>
           <div id="stamp-grid" class="card-grid"></div>
@@ -123,6 +130,12 @@
         <div id="aim-lock" class="aim-lock hidden" aria-hidden="true">
           <span class="aim-lock-ring"></span>
           <span class="aim-lock-label">LOCK</span>
+        </div>
+        <div id="zoom-scope" class="zoom-scope hidden" aria-hidden="true"></div>
+        <div id="nest-proximity" class="nest-proximity hidden" aria-live="polite">
+          <span class="pill-label">NEST</span>
+          <div class="bar nest"><i id="nest-proximity-bar"></i></div>
+          <strong id="nest-proximity-m">—</strong>
         </div>
         <div id="crew-intro" class="crew-intro hidden" aria-live="polite">
           <strong>Guard Crew Ready</strong>
@@ -192,6 +205,7 @@
           <p id="result-time" class="result-time muted hidden" aria-live="polite"></p>
           <p id="result-fact" class="result-fact muted hidden"></p>
           <div id="result-stamp" class="result-stamp hidden"></div>
+          <div id="photo-flash" class="photo-flash hidden" aria-hidden="true"></div>
           <p id="result-unlock" class="result-unlock muted hidden"></p>
           <button id="btn-result-next" class="btn primary hidden">Next Mission</button>
           <button id="btn-result-retry" class="btn primary hidden">Try Again</button>

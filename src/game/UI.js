@@ -1,4 +1,4 @@
-import { CREW, DINOSAURS, LEVELS, VEHICLES, hexCss } from './data.js';
+import { CREW, DINOSAURS, LEVELS, VEHICLES, hexCss, dinoHabitat } from './data.js';
 import { isVehicleUnlocked } from './Save.js';
 
 export class UI {
@@ -6,6 +6,7 @@ export class UI {
     this.game = game;
     this.selectedPickVehicle = null;
     this.pendingLevel = null;
+    this._stampHabitatFilter = 'all';
 
     this.$ = (id) => document.getElementById(id);
     this.bind();
@@ -13,6 +14,7 @@ export class UI {
 
   bind() {
     this.$('btn-play').onclick = () => this.showHub();
+    this.$('btn-continue')?.addEventListener('click', () => this.continueLastMission());
     this.$('btn-garage').onclick = () => this.showGarage();
     this.$('btn-stamps').onclick = () => this.showStamps();
     this.$('btn-hub-back').onclick = () => this.showTitle();
@@ -37,6 +39,15 @@ export class UI {
     };
     this.$('btn-skip-countdown')?.addEventListener('click', () => this.game.skipCountdown());
     this.$('btn-stamp-detail-close')?.addEventListener('click', () => this.hideStampDetail());
+    document.querySelectorAll('.habitat-filter').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._stampHabitatFilter = btn.dataset.habitat || 'all';
+        document.querySelectorAll('.habitat-filter').forEach((b) => {
+          b.classList.toggle('active', b === btn);
+        });
+        this.showStamps();
+      });
+    });
 
     document.querySelectorAll('#weapon-modes .mode').forEach((btn) => {
       btn.onclick = () => {
@@ -64,7 +75,30 @@ export class UI {
   showTitle() {
     this.hideAll();
     this.$('screen-title').classList.remove('hidden');
+    this.refreshContinueCta();
     this.game.showTitleScene();
+  }
+
+  /** Continue Rescue CTA — resume last launched mission from title. */
+  refreshContinueCta() {
+    const btn = this.$('btn-continue');
+    if (!btn) return;
+    const id = this.game.save?.lastLevelId;
+    const level = id ? LEVELS.find((l) => l.id === id) : null;
+    btn.classList.toggle('hidden', !level);
+    if (level) btn.textContent = `Continue: ${level.name}`;
+  }
+
+  continueLastMission() {
+    const id = this.game.save?.lastLevelId;
+    const level = id ? LEVELS.find((l) => l.id === id) : null;
+    if (!level) {
+      this.toast('No saved rescue yet — pick a mission on the map!');
+      return;
+    }
+    this.toast(`Continuing ${level.name}…`);
+    this.crewCallout('Captain Rio', 'Continuing your last rescue — roll out!');
+    this.openVehiclePick(level);
   }
 
   showHub() {
@@ -107,6 +141,9 @@ export class UI {
       `;
       btn.onclick = () => {
         if (!unlocked) {
+          btn.classList.remove('padlock-shake');
+          void btn.offsetWidth;
+          btn.classList.add('padlock-shake');
           this.toast('Complete the earlier mission first!');
           return;
         }
@@ -246,13 +283,20 @@ export class UI {
     }
     // Friends compare card — compete on stamp collection progress
     this._renderFriendsCompare(stamps.length, total, pct);
+    const filter = this._stampHabitatFilter || 'all';
+    document.querySelectorAll('.habitat-filter').forEach((b) => {
+      b.classList.toggle('active', (b.dataset.habitat || 'all') === filter);
+    });
     const grid = this.$('stamp-grid');
     grid.innerHTML = '';
     Object.values(DINOSAURS).forEach((d) => {
+      const habitat = dinoHabitat(d);
+      if (filter !== 'all' && habitat !== filter) return;
       const have = stamps.includes(d.id);
       const card = document.createElement('button');
       card.type = 'button';
       card.className = `item-card stamp-card${have ? '' : ' locked'}`;
+      card.dataset.habitat = habitat;
       card.innerHTML = `
         <div class="dino-swatch" style="background:linear-gradient(135deg,${hexCss(d.color)},${hexCss(d.accent)});opacity:${have ? 1 : 0.35}"></div>
         <h3>${have ? d.name : '???'}</h3>
@@ -280,6 +324,7 @@ export class UI {
       swatch.style.background = `linear-gradient(135deg,${hexCss(d.color)},${hexCss(d.accent)})`;
     }
     overlay.classList.remove('hidden');
+    this.flashPhoto();
   }
 
   hideStampDetail() {
@@ -294,6 +339,8 @@ export class UI {
     this.updateHp(1);
     this.flashRoar(false);
     this.hidePaleoTip();
+    this.setNestProximity(false);
+    this.setZoomScope(false);
   }
 
   /** Chase-start roar screen flash */
@@ -414,6 +461,8 @@ export class UI {
   }) {
     this.$('hud').classList.add('hidden');
     this.$('nest-compass')?.classList.add('hidden');
+    this.setNestProximity(false);
+    this.setZoomScope(false);
     this.setCombo(0);
     this.setHpVignette(0);
     this.setAimLock(false);
@@ -422,6 +471,7 @@ export class UI {
     this.hideCrewCallout();
     this.showCrewIntro(false);
     this.setAlarmRing(false);
+    this.flashRoar(false);
     this.$('screen-result').classList.remove('hidden');
     this.$('result-title').textContent = win ? 'Rescue Complete!' : 'Mission Failed';
     this.$('result-msg').textContent = message;
@@ -463,6 +513,7 @@ export class UI {
       stamp.textContent = stampName;
       void stamp.offsetWidth;
       stamp.classList.add('stamp-pop', 'stamp-fanfare');
+      this.flashPhoto();
     } else {
       stamp.classList.add('hidden');
     }
@@ -485,6 +536,39 @@ export class UI {
     }
     const cont = this.$('btn-result-continue');
     if (cont) cont.className = win && hasNext ? 'btn' : win ? 'btn primary' : 'btn';
+    this.refreshContinueCta();
+  }
+
+  /** Stamp photo flash for encyclopedia / result camera moment. */
+  flashPhoto() {
+    const el = this.$('photo-flash');
+    if (!el) return;
+    el.classList.remove('hidden', 'on');
+    void el.offsetWidth;
+    el.classList.add('on');
+    clearTimeout(this._photoFlashTimer);
+    this._photoFlashTimer = setTimeout(() => {
+      el.classList.remove('on');
+      el.classList.add('hidden');
+    }, 480);
+  }
+
+  setNestProximity(show, ratio = 0, meters = 0) {
+    const el = this.$('nest-proximity');
+    if (!el) return;
+    el.classList.toggle('hidden', !show);
+    if (!show) return;
+    const bar = this.$('nest-proximity-bar');
+    const label = this.$('nest-proximity-m');
+    if (bar) bar.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio))})`;
+    if (label) label.textContent = `${Math.max(0, Math.round(meters))}m`;
+  }
+
+  setZoomScope(show) {
+    const el = this.$('zoom-scope');
+    if (!el) return;
+    el.classList.toggle('hidden', !show);
+    el.setAttribute('aria-hidden', show ? 'false' : 'true');
   }
 
   updateMissionClock(secs = 0) {
@@ -620,6 +704,7 @@ export class UI {
       el.style.left = `${x}px`;
       el.style.top = `${y}px`;
     }
+    this.setZoomScope(!!(show && zoom));
   }
 
   setRadarDanger(on) {

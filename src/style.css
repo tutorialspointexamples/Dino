@@ -1459,6 +1459,116 @@ h2 {
   }
 }
 
+/* c535 polish UI */
+.continue-cta {
+  border-color: rgba(244, 193, 75, 0.65);
+  background: linear-gradient(180deg, rgba(244, 193, 75, 0.28), rgba(232, 93, 76, 0.18));
+  animation: continuePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes continuePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 193, 75, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(244, 193, 75, 0); }
+}
+
+.stamp-habitat-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.habitat-filter.active {
+  background: rgba(244, 193, 75, 0.35);
+  border-color: rgba(244, 193, 75, 0.7);
+}
+
+.zoom-scope {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 16;
+  background:
+    radial-gradient(circle at center, transparent 28%, rgba(8, 20, 16, 0.55) 52%, rgba(8, 20, 16, 0.78) 100%);
+  box-shadow: inset 0 0 0 2px rgba(96, 165, 250, 0.35);
+}
+
+.nest-proximity {
+  position: absolute;
+  left: 50%;
+  bottom: calc(118px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: min(280px, 78vw);
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(15, 40, 28, 0.82);
+  border: 1px solid rgba(98, 210, 111, 0.45);
+  pointer-events: none;
+}
+
+.nest-proximity .bar.nest {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.nest-proximity .bar.nest i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #62d26f, #f4c14b);
+}
+
+.photo-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  background: rgba(255, 250, 235, 0.85);
+}
+
+.photo-flash.on {
+  animation: photoFlashPop 0.45s ease-out forwards;
+}
+
+@keyframes photoFlashPop {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.level-card.locked .swatch::after {
+  content: '🔒';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.4rem;
+  background: rgba(10, 20, 14, 0.35);
+}
+
+.level-card.locked.padlock-shake .swatch::after {
+  animation: padlockShake 0.45s ease;
+}
+
+@keyframes padlockShake {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  20% { transform: translateX(-3px) rotate(-8deg); }
+  40% { transform: translateX(3px) rotate(8deg); }
+  60% { transform: translateX(-2px) rotate(-5deg); }
+  80% { transform: translateX(2px) rotate(5deg); }
+}
+
+.level-card .swatch {
+  position: relative;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .title-bg,
   .brand,
@@ -1473,7 +1583,10 @@ h2 {
   .alarm-ring,
   .aim-lock-ring,
   .mini-map.danger-pulse,
-  .crew-intro {
+  .crew-intro,
+  .continue-cta,
+  .photo-flash.on,
+  .level-card.locked.padlock-shake .swatch::after {
     animation: none !important;
   }
 }

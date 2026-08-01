@@ -605,6 +605,114 @@ async function main() {
   });
   console.log('7dce iterations:', iter7dce);
 
+  // Branch c535 polish iterations
+  const iterC535 = await page.evaluate(async () => {
+    const qa = window.__DINO_GUARD_QA__;
+    const g = window.__DINO_GUARD__;
+    qa.startLevel(0);
+    qa.skipCountdown();
+    // Soft searchlight during countdown / chase
+    g.phase = 'countdown';
+    g._ensureSearchLight(0.45);
+    g._updateSearchLight(0.05, 0.45);
+    const searchOn = !!g._searchLight?.visible && g._searchLight.intensity > 0;
+    // Chase roar rings via INTRO→CHASE
+    g.phase = 'intro';
+    g.phaseT = 1.25;
+    g._updatePhase(0.02);
+    const roarRings = g._roarRings?.length || 0;
+    // Mother shockwave + shield
+    g.phase = 'combat';
+    g.predator.userData.hp = g.predator.userData.maxHp * 0.5;
+    g.mother.visible = false;
+    g._updatePhase(0.05);
+    // Force mother assist path if needed
+    if (!g.mother.visible) {
+      g.mother.visible = true;
+      g._spawnShockwave(g.mother.position.clone());
+      g._spawnMotherShield(g.mother);
+    }
+    const shock = g._shockwaves?.length || 0;
+    const shield = g._motherShields?.length || 0;
+    // Escort collectibles + stun stars + nest proximity + chirps
+    g._beginEscort();
+    const ambers = (g.world?.userData?.ambers || []).filter((a) => a.visible).length;
+    const fossils = (g.world?.userData?.fossils || []).filter((f) => f.visible).length;
+    const stun = g._stunStars?.length || 0;
+    const searchOff = !g._searchLight?.visible;
+    g._updateEscortChirps(2);
+    const chirps = g._chirpBubbles?.length || 0;
+    const nest = g.world.userData.nestPos;
+    const nestDist = Math.hypot(g.baby.position.x - nest.x, g.baby.position.z - nest.z);
+    g.ui.setNestProximity(true, 0.5, nestDist);
+    const nestHud = !document.getElementById('nest-proximity')?.classList.contains('hidden');
+    // Pollen on rainforest
+    const pollen = g.world?.userData?.pollen?.length || 0;
+    // Continue CTA + lastLevelId
+    const lastId = g.save.lastLevelId === 'rainforest';
+    document.getElementById('btn-result-continue')?.click?.();
+    g.ui.showTitle();
+    g.ui.refreshContinueCta();
+    const continueBtn = !!document.getElementById('btn-continue') &&
+      !document.getElementById('btn-continue').classList.contains('hidden');
+    // Habitat filters + photo flash + zoom scope + padlock
+    g.ui.showStamps();
+    document.querySelector('[data-habitat="sea"]')?.click();
+    const seaCards = [...document.querySelectorAll('#stamp-grid .stamp-card')].every(
+      (c) => c.dataset.habitat === 'sea',
+    );
+    g.ui.flashPhoto();
+    const photo = document.getElementById('photo-flash')?.classList.contains('on');
+    g.ui.setZoomScope(true);
+    const zoomScope = !document.getElementById('zoom-scope')?.classList.contains('hidden');
+    // Victory camera
+    const victoryFn = typeof g._updateVictoryCamera === 'function';
+    // Damage smoke + SOS
+    qa.startLevel(0);
+    qa.skipCountdown();
+    g.vehicle.userData.hp = g.vehicle.userData.maxHp * 0.2;
+    g._smokeCooldown = 0;
+    g._updateDamageSmoke(0.05);
+    const smoke = g._damageSmoke?.length || 0;
+    g._spawnSosFlare(g.baby.position.clone().setY(1.5));
+    const sos = g._sosFlares?.length || 0;
+    // Amber/fossils in Perfect stars
+    g._eggsCollected = 0;
+    g._ambersCollected = 2;
+    g._fossilsCollected = 0;
+    if (g.baby) g.baby.userData.hp = g.baby.userData.maxHp;
+    if (g.vehicle) g.vehicle.userData.hp = g.vehicle.userData.maxHp;
+    const starsAmber = g._missionStars();
+    // Fail clears nest proximity
+    g.ui.setNestProximity(true, 1, 0);
+    g._fail('QA fail cleanup');
+    const nestCleared = document.getElementById('nest-proximity')?.classList.contains('hidden');
+    return {
+      searchOn,
+      roarRings,
+      shock,
+      shield,
+      ambers,
+      fossils,
+      stun,
+      searchOff,
+      chirps,
+      nestHud,
+      pollen,
+      lastId,
+      continueBtn,
+      seaCards,
+      photo,
+      zoomScope,
+      victoryFn,
+      smoke,
+      sos,
+      starsAmber,
+      nestCleared,
+    };
+  });
+  console.log('c535 iterations:', iterC535);
+
   await browser.close();
   preview.kill();
 
@@ -717,7 +825,28 @@ async function main() {
     !iter7dce.friends ||
     !iter7dce.shareBtn ||
     iter7dce.petals < 5 ||
-    !iter7dce.bloom;
+    !iter7dce.bloom ||
+    !iterC535.searchOn ||
+    iterC535.roarRings < 1 ||
+    iterC535.shock < 1 ||
+    iterC535.shield < 1 ||
+    iterC535.ambers < 1 ||
+    iterC535.fossils < 1 ||
+    iterC535.stun < 1 ||
+    !iterC535.searchOff ||
+    iterC535.chirps < 1 ||
+    !iterC535.nestHud ||
+    iterC535.pollen < 10 ||
+    !iterC535.lastId ||
+    !iterC535.continueBtn ||
+    !iterC535.seaCards ||
+    !iterC535.photo ||
+    !iterC535.zoomScope ||
+    !iterC535.victoryFn ||
+    iterC535.smoke < 1 ||
+    iterC535.sos < 1 ||
+    iterC535.starsAmber < 3 ||
+    !iterC535.nestCleared;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

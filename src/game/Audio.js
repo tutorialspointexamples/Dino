@@ -141,6 +141,12 @@ export class AudioBus {
     setTimeout(() => this.tone({ freq: 1200, dur: 0.1, type: 'sine', gain: 0.05, slide: -200 }), 70);
   }
 
+  /** Soft baby chirp during escort / celebration. */
+  chirp() {
+    this.tone({ freq: 880, dur: 0.08, type: 'sine', gain: 0.045, slide: 160 });
+    setTimeout(() => this.tone({ freq: 1100, dur: 0.07, type: 'triangle', gain: 0.035 }), 60);
+  }
+
   unlock() {
     [523, 659, 784].forEach((f, i) => {
       setTimeout(() => this.tone({ freq: f, dur: 0.12, type: 'triangle', gain: 0.07 }), i * 90);

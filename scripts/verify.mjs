@@ -194,6 +194,30 @@ ok(html.includes('paleo-tip') && read('src/game/UI.js').includes('showPaleoTip')
 ok(html.includes('friends-compare') && read('src/game/UI.js').includes('_renderFriendsCompare') && read('src/style.css').includes('friends-compare'), '7dce-9 friends stamp compete card');
 ok(world.includes('userData.petals') && game.includes('userData.petals') && game.includes('King flower petal bloom'), '7dce-10 king flower petal bloom pulse');
 
+// Branch c535 polish iterations (10)
+ok(world.includes('createRoarRing') && game.includes('_spawnRoarRing') && game.includes('_updateRoarRings'), 'c535-1 predator roar sonic rings');
+ok(world.includes('createShockwave') && game.includes('_spawnShockwave'), 'c535-2 mother arrival shockwave');
+ok(world.includes("kind = 'amber'") && game.includes('_updateAmbers') && game.includes('_ambersCollected'), 'c535-3 escort amber gems');
+ok(world.includes('createStunStar') && game.includes('_spawnStunStars'), 'c535-4 predator retreat stun stars');
+ok(game.includes('_ensureSearchLight') && game.includes('_updateSearchLight') && game.includes('chaseSearchLight'), 'c535-5 chase search spotlight');
+ok(read('src/game/Save.js').includes('lastLevelId') && html.includes('btn-continue') && read('src/game/UI.js').includes('refreshContinueCta'), 'c535-6 continue last mission CTA');
+ok(world.includes('createChirpBubble') && game.includes('_updateEscortChirps') && read('src/game/Audio.js').includes('chirp()'), 'c535-7 baby escort chirp bubbles');
+ok(html.includes('photo-flash') && read('src/game/UI.js').includes('flashPhoto'), 'c535-8 stamp photo flash');
+ok(world.includes('userData.pollen') && game.includes('pollen') && game.includes('Rainforest pollen'), 'c535-9 rainforest pollen motes');
+ok(html.includes('nest-proximity') && read('src/game/UI.js').includes('setNestProximity') && game.includes('setNestProximity'), 'c535-10 nest proximity HUD');
+
+// c535 gap-fix / store-parity extras
+ok(world.includes("kind = 'fossil'") && game.includes('_updateFossils') && game.includes('_fossilsCollected'), 'c535 fossils collectibles');
+ok(game.includes('_updateVictoryCamera') && !read('src/game/Game.js').match(/PHASE\.CELEBRATE[\s\S]{0,120}_updateCamera\(dt\)/), 'c535 victory camera orbit');
+ok(html.includes('zoom-scope') && read('src/game/UI.js').includes('setZoomScope'), 'c535 zoom scope overlay');
+ok(world.includes('createDamageSmoke') && game.includes('_updateDamageSmoke'), 'c535 vehicle damage smoke');
+ok(read('src/style.css').includes('padlock-shake') && read('src/game/UI.js').includes('padlock-shake'), 'c535 locked map padlock shake');
+ok(read('src/game/data.js').includes('dinoHabitat') && html.includes('stamp-habitat-filters'), 'c535 stamp habitat filters');
+ok(world.includes('createSosFlare') && game.includes('_spawnSosFlare'), 'c535 baby SOS flares');
+ok(world.includes('createMotherShield') && game.includes('_spawnMotherShield'), 'c535 mother protect shield');
+ok(game.includes('_ambersCollected') && game.includes('_fossilsCollected') && game.includes('collectibles'), 'c535 amber+fossils count for Perfect stars');
+ok(game.includes('setNestProximity?.(false)') && game.includes('_fail') , 'c535 fail/quit clears sticky HUD');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');
