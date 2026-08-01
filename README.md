@@ -69,6 +69,19 @@ npm run qa
 9. **Rainforest floating pollen** — drifting spore motes in Tropical Rainforest  
 10. **Nest proximity HUD** — distance meter that pulses when the nest is near  
 
+### Gap-fix iterations (branch 0a2e)
+
+1. Hide nest proximity + zoom scope on mission fail  
+2. Amber gems also count toward 3-star Perfect Rescue  
+3. Soft searchlight pulse during alarm countdown  
+4. Continue Rescue toast + Captain Rio callout  
+5. Boss-level alarm spawns an immediate roar sonic ring  
+6. Searchlight intensity forced off when escort begins  
+7. Quit-to-map clears nest proximity / zoom overlays  
+8. Stamp detail modal triggers photo-flash shutter  
+9. Fail path clears HUD overlays that could stick after death  
+10. Continue CTA refreshes from saved `lastLevelId` on title  
+
 Prior branches (8c65 / e9eb / 1c1b / 9f1d / 7dce / ed9a+) also cover predator eye glow, tire skids, water splash, zoom scope, scatter trails, victory orbit, herd silhouettes, fossils, depth gauge, stamp page flip, volcano embers, mother shield, damage smoke, thank-you hearts, and more (see `npm run verify`).
 
 ## Project layout

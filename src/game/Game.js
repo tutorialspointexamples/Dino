@@ -516,7 +516,11 @@ export class Game {
     this.audio.alarm();
     this.audio.countdown();
     this.audio.startAmbient();
-    if (level.boss) this.audio.roar();
+    if (level.boss) {
+      this.audio.roar();
+      // Boss alarm gets an immediate sonic roar ring for drama
+      setTimeout(() => this._spawnRoarRing?.(this.predator?.position), 120);
+    }
     this._eggsCollected = 0;
     this._fossilsCollected = 0;
     this._ambersCollected = 0;
@@ -592,6 +596,8 @@ export class Game {
   quitToHub() {
     this.paused = false;
     this.ui.hidePause();
+    this.ui.setNestProximity?.(false);
+    this.ui.setZoomScope?.(false);
     this.audio.stopAmbient();
     this.showTitleScene();
     this.ui.showHub();
@@ -642,6 +648,8 @@ export class Game {
         VEHICLES.find((v) => v.type === 'police' && isVehicleUnlocked(v, this.save.cleared.length))?.id ||
         'police_scout';
     }
+    this.ui.toast(`Continuing ${level.name}…`);
+    this.ui.crewCallout?.('Captain Rio', `Back to ${level.name} — Guard roll out!`);
     this.startMission(level, vehicleId);
   }
 
@@ -722,7 +730,9 @@ export class Game {
       : 0;
     let stars = 1;
     if (babyRatio > 0.35 && jeepRatio > 0.25) stars = 2;
-    if (babyRatio > 0.65 && jeepRatio > 0.45 && this._eggsCollected >= 2) stars = 3;
+    // Eggs or amber gems both count toward a perfect rescue
+    const collectOk = (this._eggsCollected || 0) >= 2 || (this._ambersCollected || 0) >= 1;
+    if (babyRatio > 0.65 && jeepRatio > 0.45 && collectOk) stars = 3;
     return stars;
   }
 
@@ -2204,6 +2214,8 @@ export class Game {
     if (this.predator) this.predator.userData.anim.state = 'hurt';
     this._spawnRetreatSmoke();
     this._spawnStunStars();
+    // Dim the chase searchlight once escort starts
+    if (this._searchLight?.spot) this._searchLight.spot.intensity = 0;
     this.ui.showAim(false);
     this.ui.setDanger(false);
     this.ui.setSosBanner?.(false);
@@ -2336,6 +2348,8 @@ export class Game {
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
     this.ui.updateNestCompass(false);
+    this.ui.setNestProximity?.(false);
+    this.ui.setZoomScope?.(false);
     document.getElementById('tutorial-tip')?.classList.add('hidden');
     this.audio.lose();
     this.ui.setPhaseRibbon(false);
@@ -2890,7 +2904,7 @@ export class Game {
   _attachSearchLight() {
     this._clearSearchLight();
     if (!this.vehicle || this.level?.water) return;
-    const spot = new THREE.SpotLight(0xfff2c8, 1.1, 28, 0.38, 0.4, 1);
+    const spot = new THREE.SpotLight(0xfff2c8, 0.7, 28, 0.38, 0.4, 1);
     spot.name = 'searchLight';
     spot.position.set(0, 1.6, -0.2);
     const target = new THREE.Object3D();
@@ -2912,10 +2926,14 @@ export class Game {
   _updateSearchLight(_dt) {
     const sl = this._searchLight;
     if (!sl?.spot) return;
+    // Soft beam during alarm countdown; full sweep in chase/combat; off for escort
+    const alarm = this.phase === PHASE.COUNTDOWN;
     const chase =
       [PHASE.INTRO, PHASE.CHASE, PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase) &&
       !this.level?.water;
-    const pulse = chase ? 1.0 + Math.sin(performance.now() * 0.005) * 0.25 : 0;
+    let pulse = 0;
+    if (alarm) pulse = 0.55 + Math.sin(performance.now() * 0.008) * 0.2;
+    else if (chase) pulse = 1.0 + Math.sin(performance.now() * 0.005) * 0.25;
     sl.spot.intensity = pulse;
   }
 

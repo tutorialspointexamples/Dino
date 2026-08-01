@@ -377,6 +377,8 @@ export class UI {
     this.$('stamp-detail-name').textContent = d.name;
     this.$('stamp-detail-role').textContent = (d.role || 'dinosaur').toUpperCase();
     this.$('stamp-detail-fact').textContent = d.facts;
+    // Soft photo flash when inspecting a collected stamp
+    this.flashStampPhoto();
     const swatch = this.$('stamp-detail-swatch');
     if (swatch) {
       swatch.style.background = `linear-gradient(135deg,${hexCss(d.color)},${hexCss(d.accent)})`;
