@@ -605,6 +605,84 @@ async function main() {
   });
   console.log('7dce iterations:', iter7dce);
 
+  const iter9f1d = await page.evaluate(async () => {
+    const qa = window.__DINO_GUARD_QA__;
+    const g = window.__DINO_GUARD__;
+    // 1 crystal prism beams
+    qa.startLevel(1); // crystal_cave
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const prisms = g.world?.userData?.prismBeams?.length || 0;
+    // 2 Danxia sand dust
+    qa.startLevel(3); // danxia
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const sand = g.world?.userData?.sandDust?.length || 0;
+    // 3 mud geysers
+    qa.startLevel(4); // vine_swamp
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const geysers = g.world?.userData?.mudGeysers?.length || 0;
+    // 4 sky flybys
+    qa.startLevel(0); // rainforest
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const flybys = g.world?.userData?.skyFlybys?.length || 0;
+    // 5 baby panic dust wiring
+    const panicWired = typeof g._updateBabyPanicDust === 'function';
+    // 6 radio chatter
+    const radioEl = !!document.getElementById('radio-chatter');
+    g.ui.showRadioChatter('QA radio check');
+    const radioShown = !document.getElementById('radio-chatter')?.classList.contains('hidden');
+    const radioSfx = typeof g.audio.radio === 'function';
+    // 7 title spotlight + siren pulse
+    g.ui.showTitle();
+    await new Promise((r) => setTimeout(r, 40));
+    const titleSpot = !!g.titleSpotlight;
+    const titleSirens = (g.titleVehicle?.userData?.sirens?.length || 0) >= 2;
+    // 8 perfect achievement toast
+    const achieveEl = !!document.getElementById('achievement-toast');
+    g.ui.showAchievementToast('PERFECT RESCUE!', 'QA check');
+    const achieveShown = !document.getElementById('achievement-toast')?.classList.contains('hidden');
+    const perfectSfx = typeof g.audio.perfect === 'function';
+    // 9 nest incubator
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const incubator = !!g.world?.userData?.nestBeacon?.nestIncubator;
+    // 10 stamp habitat filters
+    g.ui.stampFilter = 'sea';
+    g.ui.showStamps();
+    await new Promise((r) => setTimeout(r, 40));
+    const filterUi = !!document.getElementById('stamp-filters');
+    const seaCards = [...document.querySelectorAll('#stamp-grid .stamp-card')].filter(
+      (c) => c.dataset.habitat === 'sea',
+    ).length;
+    const landLeak = [...document.querySelectorAll('#stamp-grid .stamp-card')].some(
+      (c) => c.dataset.habitat === 'land',
+    );
+    return {
+      prisms,
+      sand,
+      geysers,
+      flybys,
+      panicWired,
+      radioEl,
+      radioShown,
+      radioSfx,
+      titleSpot,
+      titleSirens,
+      achieveEl,
+      achieveShown,
+      perfectSfx,
+      incubator,
+      filterUi,
+      seaCards,
+      landLeak,
+    };
+  });
+  console.log('9f1d iterations:', iter9f1d);
+
   await browser.close();
   preview.kill();
 
@@ -717,7 +795,24 @@ async function main() {
     !iter7dce.friends ||
     !iter7dce.shareBtn ||
     iter7dce.petals < 5 ||
-    !iter7dce.bloom;
+    !iter7dce.bloom ||
+    iter9f1d.prisms < 4 ||
+    iter9f1d.sand < 10 ||
+    iter9f1d.geysers < 4 ||
+    iter9f1d.flybys < 2 ||
+    !iter9f1d.panicWired ||
+    !iter9f1d.radioEl ||
+    !iter9f1d.radioShown ||
+    !iter9f1d.radioSfx ||
+    !iter9f1d.titleSpot ||
+    !iter9f1d.titleSirens ||
+    !iter9f1d.achieveEl ||
+    !iter9f1d.achieveShown ||
+    !iter9f1d.perfectSfx ||
+    !iter9f1d.incubator ||
+    !iter9f1d.filterUi ||
+    iter9f1d.seaCards < 1 ||
+    iter9f1d.landLeak;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);
