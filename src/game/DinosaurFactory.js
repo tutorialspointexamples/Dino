@@ -257,11 +257,13 @@ export function createDinosaur(def) {
     const u = root.userData;
     u.anim.t += dt;
     const t = u.anim.t;
+    const limp = !!u.limp;
     const walk = moving || u.anim.state === 'chase' || u.anim.state === 'run' ? 1 : 0.25;
+    const limpWalk = limp ? 0.55 : 1;
     const attackBoost = u.anim.state === 'attack' ? 1.4 : 1;
     const panicBoost = u.anim.panic ? 1.55 : 1;
 
-    body.position.y = Math.sin(t * 8 * walk * panicBoost) * 0.05 * s * (u.anim.panic ? 1.4 : 1);
+    body.position.y = Math.sin(t * 8 * walk * panicBoost * limpWalk) * 0.05 * s * (u.anim.panic ? 1.4 : 1);
     neck.rotation.x = Math.sin(t * 3) * 0.1 + (u.anim.state === 'attack' ? -0.35 : 0);
     head.rotation.y = Math.sin(t * 2.2) * 0.15;
     head.rotation.x = u.anim.state === 'attack' ? Math.sin(t * 12) * 0.2 : Math.sin(t * 1.5) * 0.05;
@@ -269,15 +271,18 @@ export function createDinosaur(def) {
       jaw.rotation.x = u.anim.state === 'attack' ? Math.sin(t * 14) * 0.55 : Math.sin(t * 2) * 0.08;
       jaw.position.y = (u.anim.state === 'attack' ? -0.12 : -0.05) * s;
     }
-    tail.rotation.y = Math.sin(t * 5 * walk) * 0.45;
+    tail.rotation.y = Math.sin(t * 5 * walk * limpWalk) * 0.45;
     tail.rotation.x = Math.sin(t * 4) * 0.1;
 
     legs.forEach((leg, i) => {
       const phase = i % 2 === 0 ? 1 : -1;
+      // Injured predators drag one side with a shorter, slower stride
+      const limpAmp = limp ? (i % 2 === 0 ? 0.35 : 0.85) : 1;
       if (isAquatic) {
-        leg.rotation.z = Math.sin(t * 6 * walk) * 0.35 * phase;
+        leg.rotation.z = Math.sin(t * 6 * walk * limpWalk) * 0.35 * phase * limpAmp;
       } else {
-        leg.rotation.x = Math.sin(t * 9 * walk * attackBoost * panicBoost) * 0.65 * phase * walk;
+        leg.rotation.x =
+          Math.sin(t * 9 * walk * attackBoost * panicBoost * limpWalk) * 0.65 * phase * walk * limpAmp;
       }
     });
 
@@ -293,8 +298,11 @@ export function createDinosaur(def) {
     }
 
     if (u.anim.state === 'hurt') {
-      body.rotation.z = Math.sin(t * 30) * 0.12;
+      body.rotation.z = Math.sin(t * 30) * 0.12 + (limp ? 0.12 : 0);
       body.position.x = Math.sin(t * 40) * 0.05;
+    } else if (limp) {
+      body.rotation.z = THREE.MathUtils.lerp(body.rotation.z, 0.14 + Math.sin(t * 5) * 0.04, 1 - Math.pow(0.01, dt));
+      body.position.x = THREE.MathUtils.lerp(body.position.x, 0.04, 1 - Math.pow(0.01, dt));
     } else {
       body.rotation.z = THREE.MathUtils.lerp(body.rotation.z, 0, 1 - Math.pow(0.001, dt));
       body.position.x = THREE.MathUtils.lerp(body.position.x, 0, 1 - Math.pow(0.001, dt));

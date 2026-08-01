@@ -56,18 +56,18 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (branch 886a)
+### Verification iterations (branch 134f)
 
-1. **Smart aim lock reticle** tracking predators in Auto / Zoom  
-2. **Mother arrival ring** expanding ground FX  
-3. **Rainforest rainfall** particle atmosphere  
-4. **Siren boost** (Shift / BOOST) with fuel meter  
-5. **Mission rescue timer** on the result screen  
-6. **Headbutt near-miss** dodge bonus + SFX  
-7. **Ocean caustic light** shimmer for water biomes  
-8. **Stamp unlock fanfare** (audio + pulse animation)  
-9. **Radar danger pulse** when baby HP is critical  
-10. **Guard crew intro roster** at mission start  
+1. **Single-pass dino animation** — removed double `updateAnim` so walk cycles run at correct speed  
+2. **Predator limp visuals** — asymmetric stride + body lean when low HP  
+3. **Siren glow materials** — blue/red lightbar emissive actually lights during boost  
+4. **Fail-screen Try Again** — restart CTA when a mission is lost  
+5. **Live HUD mission clock** — TIME pill updates during the rescue  
+6. **Escort path refresh + egg radar** — chevrons follow baby→nest; eggs plot on mini-map  
+7. **Muzzle flash** — short additive flash on every shot (mode-tinted)  
+8. **Vehicle hit flash** — chassis flash on headbutt / croc nibble  
+9. **Wheel steer + chassis lean** — front wheels yaw and body banks into turns  
+10. **Boost FOV punch** — camera whoosh when siren boost is active  
 
 ## Project layout
 

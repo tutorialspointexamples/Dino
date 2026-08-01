@@ -29,6 +29,7 @@ export class UI {
     this.$('btn-quit').onclick = () => this.game.quitToHub();
     this.$('btn-result-continue').onclick = () => this.showHub();
     this.$('btn-result-next')?.addEventListener('click', () => this.game.startNextMission());
+    this.$('btn-result-retry')?.addEventListener('click', () => this.game.restartMission());
     this.$('btn-mute').onclick = () => {
       const on = this.game.audio.toggle();
       this.$('btn-mute').textContent = on ? 'VOL' : 'OFF';
@@ -359,8 +360,21 @@ export class UI {
     if (nextBtn) {
       nextBtn.classList.toggle('hidden', !(win && hasNext));
     }
+    const retryBtn = this.$('btn-result-retry');
+    if (retryBtn) {
+      retryBtn.classList.toggle('hidden', !!win);
+    }
     const cont = this.$('btn-result-continue');
-    if (cont) cont.className = win && hasNext ? 'btn' : 'btn primary';
+    if (cont) cont.className = win && hasNext ? 'btn' : win ? 'btn primary' : 'btn';
+  }
+
+  updateMissionClock(secs = 0) {
+    const el = this.$('mission-clock');
+    if (!el) return;
+    const s = Math.max(0, Math.floor(secs));
+    const mins = Math.floor(s / 60);
+    const rem = s % 60;
+    el.textContent = `${mins}:${String(rem).padStart(2, '0')}`;
   }
 
   updateNestCompass(show, angleRad = 0) {

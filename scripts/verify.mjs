@@ -158,6 +158,18 @@ ok(read('src/game/UI.js').includes('setRadarDanger') && read('src/style.css').in
 ok(html.includes('crew-intro') && game.includes('showCrewIntro') && game.includes('CREW.map'), 'guard crew intro roster');
 ok(read('src/style.css').includes('160px') && read('src/style.css').includes('boost-btn'), 'GUARD HUD clears radar + boost clickable');
 
+// Branch 134f polish iterations
+ok(!game.includes('actor.userData.updateAnim(dt, true)') && !game.includes('predator.userData.updateAnim(dt, false)'), 'single-pass dino anim (no double updateAnim)');
+ok(dino.includes('u.limp') && dino.includes('limpAmp'), 'predator limp visual animation');
+ok(vehicle.includes('emissive: 0x3b82f6') && vehicle.includes('emissiveIntensity'), 'siren glow emissive materials');
+ok(html.includes('btn-result-retry') && read('src/game/UI.js').includes('btn-result-retry'), 'fail-screen Try Again CTA');
+ok(html.includes('mission-clock') && read('src/game/UI.js').includes('updateMissionClock'), 'live HUD mission clock');
+ok(game.includes('_chevronRefreshT') && game.includes("plot(egg, '#ffe8b0'"), 'escort chevron refresh + eggs on radar');
+ok(world.includes('createMuzzleFlash') && game.includes('_updateMuzzleFlashes'), 'muzzle flash on fire');
+ok(game.includes('_flashVehicleHit') && game.includes('_updateVehicleHitFlash'), 'vehicle hit flash feedback');
+ok(vehicle.includes('frontWheels') && vehicle.includes('_steer') && game.includes('updateAnim(dt, moving, axis.x)'), 'wheel steer + chassis lean');
+ok(game.includes('_boostActive ? this._baseFov + 7') && game.includes('updateProjectionMatrix'), 'boost camera FOV punch');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

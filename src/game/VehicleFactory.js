@@ -1,8 +1,14 @@
 import * as THREE from 'three';
 import { CREW } from './data.js';
 
-function mat(color) {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.45, metalness: 0.25 });
+function mat(color, opts = {}) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.45,
+    metalness: 0.25,
+    emissive: opts.emissive ?? 0x000000,
+    emissiveIntensity: opts.emissiveIntensity ?? 0,
+  });
 }
 
 function addCrewMember(parent, crew, x, y, z) {
@@ -72,6 +78,7 @@ export function createVehicle(def) {
     chassis.position.y = 0.7;
     chassis.castShadow = true;
     root.add(chassis);
+    root.userData.chassis = chassis;
 
     // Cabin / windshield face -Z (Three.js forward), matching projectile direction
     const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.55, 1.1), mat(accent));
@@ -89,10 +96,16 @@ export function createVehicle(def) {
     const lightbar = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.18, 0.3), mat(0xffffff));
     lightbar.position.set(0, 1.55, 0.1);
     root.add(lightbar);
-    const blue = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, 0.22), mat(0x3b82f6));
+    const blue = new THREE.Mesh(
+      new THREE.BoxGeometry(0.35, 0.12, 0.22),
+      mat(0x3b82f6, { emissive: 0x3b82f6, emissiveIntensity: 0.35 }),
+    );
     blue.position.set(-0.22, 1.62, 0.1);
     root.add(blue);
-    const red = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, 0.22), mat(0xef4444));
+    const red = new THREE.Mesh(
+      new THREE.BoxGeometry(0.35, 0.12, 0.22),
+      mat(0xef4444, { emissive: 0xef4444, emissiveIntensity: 0.35 }),
+    );
     red.position.set(0.22, 1.62, 0.1);
     root.add(red);
     root.userData.sirens = [blue, red];
@@ -107,20 +120,24 @@ export function createVehicle(def) {
     root.add(root.userData.muzzle);
 
     const wheels = [];
-    for (const [x, z] of [
-      [-0.85, 0.9],
-      [0.85, 0.9],
-      [-0.85, -0.9],
-      [0.85, -0.9],
+    const frontWheels = [];
+    for (const [x, z, front] of [
+      [-0.85, 0.9, false],
+      [0.85, 0.9, false],
+      [-0.85, -0.9, true],
+      [0.85, -0.9, true],
     ]) {
       const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.28, 14), mat(0x222222));
       wheel.rotation.z = Math.PI / 2;
       wheel.position.set(x, 0.35, z);
       wheel.castShadow = true;
+      wheel.userData.front = front;
       root.add(wheel);
       wheels.push(wheel);
+      if (front) frontWheels.push(wheel);
     }
     root.userData.wheels = wheels;
+    root.userData.frontWheels = frontWheels;
 
     // All 4 named guard team members
     const seats = [
@@ -168,16 +185,26 @@ export function createVehicle(def) {
 
   root.userData.radius = 1.35;
   root.scale.setScalar(1.25);
-  root.userData.updateAnim = (dt, moving) => {
+  root.userData.updateAnim = (dt, moving, steer = 0) => {
     const u = root.userData;
+    u._steer = THREE.MathUtils.lerp(u._steer || 0, steer, 1 - Math.pow(0.0005, dt));
     if (u.wheels) {
+      const spin = (moving ? 12 : 2) * dt * (u.sirenBoost ? 1.35 : 1);
       for (const w of u.wheels) {
-        w.rotation.x += (moving ? 12 : 2) * dt;
+        w.rotation.x += spin;
+        if (w.userData.front) {
+          // Front wheels yaw with steer input (stick x)
+          w.rotation.y = THREE.MathUtils.lerp(w.rotation.y || 0, -u._steer * 0.55, 1 - Math.pow(0.001, dt));
+        }
       }
+    }
+    if (u.chassis) {
+      const lean = -u._steer * (u.sirenBoost ? 0.14 : 0.09);
+      u.chassis.rotation.z = THREE.MathUtils.lerp(u.chassis.rotation.z, lean, 1 - Math.pow(0.002, dt));
     }
     if (u.propellers) {
       for (const p of u.propellers) {
-        p.rotation.x += 18 * dt;
+        p.rotation.x += 18 * dt * (u.sirenBoost ? 1.4 : 1);
       }
     }
     if (u.sirens) {
@@ -186,10 +213,8 @@ export function createVehicle(def) {
       const blink = Math.sin(performance.now() * rate) > 0;
       u.sirens[0].visible = blink;
       u.sirens[1].visible = !blink;
-      if (u.sirenBoost) {
-        u.sirens[0].material.emissiveIntensity = blink ? 1.2 : 0.2;
-        u.sirens[1].material.emissiveIntensity = blink ? 0.2 : 1.2;
-      }
+      u.sirens[0].material.emissiveIntensity = u.sirenBoost ? (blink ? 1.4 : 0.35) : blink ? 0.7 : 0.2;
+      u.sirens[1].material.emissiveIntensity = u.sirenBoost ? (blink ? 0.35 : 1.4) : blink ? 0.2 : 0.7;
     }
     if (u.marker) {
       u.marker.position.y = 2.8 + Math.sin(performance.now() * 0.006) * 0.12;

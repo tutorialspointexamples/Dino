@@ -15,6 +15,7 @@ import {
   createDustKick,
   createNestChevron,
   createMotherRing,
+  createMuzzleFlash,
 } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
@@ -89,6 +90,10 @@ export class Game {
     this._missionElapsed = 0;
     this._nearMissAwarded = false;
     this._headbuttClosest = 99;
+    this._muzzleFlashes = [];
+    this._vehicleHitFlashT = 0;
+    this._chevronRefreshT = 0;
+    this._baseFov = 55;
     this.heals = [];
     this.world = null;
     this.vehicle = null;
@@ -136,6 +141,7 @@ export class Game {
     for (const c of this._confetti || []) this.scene.remove(c);
     for (const c of this._chevrons || []) this.scene.remove(c);
     for (const r of this._motherRings || []) this.scene.remove(r);
+    for (const f of this._muzzleFlashes || []) this.scene.remove(f);
     this.projectiles = [];
     this.sparks = [];
     this.trails = [];
@@ -143,6 +149,11 @@ export class Game {
     this._confetti = [];
     this._chevrons = [];
     this._motherRings = [];
+    this._muzzleFlashes = [];
+    this._vehicleHitFlashT = 0;
+    this._chevronRefreshT = 0;
+    this.camera.fov = this._baseFov || 55;
+    this.camera.updateProjectionMatrix();
     this._clearChargeTelegraph();
     this.ui?.setCombo?.(0);
     this.ui?.setHpVignette?.(0);
@@ -153,6 +164,7 @@ export class Game {
     this.ui?.setRadarDanger?.(false);
     this.ui?.showCrewIntro?.(false);
     this.ui?.setBoostHud?.(false, 1);
+    this.ui?.updateMissionClock?.(0);
     this.shakeT = 0;
     this._weaponCycleT = 0;
     this._weaponCycleIdx = 0;
@@ -275,6 +287,12 @@ export class Game {
     this._missionElapsed = 0;
     this._nearMissAwarded = false;
     this._headbuttClosest = 99;
+    this._muzzleFlashes = [];
+    this._vehicleHitFlashT = 0;
+    this._chevronRefreshT = 0;
+    this.camera.fov = this._baseFov;
+    this.camera.updateProjectionMatrix();
+    this.ui.updateMissionClock(0);
 
     this.world = buildWorld(level, this.scene);
 
@@ -604,6 +622,8 @@ export class Game {
     this._updateHeals(dt);
     this._updateFootprints(dt);
     this._updateHitFlash(dt);
+    this._updateVehicleHitFlash(dt);
+    this._updateMuzzleFlashes(dt);
     this._updateCombo(dt);
     this._updateConfetti(dt);
     this._updateChevrons(dt);
@@ -612,6 +632,7 @@ export class Game {
     this._updateAimLock();
     this._updateEggs();
     this._updateHpVignette();
+    this.ui.updateMissionClock(this._missionElapsed);
 
     if (this.vehicle) {
       this.ui.updateHp(this.vehicle.userData.hp / this.vehicle.userData.maxHp);
@@ -660,9 +681,7 @@ export class Game {
       this.ui.setMission(`Protect ${DINOSAURS[this.level.baby].name}!`);
       this.ui.setPhaseRibbon(true, 'CHASE', 'chase');
     }
-    // Gentle idle bob during countdown
-    if (this.predator) this.predator.userData.updateAnim(dt, false);
-    if (this.baby) this.baby.userData.updateAnim(dt, false);
+    // Actor idle bob handled once via _updateActors (avoid double-speed walk)
   }
 
   _autoCycleWeapons(dt) {
@@ -695,6 +714,7 @@ export class Game {
         this.vehicle.position.addScaledVector(push, 0.08);
         this.vehicle.userData.hp = Math.max(8, this.vehicle.userData.hp - 6 * dt);
         if (!c.userData.warnT || c.userData.warnT <= 0) {
+          this._flashVehicleHit(0x3a5a28);
           this.ui.toast('Mugger crocodile! Steer around!');
           this.ui.crewCallout('Medic Luma', 'Croc bay — keep clear of the water edge!');
           c.userData.warnT = 1.8;
@@ -911,7 +931,7 @@ export class Game {
       v.position.z *= r / len;
     }
     v.position.y = this.level.water ? 0.35 : 0;
-    v.userData.updateAnim(dt, moving);
+    v.userData.updateAnim(dt, moving, axis.x);
     v.userData.fireCooldown = Math.max(0, v.userData.fireCooldown - dt);
 
     this._trailCooldown -= dt;
@@ -1006,6 +1026,64 @@ export class Game {
     if (this.predator) {
       v.userData.shotsAtPredator += mode === 'scatter' ? 3 : 1;
     }
+
+    // Muzzle flash feedback — bigger/bluer for zoom, wider for scatter
+    const flashColor = mode === 'zoom' ? 0x60a5fa : mode === 'scatter' ? 0xffe08a : 0xfff3a0;
+    const flashScale = mode === 'scatter' ? 1.45 : mode === 'zoom' ? 1.25 : 1;
+    const flash = createMuzzleFlash(flashColor, flashScale);
+    flash.position.copy(muzzle);
+    this.scene.add(flash);
+    this._muzzleFlashes.push(flash);
+  }
+
+  _updateMuzzleFlashes(dt) {
+    if (!this._muzzleFlashes?.length) return;
+    for (let i = this._muzzleFlashes.length - 1; i >= 0; i--) {
+      const f = this._muzzleFlashes[i];
+      f.userData.life -= dt;
+      const k = Math.max(0, f.userData.life / (f.userData.maxLife || 0.12));
+      f.material.opacity = k;
+      const s = (f.userData.baseScale || 1) * (0.7 + (1 - k) * 1.4);
+      f.scale.setScalar(s);
+      if (f.userData.life <= 0) {
+        this.scene.remove(f);
+        this._muzzleFlashes.splice(i, 1);
+      }
+    }
+  }
+
+  _vehicleBodyMesh() {
+    const v = this.vehicle;
+    if (!v) return null;
+    if (v.userData.chassis?.material?.emissive) return v.userData.chassis;
+    let found = null;
+    v.traverse((child) => {
+      if (!found && child.isMesh && child.material?.emissive && child !== v.userData.sirens?.[0] && child !== v.userData.sirens?.[1]) {
+        found = child;
+      }
+    });
+    return found;
+  }
+
+  _flashVehicleHit(color = 0xe85d4c) {
+    const body = this._vehicleBodyMesh();
+    if (!body?.material) return;
+    if (!body.material.emissive) body.material.emissive = new THREE.Color(0x000000);
+    body.material.emissive.setHex(color);
+    body.material.emissiveIntensity = 0.9;
+    this._vehicleHitFlashT = 0.22;
+  }
+
+  _updateVehicleHitFlash(dt) {
+    if (this._vehicleHitFlashT <= 0) return;
+    this._vehicleHitFlashT -= dt;
+    const body = this._vehicleBodyMesh();
+    if (!body?.material) return;
+    if (this._vehicleHitFlashT <= 0) {
+      body.material.emissiveIntensity = 0;
+    } else {
+      body.material.emissiveIntensity = 0.15 + this._vehicleHitFlashT * 3.2;
+    }
   }
 
   _updatePredatorLimp() {
@@ -1073,6 +1151,13 @@ export class Game {
   }
 
   _updateChevrons(dt) {
+    if (this.phase === PHASE.ESCORT) {
+      this._chevronRefreshT = (this._chevronRefreshT || 0) - dt;
+      if (this._chevronRefreshT <= 0) {
+        this._chevronRefreshT = 0.5;
+        this._spawnEscortChevrons();
+      }
+    }
     if (!this._chevrons?.length) return;
     const t = performance.now() * 0.001;
     for (const c of this._chevrons) {
@@ -1098,6 +1183,10 @@ export class Game {
       this.camera.position.x += (Math.random() - 0.5) * 0.35;
       this.camera.position.y += (Math.random() - 0.5) * 0.2;
     }
+    // Siren boost FOV punch — whoosh when dashing
+    const wantFov = this._boostActive ? this._baseFov + 7 : zoom ? this._baseFov - 4 : this._baseFov;
+    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, wantFov, 1 - Math.pow(0.002, dt));
+    this.camera.updateProjectionMatrix();
     const look = this.vehicle.position.clone();
     look.y += 1.4;
     look.add(new THREE.Vector3(0, 0, -4).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.vehicle.rotation.y));
@@ -1254,6 +1343,7 @@ export class Game {
       if (chargeDist < 2.4) {
         vehicle.userData.hp -= 28;
         this._spawnSparks(vehicle.position, 0xe85d4c, 10);
+        this._flashVehicleHit(0xe85d4c);
         this.audio.headbutt();
         this.shakeT = 0.7;
         predator.position.add(
@@ -1499,7 +1589,7 @@ export class Game {
     actor.lookAt(actor.position.x + dir.x, actor.position.y, actor.position.z + dir.z);
     actor.rotation.y += Math.PI;
     this._clamp(actor, 46);
-    actor.userData.updateAnim(dt, true);
+    // Animation advanced once in _updateActors — keeps walk cycles at correct speed
   }
 
   _clamp(obj, r) {
@@ -1824,6 +1914,11 @@ export class Game {
     plot(this.predator, '#e85d4c', 5);
     if (this.mother?.visible) plot(this.mother, '#60a5fa', 4);
     for (const c of this.world?.userData?.crocs || []) plot(c, '#3a5a28', 3);
+    // Escort eggs — cream blips so kids can hunt them on the radar
+    for (const egg of this.world?.userData?.eggs || []) {
+      if (!egg.visible || egg.userData.collected) continue;
+      plot(egg, '#ffe8b0', 3);
+    }
     // Vehicle always center
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();

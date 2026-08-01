@@ -582,6 +582,24 @@ export function createTrailPuff(color, water = false) {
   return mesh;
 }
 
+/** Short-lived additive muzzle flash for weapon fire feedback. */
+export function createMuzzleFlash(color = 0xfff3a0, scale = 1) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28 * scale, 8, 8),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+    }),
+  );
+  mesh.userData.life = 0.12;
+  mesh.userData.maxLife = 0.12;
+  mesh.userData.kind = 'muzzle';
+  mesh.userData.baseScale = scale;
+  return mesh;
+}
+
 /** Oval footprint left by walking dinosaurs. */
 export function createFootprint(color = 0x3a2a18) {
   const mesh = new THREE.Mesh(

@@ -358,6 +358,16 @@ h2 {
   text-align: center;
 }
 
+.hud-pill.clock-pill {
+  min-width: 72px;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-pill.clock-pill strong {
+  letter-spacing: 0.02em;
+}
+
 .bar {
   width: 90px;
   height: 12px;

@@ -421,6 +421,44 @@ async function main() {
   });
   console.log('886a iterations:', iter886a);
 
+  // Branch 134f polish iterations
+  const iter134f = await page.evaluate(() => {
+    const g = window.__DINO_GUARD__;
+    g.startMission(window.__DINO_GUARD_QA__.LEVELS[0], 'police_scout');
+    g.skipCountdown();
+    const clock = document.getElementById('mission-clock');
+    const retry = document.getElementById('btn-result-retry');
+    const sirenEmissive = !!g.vehicle?.userData?.sirens?.[0]?.material?.emissive;
+    const frontWheels = g.vehicle?.userData?.frontWheels?.length || 0;
+    g.vehicle.userData.fireCooldown = 0;
+    g._tryFire();
+    const flashes = g._muzzleFlashes?.length || 0;
+    g._flashVehicleHit(0xe85d4c);
+    const vehicleFlash = g._vehicleHitFlashT > 0;
+    g.predator.userData.limp = true;
+    g.predator.userData.updateAnim(0.016, true);
+    const limpLean = Math.abs(g.predator.userData.parts.body.rotation.z) > 0.05;
+    g._boostActive = true;
+    g._updateCamera(0.05);
+    const fovBoost = g.camera.fov > 55.5;
+    g._fail('QA fail path');
+    const retryVisible = retry && !retry.classList.contains('hidden');
+    return {
+      clock: !!clock,
+      retry: !!retry,
+      sirenEmissive,
+      frontWheels,
+      flashes,
+      vehicleFlash,
+      limpLean,
+      fovBoost,
+      retryVisible,
+      chevronRefresh: g._updateChevrons.toString().includes('_chevronRefreshT'),
+      eggRadar: g._updateRadar.toString().includes('ffe8b0'),
+    };
+  });
+  console.log('134f iterations:', iter134f);
+
   await browser.close();
   preview.kill();
 
@@ -492,7 +530,18 @@ async function main() {
     !iter886a.caustic ||
     !iter886a.timeText.includes('1:35') ||
     !iter886a.stampFanfare ||
-    !iter886a.nearMissWired;
+    !iter886a.nearMissWired ||
+    !iter134f.clock ||
+    !iter134f.retry ||
+    !iter134f.sirenEmissive ||
+    iter134f.frontWheels < 2 ||
+    iter134f.flashes < 1 ||
+    !iter134f.vehicleFlash ||
+    !iter134f.limpLean ||
+    !iter134f.fovBoost ||
+    !iter134f.retryVisible ||
+    !iter134f.chevronRefresh ||
+    !iter134f.eggRadar;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);
