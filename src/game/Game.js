@@ -16,6 +16,10 @@ import {
   createNestChevron,
   createMotherRing,
   createMuzzleFlash,
+  createSonarPing,
+  createSosFlare,
+  createRetreatSmoke,
+  createBoostBubble,
 } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
@@ -100,6 +104,14 @@ export class Game {
     this._chaseRoarPunchT = 0;
     this._panicDustT = 0;
     this._hatchSparkT = 0;
+    this._lightningT = 3;
+    this._lightningFlashT = 0;
+    this._sonarT = 0;
+    this._sosT = 0;
+    this._boostBubbleT = 0;
+    this._proximityRoarT = 0;
+    this._sonars = [];
+    this._sosFlares = [];
     this.titleSpotlight = null;
     this.world = null;
     this.vehicle = null;
@@ -148,6 +160,8 @@ export class Game {
     for (const c of this._chevrons || []) this.scene.remove(c);
     for (const r of this._motherRings || []) this.scene.remove(r);
     for (const f of this._muzzleFlashes || []) this.scene.remove(f);
+    for (const s of this._sonars || []) this.scene.remove(s);
+    for (const s of this._sosFlares || []) this.scene.remove(s);
     this.projectiles = [];
     this.sparks = [];
     this.trails = [];
@@ -156,7 +170,11 @@ export class Game {
     this._chevrons = [];
     this._motherRings = [];
     this._muzzleFlashes = [];
+    this._sonars = [];
+    this._sosFlares = [];
     this._vehicleHitFlashT = 0;
+    this.ui?.setSosBanner?.(false);
+    this.ui?.setSonarHud?.(false);
     this._chevronRefreshT = 0;
     this.camera.fov = this._baseFov || 55;
     this.camera.updateProjectionMatrix();
@@ -383,7 +401,24 @@ export class Game {
     // Face -Z toward the nest / rescue action (Three.js default forward)
     this.vehicle.position.set(0, 0, 12);
     this.vehicle.rotation.y = 0;
+    // Cave / crater headlights cut through dark biomes
+    const needLights = level.biome === 'cave' || level.biome === 'crater';
+    this.vehicle.userData.headlightsOn = needLights;
+    for (const h of this.vehicle.userData.headlights || []) {
+      if (h.spot) h.spot.intensity = needLights ? 1.5 : 0;
+      if (h.lamp?.material) h.lamp.material.emissiveIntensity = needLights ? 0.8 : 0.12;
+    }
     this.scene.add(this.vehicle);
+    this._lightningT = 2.5 + Math.random() * 2;
+    this._lightningFlashT = 0;
+    this._sonarT = 0;
+    this._sosT = 0;
+    this._boostBubbleT = 0;
+    this._proximityRoarT = 0;
+    this._sonars = [];
+    this._sosFlares = [];
+    this.ui.setSosBanner(false);
+    this.ui.setSonarHud(!!level.water);
 
     this.baby = createDinosaur(DINOSAURS[level.baby]);
     this.baby.position.set(1.5, 0, -8);
@@ -726,6 +761,7 @@ export class Game {
       const combatSiren = [PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase);
       this.vehicle.userData.sirenBoost = combatSiren || this._boostActive;
     }
+    this._updateProximityTension(dt);
     this._updateCamera(dt);
     this._updatePhase(dt);
     this._updateChargeTelegraph(dt);
@@ -747,6 +783,9 @@ export class Game {
     this._updateEggs();
     this._updateBabyPanicDust(dt);
     this._updateHpVignette();
+    this._updateSonar(dt);
+    this._updateSosFlares(dt);
+    this._updateBoostBubbles(dt);
     this.ui.updateMissionClock(this._missionElapsed);
 
     if (this.vehicle) {
@@ -1086,6 +1125,21 @@ export class Game {
         }
       }
     }
+    // Rainforest lightning flash + thunder
+    const lightning = this.world?.userData?.lightningLight;
+    if (lightning && rain) {
+      this._lightningT = (this._lightningT ?? 3) - dt;
+      if (this._lightningFlashT > 0) {
+        this._lightningFlashT -= dt;
+        lightning.intensity = Math.max(0, this._lightningFlashT * 28);
+        if (this._lightningFlashT <= 0) lightning.intensity = 0;
+      } else if (this._lightningT <= 0) {
+        this._lightningT = 4.5 + Math.random() * 6;
+        this._lightningFlashT = 0.14;
+        lightning.intensity = 3.8;
+        this.audio.thunder?.();
+      }
+    }
     const caustic = this.world?.userData?.causticLight;
     if (caustic) {
       const t = performance.now() * 0.001;
@@ -1209,6 +1263,130 @@ export class Game {
   _radioChatter(line) {
     this.audio.radio?.();
     this.ui.showRadioChatter?.(line);
+  }
+
+  /** Submarine sonar pings — water missions only */
+  _updateSonar(dt) {
+    if (!this.level?.water || !this.vehicle) {
+      this.ui.setSonarHud?.(false);
+      return;
+    }
+    this.ui.setSonarHud?.(true);
+    this._sonarT = (this._sonarT || 0) - dt;
+    if (this._sonarT <= 0) {
+      this._sonarT = 1.65;
+      const ping = createSonarPing(0x7dd3fc);
+      ping.position.copy(this.vehicle.position);
+      ping.position.y = 0.14;
+      this.scene.add(ping);
+      this._sonars.push(ping);
+      this.audio.sonar?.();
+      this.ui.pulseSonarHud?.();
+    }
+    for (let i = this._sonars.length - 1; i >= 0; i--) {
+      const s = this._sonars[i];
+      s.userData.life -= dt;
+      s.scale.multiplyScalar(1.045);
+      s.material.opacity = Math.max(0, s.userData.life * 0.65);
+      if (s.userData.life <= 0) {
+        this.scene.remove(s);
+        this._sonars.splice(i, 1);
+      }
+    }
+  }
+
+  /** Baby SOS flares when critically threatened */
+  _updateSosFlares(dt) {
+    if (!this.baby?.visible) {
+      this.ui.setSosBanner?.(false);
+      return;
+    }
+    const ratio = this.baby.userData.hp / (this.baby.userData.maxHp || 1);
+    const critical =
+      ratio < 0.32 &&
+      [PHASE.CHASE, PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase);
+    this.ui.setSosBanner?.(critical);
+    if (critical) {
+      this._sosT = (this._sosT || 0) - dt;
+      if (this._sosT <= 0) {
+        this._sosT = 0.85;
+        const flare = createSosFlare(0xff6b4a);
+        flare.position.copy(this.baby.position);
+        flare.position.y = 1.2;
+        this.scene.add(flare);
+        this._sosFlares.push(flare);
+        this.audio.sos?.();
+        this._radioChatter('SOS — baby in critical danger!');
+      }
+    }
+    for (let i = this._sosFlares.length - 1; i >= 0; i--) {
+      const f = this._sosFlares[i];
+      f.position.addScaledVector(f.userData.velocity, dt);
+      f.userData.velocity.y -= 4.5 * dt;
+      f.userData.life -= dt;
+      f.material.opacity = Math.max(0, f.userData.life / 1.35);
+      f.scale.setScalar(0.8 + (1 - f.userData.life / 1.35) * 0.8);
+      if (f.userData.life <= 0) {
+        this.scene.remove(f);
+        this._sosFlares.splice(i, 1);
+      }
+    }
+  }
+
+  /** Boost bubble jets behind submarines */
+  _updateBoostBubbles(dt) {
+    if (!this.vehicle || this.vehicle.userData.def?.type !== 'submarine') return;
+    if (!this._boostActive) return;
+    this._boostBubbleT = (this._boostBubbleT || 0) - dt;
+    if (this._boostBubbleT > 0) return;
+    this._boostBubbleT = 0.06;
+    const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      this.vehicle.rotation.y,
+    );
+    for (let i = 0; i < 3; i++) {
+      const bub = createBoostBubble();
+      bub.position.copy(this.vehicle.position);
+      bub.position.y += 0.5 + Math.random() * 0.4;
+      bub.position.addScaledVector(forward, 1.1 + Math.random() * 0.3);
+      bub.position.x += (Math.random() - 0.5) * 0.5;
+      this.scene.add(bub);
+      this.sparks.push(bub);
+    }
+  }
+
+  /** Predator proximity tension — occasional roar; FOV applied in _updateCamera */
+  _updateProximityTension(dt) {
+    this._proximityTension = 0;
+    if (!this.vehicle || !this.predator?.visible) return;
+    if ([PHASE.ESCORT, PHASE.CELEBRATE, PHASE.WIN, PHASE.LOSE, PHASE.COUNTDOWN].includes(this.phase)) {
+      return;
+    }
+    const dist = this.vehicle.position.distanceTo(this.predator.position);
+    if (dist < 9) {
+      const tension = 1 - dist / 9;
+      this._proximityTension = tension;
+      this._proximityRoarT = (this._proximityRoarT || 0) - dt;
+      if (this._proximityRoarT <= 0 && dist < 5.5) {
+        this._proximityRoarT = 2.4;
+        this.audio.roar();
+        this.shakeT = Math.max(this.shakeT, 0.18 + tension * 0.2);
+      }
+    }
+  }
+
+  /** Predator retreat smoke cloud when escort begins */
+  _spawnRetreatSmoke() {
+    if (!this.predator) return;
+    for (let i = 0; i < 10; i++) {
+      const smoke = createRetreatSmoke();
+      smoke.position.copy(this.predator.position);
+      smoke.position.y = 0.6 + Math.random() * 1.2;
+      smoke.position.x += (Math.random() - 0.5) * 1.5;
+      smoke.position.z += (Math.random() - 0.5) * 1.5;
+      this.scene.add(smoke);
+      this.sparks.push(smoke);
+    }
   }
 
   _resolveBlockers(dt = 0.016) {
@@ -1546,10 +1724,12 @@ export class Game {
       if (this._chaseRoarPunchT <= 0) this.ui.flashRoar?.(false);
     }
     const roarBoost = this._chaseRoarPunchT > 0 ? 10 * Math.min(1, this._chaseRoarPunchT / 0.75) : 0;
+    const proximityTighten = (this._proximityTension || 0) * 5.5;
     const wantFov =
       this._baseFov +
       roarBoost +
-      (this._boostActive ? 7 : zoom ? -4 : 0);
+      (this._boostActive ? 7 : zoom ? -4 : 0) -
+      proximityTighten;
     this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, wantFov, 1 - Math.pow(0.002, dt));
     this.camera.updateProjectionMatrix();
     const look = this.vehicle.position.clone();
@@ -1835,8 +2015,10 @@ export class Game {
     this.phaseT = 0;
     this._escortDwelling = 0;
     if (this.predator) this.predator.userData.anim.state = 'hurt';
+    this._spawnRetreatSmoke();
     this.ui.showAim(false);
     this.ui.setDanger(false);
+    this.ui.setSosBanner?.(false);
     this.ui.setHeadbuttAlarm(false);
     this.ui.setPhaseRibbon(true, 'ESCORT TO NEST', 'escort');
     this.ui.setMission('Escort baby to the glowing nest!');
@@ -2060,9 +2242,19 @@ export class Game {
   _updateSparks(dt) {
     for (let i = this.sparks.length - 1; i >= 0; i--) {
       const s = this.sparks[i];
-      s.position.addScaledVector(s.userData.velocity, dt);
+      if (s.userData.velocity) s.position.addScaledVector(s.userData.velocity, dt);
+      if (s.userData.kind === 'retreatSmoke') {
+        s.userData.velocity.y += 0.4 * dt;
+        s.scale.multiplyScalar(1.02);
+        s.material.opacity = Math.max(0, s.userData.life * 0.5);
+      } else if (s.userData.kind === 'boostBubble') {
+        s.userData.velocity.y += 0.6 * dt;
+        s.scale.multiplyScalar(1.01);
+        s.material.opacity = Math.max(0, s.userData.life * 1.1);
+      } else {
+        s.scale.multiplyScalar(0.96);
+      }
       s.userData.life -= dt;
-      s.scale.multiplyScalar(0.96);
       if (s.userData.life <= 0) {
         this.scene.remove(s);
         this.sparks.splice(i, 1);

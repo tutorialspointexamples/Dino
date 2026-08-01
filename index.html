@@ -96,6 +96,11 @@
           </header>
           <p id="pick-level-desc" class="muted"></p>
           <p id="pick-level-fact" class="pick-fact" aria-live="polite"></p>
+          <div id="pick-briefing" class="pick-briefing" aria-label="Mission briefing silhouettes">
+            <div class="sil sil-baby" id="pick-sil-baby"></div>
+            <span class="sil-vs">VS</span>
+            <div class="sil sil-predator" id="pick-sil-predator"></div>
+          </div>
           <div id="pick-vehicle-grid" class="card-grid"></div>
           <button id="btn-launch" class="btn primary launch" disabled>Launch Rescue</button>
         </div>
@@ -144,6 +149,11 @@
           <span class="radar-label">RADAR</span>
         </div>
         <div id="danger-banner" class="danger-banner hidden">BABY IN DANGER!</div>
+        <div id="sos-banner" class="sos-banner hidden" aria-live="assertive">SOS — BABY CRITICAL!</div>
+        <div id="sonar-hud" class="sonar-hud hidden" aria-hidden="true">
+          <span class="sonar-ring"></span>
+          <strong>SONAR</strong>
+        </div>
         <div id="roar-flash" class="roar-flash hidden" aria-hidden="true"></div>
         <div id="paleo-tip" class="paleo-tip hidden" aria-live="polite"></div>
         <div id="radio-chatter" class="radio-chatter hidden" aria-live="polite"></div>

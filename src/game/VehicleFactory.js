@@ -143,6 +143,24 @@ export function createVehicle(def) {
     root.userData.wheels = wheels;
     root.userData.frontWheels = frontWheels;
 
+    // Cave / crater headlights (intensity toggled per biome in Game.startMission)
+    const headlights = [];
+    for (const x of [-0.4, 0.4]) {
+      const lamp = new THREE.Mesh(
+        new THREE.SphereGeometry(0.1, 8, 8),
+        mat(0xfff2c8, { emissive: 0xfff2c8, emissiveIntensity: 0.15 }),
+      );
+      lamp.position.set(x, 0.85, -1.25);
+      root.add(lamp);
+      const spot = new THREE.SpotLight(0xfff2c8, 0, 26, 0.42, 0.45, 1);
+      spot.position.set(x, 1.05, -1.15);
+      spot.target.position.set(x * 0.4, 0.2, -10);
+      root.add(spot);
+      root.add(spot.target);
+      headlights.push({ lamp, spot });
+    }
+    root.userData.headlights = headlights;
+
     // All 4 named guard team members
     const seats = [
       [-0.35, 1.15, 0.15],
@@ -232,6 +250,14 @@ export function createVehicle(def) {
       u.sirens[1].visible = !blink;
       u.sirens[0].material.emissiveIntensity = u.sirenBoost ? (blink ? 1.4 : 0.35) : blink ? 0.7 : 0.2;
       u.sirens[1].material.emissiveIntensity = u.sirenBoost ? (blink ? 0.35 : 1.4) : blink ? 0.2 : 0.7;
+    }
+    // Pulse cave headlights while active
+    if (u.headlights?.length && u.headlightsOn) {
+      const pulse = 1.35 + Math.sin(performance.now() * 0.004) * 0.25;
+      for (const h of u.headlights) {
+        if (h.spot) h.spot.intensity = pulse;
+        if (h.lamp?.material) h.lamp.material.emissiveIntensity = 0.55 + pulse * 0.25;
+      }
     }
     if (u.marker) {
       u.marker.position.y = 2.8 + Math.sin(performance.now() * 0.006) * 0.12;

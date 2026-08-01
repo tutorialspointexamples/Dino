@@ -683,6 +683,116 @@ async function main() {
   });
   console.log('9f1d iterations:', iter9f1d);
 
+  const iter1c1b = await page.evaluate(async () => {
+    const qa = window.__DINO_GUARD_QA__;
+    const g = window.__DINO_GUARD__;
+    // 1 cave headlights
+    qa.startLevel(1); // crystal_cave
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const headlights = g.vehicle?.userData?.headlights?.length || 0;
+    const headlightsOn = !!g.vehicle?.userData?.headlightsOn;
+    const headIntensity = g.vehicle?.userData?.headlights?.[0]?.spot?.intensity || 0;
+    // 2 rainforest lightning
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const lightning = !!g.world?.userData?.lightningLight;
+    const thunderSfx = typeof g.audio.thunder === 'function';
+    // 3 submarine sonar
+    qa.startLevel(5); // coral / water
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    g._sonarT = 0;
+    g._updateSonar(0.02);
+    const sonarCount = g._sonars?.length || 0;
+    const sonarHud = !!document.getElementById('sonar-hud');
+    const sonarSfx = typeof g.audio.sonar === 'function';
+    // 4 SOS flares
+    const sosBanner = !!document.getElementById('sos-banner');
+    g.baby.userData.hp = 5;
+    g.phase = 'combat';
+    g._sosT = 0;
+    g._updateSosFlares(0.02);
+    const sosFlares = g._sosFlares?.length || 0;
+    const sosShown = !document.getElementById('sos-banner')?.classList.contains('hidden');
+    const sosSfx = typeof g.audio.sos === 'function';
+    // 5 retreat smoke
+    const smokeBefore = g.sparks.filter((s) => s.userData.kind === 'retreatSmoke').length;
+    g._spawnRetreatSmoke();
+    const smokeAfter = g.sparks.filter((s) => s.userData.kind === 'retreatSmoke').length;
+    // 6 biome medals
+    g.save.cleared = ['rainforest'];
+    g.ui.showHub();
+    await new Promise((r) => setTimeout(r, 40));
+    const medals = document.querySelectorAll('.biome-medal').length;
+    // 7 boost bubbles
+    qa.startLevel(5);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    g._boostActive = true;
+    g._boostBubbleT = 0;
+    const bubBefore = g.sparks.filter((s) => s.userData.kind === 'boostBubble').length;
+    g._updateBoostBubbles(0.02);
+    const bubAfter = g.sparks.filter((s) => s.userData.kind === 'boostBubble').length;
+    // 8 ink splash
+    g.ui.showResult({
+      win: true,
+      message: 'QA ink',
+      stampName: 'Test Stamp',
+      stampColor: '#3f9d5a',
+      fact: 'qa',
+      stars: 3,
+      perfect: true,
+    });
+    await new Promise((r) => setTimeout(r, 40));
+    const ink = document.getElementById('result-stamp')?.classList.contains('ink-splash');
+    const inkSfx = typeof g.audio.inkStamp === 'function';
+    // 9 proximity tension
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    g.phase = 'combat';
+    g.predator.position.copy(g.vehicle.position);
+    g.predator.position.z -= 3;
+    g._updateProximityTension(0.02);
+    const tension = g._proximityTension || 0;
+    const proxWired = typeof g._updateProximityTension === 'function' && g._camLookAhead != null;
+    // 10 silhouette briefing
+    g.ui.openVehiclePick(qa.LEVELS[0]);
+    await new Promise((r) => setTimeout(r, 40));
+    const briefing = !!document.getElementById('pick-briefing');
+    const silBaby = document.getElementById('pick-sil-baby')?.classList.contains('sil-hop');
+    const silPred = document.getElementById('pick-sil-predator')?.classList.contains('sil-lunge');
+    return {
+      headlights,
+      headlightsOn,
+      headIntensity,
+      lightning,
+      thunderSfx,
+      sonarCount,
+      sonarHud,
+      sonarSfx,
+      sosBanner,
+      sosFlares,
+      sosShown,
+      sosSfx,
+      smokeBefore,
+      smokeAfter,
+      medals,
+      bubBefore,
+      bubAfter,
+      ink,
+      inkSfx,
+      tension,
+      proxWired,
+      briefing,
+      silBaby,
+      silPred,
+    };
+  });
+  console.log('1c1b iterations:', iter1c1b);
+
   await browser.close();
   preview.kill();
 
@@ -812,7 +922,29 @@ async function main() {
     !iter9f1d.incubator ||
     !iter9f1d.filterUi ||
     iter9f1d.seaCards < 1 ||
-    iter9f1d.landLeak;
+    iter9f1d.landLeak ||
+    iter1c1b.headlights < 2 ||
+    !iter1c1b.headlightsOn ||
+    iter1c1b.headIntensity < 1 ||
+    !iter1c1b.lightning ||
+    !iter1c1b.thunderSfx ||
+    iter1c1b.sonarCount < 1 ||
+    !iter1c1b.sonarHud ||
+    !iter1c1b.sonarSfx ||
+    !iter1c1b.sosBanner ||
+    iter1c1b.sosFlares < 1 ||
+    !iter1c1b.sosShown ||
+    !iter1c1b.sosSfx ||
+    iter1c1b.smokeAfter <= iter1c1b.smokeBefore ||
+    iter1c1b.medals < 1 ||
+    iter1c1b.bubAfter <= iter1c1b.bubBefore ||
+    !iter1c1b.ink ||
+    !iter1c1b.inkSfx ||
+    iter1c1b.tension < 0.3 ||
+    !iter1c1b.proxWired ||
+    !iter1c1b.briefing ||
+    !iter1c1b.silBaby ||
+    !iter1c1b.silPred;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

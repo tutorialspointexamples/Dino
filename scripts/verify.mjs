@@ -206,6 +206,18 @@ ok(html.includes('achievement-toast') && read('src/game/UI.js').includes('showAc
 ok(world.includes('nestIncubator') && game.includes('nestIncubator') && game.includes('_hatchSparkT'), '9f1d-9 nest incubation glow + hatch sparkles');
 ok(html.includes('stamp-filters') && data.includes('dinoHabitat') && read('src/game/UI.js').includes('stampFilter'), '9f1d-10 stamp habitat filter tabs');
 
+// Branch 1c1b polish iterations (10)
+ok(vehicle.includes('headlights') && vehicle.includes('headlightsOn') && game.includes("biome === 'cave'"), '1c1b-1 cave/crater vehicle headlights');
+ok(world.includes('lightningLight') && game.includes('lightningLight') && read('src/game/Audio.js').includes('thunder()'), '1c1b-2 rainforest lightning + thunder');
+ok(world.includes('createSonarPing') && game.includes('_updateSonar') && html.includes('sonar-hud'), '1c1b-3 submarine sonar pings');
+ok(world.includes('createSosFlare') && game.includes('_updateSosFlares') && html.includes('sos-banner'), '1c1b-4 baby SOS flare + banner');
+ok(world.includes('createRetreatSmoke') && game.includes('_spawnRetreatSmoke'), '1c1b-5 predator retreat smoke');
+ok(read('src/game/UI.js').includes('biome-medal') && read('src/style.css').includes('biome-medal'), '1c1b-6 hub biome cleared medals');
+ok(world.includes('createBoostBubble') && game.includes('_updateBoostBubbles'), '1c1b-7 submarine boost bubble jets');
+ok(read('src/style.css').includes('ink-splash') && read('src/game/UI.js').includes('ink-splash') && read('src/game/Audio.js').includes('inkStamp()'), '1c1b-8 stamp ink splash');
+ok(game.includes('_updateProximityTension') && game.includes('_proximityTension') && game.includes('proximityTighten'), '1c1b-9 predator proximity tension FOV');
+ok(html.includes('pick-briefing') && read('src/game/UI.js').includes('pick-sil-baby') && read('src/style.css').includes('sil-hop'), '1c1b-10 mission silhouette briefing');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

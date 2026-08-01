@@ -176,6 +176,30 @@ export class AudioBus {
     });
   }
 
+  /** Rainforest thunder rumble */
+  thunder() {
+    this.tone({ freq: 55, dur: 0.45, type: 'sawtooth', gain: 0.09, slide: -25 });
+    setTimeout(() => this.tone({ freq: 40, dur: 0.35, type: 'square', gain: 0.06, slide: -15 }), 120);
+  }
+
+  /** Submarine sonar ping */
+  sonar() {
+    this.tone({ freq: 880, dur: 0.08, type: 'sine', gain: 0.05, slide: -180 });
+    setTimeout(() => this.tone({ freq: 660, dur: 0.12, type: 'sine', gain: 0.035, slide: -120 }), 70);
+  }
+
+  /** Baby SOS distress chirp */
+  sos() {
+    this.tone({ freq: 1100, dur: 0.1, type: 'square', gain: 0.055, slide: 80 });
+    setTimeout(() => this.tone({ freq: 1320, dur: 0.1, type: 'square', gain: 0.05, slide: -160 }), 110);
+  }
+
+  /** Ink stamp thud when encyclopedia stamp lands */
+  inkStamp() {
+    this.tone({ freq: 180, dur: 0.1, type: 'triangle', gain: 0.07, slide: -40 });
+    setTimeout(() => this.tone({ freq: 320, dur: 0.08, type: 'sine', gain: 0.05 }), 60);
+  }
+
   ui() {
     this.tone({ freq: 660, dur: 0.06, type: 'triangle', gain: 0.05 });
   }

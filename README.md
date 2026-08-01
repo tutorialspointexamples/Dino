@@ -56,20 +56,20 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (branch 9f1d)
+### Verification iterations (branch 1c1b)
 
-1. **Crystal prism rainbow beams** — light shafts in Crystal Cave  
-2. **Danxia sand dust wind** — grit particles across red stone ridges  
-3. **Swamp mud geyser pots** — bubbling mud vents in Vine Swamp  
-4. **Ambient pterosaur sky flybys** — winged silhouettes circling land biomes  
-5. **Baby panic dust trail** — dust kicks while the baby flees  
-6. **Guard radio chatter** — radio beep + HUD strip on phase changes  
-7. **Title spotlight + jeep siren pulse** — living hub diorama  
-8. **Perfect rescue achievement toast** — fanfare burst on 3-star clears  
-9. **Nest incubation glow + hatch sparkles** — safer nest read + celebrate FX  
-10. **Stamp habitat filter tabs** — All / Land / Sea / Flyer encyclopedia filter  
+1. **Cave / crater headlights** — SpotLights cut through dark biomes  
+2. **Rainforest lightning + thunder** — storm flashes over Tropical Rainforest  
+3. **Submarine sonar pings** — expanding rings + SONAR HUD on water missions  
+4. **Baby SOS flare** — critical HP flares + SOS banner + distress chirp  
+5. **Predator retreat smoke** — smoke cloud when escort begins  
+6. **Hub biome medals** — CLEARED medal ribbon on finished map cards  
+7. **Boost bubble jets** — submarine dash bubble trail  
+8. **Stamp ink splash** — encyclopedia stamp land + ink thud SFX  
+9. **Predator proximity tension** — FOV tighten + close-range roar  
+10. **Mission silhouette briefing** — animated baby vs predator on vehicle pick  
 
-Prior branches (7dce / ed9a+) also cover vines, lava rivers, ocean currents, garage turntable, roar flash, paleo tips, friends compete, coral sway, whirlpool, mother flank, look-ahead camera, and more (see `npm run verify`).
+Prior branches (9f1d / 7dce / ed9a+) also cover crystal prisms, radio chatter, vines, lava rivers, ocean currents, garage turntable, roar flash, paleo tips, friends compete, coral sway, whirlpool, mother flank, look-ahead camera, and more (see `npm run verify`).
 
 ## Project layout
 

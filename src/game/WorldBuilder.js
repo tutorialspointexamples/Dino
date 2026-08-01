@@ -104,6 +104,13 @@ export function buildWorld(level, scene) {
       rain.push(drop);
     }
     group.userData.rainDrops = rain;
+
+    // Occasional lightning flash over the tropical canopy
+    const lightning = new THREE.PointLight(0xd0e8ff, 0, 90);
+    lightning.position.set(4, 22, -6);
+    lightning.name = 'rainLightning';
+    group.add(lightning);
+    group.userData.lightningLight = lightning;
   }
 
   if (biome === 'swamp') {
@@ -1072,5 +1079,72 @@ export function createMotherRing(color = 0xf4c14b) {
   mesh.position.y = 0.08;
   mesh.userData.life = 1.1;
   mesh.userData.kind = 'motherRing';
+  return mesh;
+}
+
+/** Expanding sonar ring for submarine water missions. */
+export function createSonarPing(color = 0x60a5fa) {
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(0.35, 0.55, 28),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.75,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.12;
+  mesh.userData.life = 1.15;
+  mesh.userData.kind = 'sonar';
+  return mesh;
+}
+
+/** Rising SOS flare when the baby is critically threatened. */
+export function createSosFlare(color = 0xff6b4a) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.18, 8, 8),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 }),
+  );
+  mesh.userData.life = 1.35;
+  mesh.userData.kind = 'sos';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 0.6,
+    3.8 + Math.random() * 1.8,
+    (Math.random() - 0.5) * 0.6,
+  );
+  return mesh;
+}
+
+/** Gray retreat smoke when the predator flees after combat. */
+export function createRetreatSmoke(color = 0x8a8a8a) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.45, 8, 8),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55 }),
+  );
+  mesh.userData.life = 1.1;
+  mesh.userData.kind = 'retreatSmoke';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 1.4,
+    1.2 + Math.random() * 1.1,
+    (Math.random() - 0.5) * 1.4,
+  );
+  return mesh;
+}
+
+/** Boost bubble jet for submarine siren dashes. */
+export function createBoostBubble(color = 0xb6eaff) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.12 + Math.random() * 0.08, 6, 6),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7 }),
+  );
+  mesh.userData.life = 0.65;
+  mesh.userData.kind = 'boostBubble';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 0.8,
+    1.4 + Math.random() * 1.2,
+    0.8 + Math.random() * 0.6,
+  );
   return mesh;
 }

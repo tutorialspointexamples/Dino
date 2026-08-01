@@ -108,8 +108,11 @@ export class UI {
         best > 0
           ? `<div class="lvl-stars" aria-label="${best} stars">${'★'.repeat(best)}${'☆'.repeat(3 - best)}</div>`
           : '<div class="lvl-stars empty">☆☆☆</div>';
+      const medal = cleared
+        ? `<div class="biome-medal" aria-label="Biome cleared medal"><i></i><span>CLEARED</span></div>`
+        : '';
       btn.innerHTML = `
-        <div class="swatch" style="background:linear-gradient(135deg,${hexCss(level.colors.sky)},${hexCss(level.colors.ground)})">${badges}</div>
+        <div class="swatch" style="background:linear-gradient(135deg,${hexCss(level.colors.sky)},${hexCss(level.colors.ground)})">${badges}${medal}</div>
         <h3>${i + 1}. ${level.name}</h3>
         ${starRow}
         <p class="lvl-roster">${unlocked ? `Save ${babyName} · stop ${predName}` : 'Clear previous mission to unlock'}</p>
@@ -135,11 +138,29 @@ export class UI {
     this.$('pick-level-name').textContent = level.name;
     this.$('pick-level-desc').textContent = level.desc + (level.water ? ' (Water mission — pick a submarine!)' : '');
     const baby = DINOSAURS[level.baby];
+    const predator = DINOSAURS[level.predator];
     const factEl = this.$('pick-level-fact');
     if (factEl) {
       factEl.textContent = baby
         ? `Learn: ${baby.name} — ${baby.facts}`
         : 'Protect the baby dinosaur and escort them home!';
+    }
+    // Animated baby vs predator silhouette briefing
+    const silBaby = this.$('pick-sil-baby');
+    const silPred = this.$('pick-sil-predator');
+    if (silBaby) {
+      silBaby.style.background = `linear-gradient(160deg, ${hexCss(baby?.color || 0x8be09a)}, ${hexCss(baby?.accent || 0xfff3a0)})`;
+      silBaby.title = baby?.name || 'Baby';
+      silBaby.classList.remove('sil-hop');
+      void silBaby.offsetWidth;
+      silBaby.classList.add('sil-hop');
+    }
+    if (silPred) {
+      silPred.style.background = `linear-gradient(160deg, ${hexCss(predator?.color || 0xc45c26)}, ${hexCss(predator?.accent || 0x8b2e14)})`;
+      silPred.title = predator?.name || 'Predator';
+      silPred.classList.remove('sil-lunge');
+      void silPred.offsetWidth;
+      silPred.classList.add('sil-lunge');
     }
     const grid = this.$('pick-vehicle-grid');
     grid.innerHTML = '';
@@ -502,13 +523,15 @@ export class UI {
     }
     const stamp = this.$('result-stamp');
     if (win && stampName) {
-      stamp.classList.remove('hidden', 'stamp-pop', 'stamp-fanfare');
+      stamp.classList.remove('hidden', 'stamp-pop', 'stamp-fanfare', 'ink-splash');
       stamp.style.background = stampColor || '#3f9d5a';
       stamp.textContent = stampName;
       void stamp.offsetWidth;
-      stamp.classList.add('stamp-pop', 'stamp-fanfare');
+      stamp.classList.add('stamp-pop', 'stamp-fanfare', 'ink-splash');
+      this.game.audio.inkStamp?.();
     } else {
       stamp.classList.add('hidden');
+      stamp.classList.remove('ink-splash');
     }
     const unlockEl = this.$('result-unlock');
     if (unlockEl) {
@@ -683,5 +706,21 @@ export class UI {
     if (!btn) return;
     btn.classList.toggle('active', !!active);
     btn.style.setProperty('--boost-fuel', String(Math.max(0, Math.min(1, fuel))));
+  }
+
+  setSosBanner(show) {
+    this.$('sos-banner')?.classList.toggle('hidden', !show);
+  }
+
+  setSonarHud(show) {
+    this.$('sonar-hud')?.classList.toggle('hidden', !show);
+  }
+
+  pulseSonarHud() {
+    const el = this.$('sonar-hud');
+    if (!el || el.classList.contains('hidden')) return;
+    el.classList.remove('ping');
+    void el.offsetWidth;
+    el.classList.add('ping');
   }
 }
