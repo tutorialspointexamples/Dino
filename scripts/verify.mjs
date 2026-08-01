@@ -218,6 +218,18 @@ ok(world.includes('createMotherShield') && game.includes('_spawnMotherShield'), 
 ok(game.includes('_ambersCollected') && game.includes('_fossilsCollected') && game.includes('collectibles'), 'c535 amber+fossils count for Perfect stars');
 ok(game.includes('setNestProximity?.(false)') && game.includes('_fail') , 'c535 fail/quit clears sticky HUD');
 
+// Branch c535 gap-fix iterations (10)
+ok(game.includes('sirenBoost = true') && game.includes('Title spotlight/siren pulse'), 'gap-1 title siren pulse');
+ok(game.includes('scatterTrail') && game.includes("mode === 'scatter' ? 0xffe08a"), 'gap-2 scatter golden trails');
+ok(game.includes('Perfect Rescue!') && game.includes('three stars'), 'gap-3 perfect rescue toast');
+ok(world.includes('skyFlybys') && game.includes('skyFlybys'), 'gap-4 sky flyby pterosaurs');
+ok(world.includes('createTireSkid') && game.includes('_skidCooldown'), 'gap-5 tire skid marks');
+ok(world.includes('plankton') && game.includes('plankton'), 'gap-6 ocean plankton sparkles');
+ok(world.includes('mudGeysers') && game.includes('_mudPuffCooldown'), 'gap-7 swamp mud geysers');
+ok(game.includes('quitToHub') && game.includes('refreshContinueCta'), 'gap-8 continue CTA after quit');
+ok(world.includes('ambientHerd') && game.includes('ambientHerd'), 'gap-9 ambient herd silhouettes');
+ok(world.includes("kind = 'skid'") && game.includes("kind === 'skid'"), 'gap-10 skid trail fade');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

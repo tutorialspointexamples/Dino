@@ -69,7 +69,7 @@ npm run qa
 9. **Rainforest pollen motes** — drifting golden pollen in the Tropical Rainforest  
 10. **Nest proximity HUD** — meter + distance while escorting the baby home  
 
-Gap-fix also covers fossils, victory camera orbit, zoom scope, damage smoke, padlock shake, stamp habitat filters, baby SOS flares, sticky HUD cleanup on fail/quit, and amber/fossils counting toward Perfect Rescue.
+Gap-fix pass (10): title siren pulse, scatter golden trails, Perfect Rescue toast, sky flybys, tire skids, ocean plankton, mud geysers, Continue CTA after quit, ambient herds, skid fade — plus fossils, victory camera, zoom scope, damage smoke, padlock shake, habitat filters, SOS flares, and sticky HUD cleanup.
 
 Prior branches (7dce / ed9a+) also cover coral sway, whirlpool, Danxia terraces, garage turntable, roar flash, paleo tip, friends compete, king flowers, and more (see `npm run verify`).
 

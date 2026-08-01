@@ -713,6 +713,42 @@ async function main() {
   });
   console.log('c535 iterations:', iterC535);
 
+  // Branch c535 gap-fix iterations
+  const gapC535 = await page.evaluate(() => {
+    const qa = window.__DINO_GUARD_QA__;
+    const g = window.__DINO_GUARD__;
+    qa.startLevel(0);
+    qa.skipCountdown();
+    const herd = g.world?.userData?.ambientHerd?.length || 0;
+    const flybys = g.world?.userData?.skyFlybys?.length || 0;
+    g.input.move = { x: 0.8, y: -0.6 };
+    g._skidCooldown = 0;
+    g._driveVehicle(0.05, { x: 0.8, y: -0.6 });
+    const skids = g.trails.filter((t) => t.userData.kind === 'skid').length;
+    g.setWeaponMode('scatter');
+    g.vehicle.userData.fireCooldown = 0;
+    g._tryFire();
+    const scatterTrail = g.projectiles.some((p) => p.userData.scatterTrail);
+    qa.startLevel(5);
+    qa.skipCountdown();
+    const plankton = g.world?.userData?.plankton?.length || 0;
+    qa.startLevel(4);
+    qa.skipCountdown();
+    const geysers = g.world?.userData?.mudGeysers?.length || 0;
+    g._mudPuffCooldown = 0;
+    g._updateWorldFX(0.05);
+    const mudPuff = g.trails.some((t) => t.userData.kind === 'dust');
+    g.showTitleScene();
+    g.titleVehicle.userData.sirenBoost = true;
+    g._updateTitle(0.05);
+    const titleSiren = !!g.titleVehicle?.userData?.sirenBoost;
+    g.save.lastLevelId = 'rainforest';
+    g.ui.refreshContinueCta();
+    const continueOk = !document.getElementById('btn-continue')?.classList.contains('hidden');
+    return { herd, flybys, skids, scatterTrail, plankton, geysers, mudPuff, titleSiren, continueOk };
+  });
+  console.log('c535 gap-fix:', gapC535);
+
   await browser.close();
   preview.kill();
 
@@ -846,7 +882,16 @@ async function main() {
     iterC535.smoke < 1 ||
     iterC535.sos < 1 ||
     iterC535.starsAmber < 3 ||
-    !iterC535.nestCleared;
+    !iterC535.nestCleared ||
+    gapC535.herd < 3 ||
+    gapC535.flybys < 2 ||
+    gapC535.skids < 1 ||
+    !gapC535.scatterTrail ||
+    gapC535.plankton < 10 ||
+    gapC535.geysers < 3 ||
+    !gapC535.mudPuff ||
+    !gapC535.titleSiren ||
+    !gapC535.continueOk;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

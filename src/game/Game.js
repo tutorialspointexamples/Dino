@@ -23,6 +23,7 @@ import {
   createSosFlare,
   createMotherShield,
   createDamageSmoke,
+  createTireSkid,
 } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
@@ -92,6 +93,8 @@ export class Game {
     this._chirpCooldown = 0;
     this._sosCooldown = 0;
     this._smokeCooldown = 0;
+    this._skidCooldown = 0;
+    this._mudPuffCooldown = 0;
     this._hitCombo = 0;
     this._comboTimer = 0;
     this._footprintCooldown = 0;
@@ -412,6 +415,8 @@ export class Game {
     this._chirpCooldown = 0;
     this._sosCooldown = 0;
     this._smokeCooldown = 0;
+    this._skidCooldown = 0;
+    this._mudPuffCooldown = 0;
     this._ambersCollected = 0;
     this._fossilsCollected = 0;
     this.camera.fov = this._baseFov;
@@ -571,6 +576,7 @@ export class Game {
     this.ui.updateNestCompass(false);
     this._clearSearchLight();
     this.showTitleScene();
+    this.ui.refreshContinueCta?.();
     this.ui.showHub();
   }
 
@@ -702,8 +708,15 @@ export class Game {
       d.userData.updateAnim(dt, true);
     }
     if (this.titleVehicle?.visible) {
+      this.titleVehicle.userData.sirenBoost = true;
       this.titleVehicle.userData.updateAnim(dt, true);
       this.titleVehicle.rotation.y += dt * 0.2;
+      // Title spotlight/siren pulse for brand presence
+      for (const s of this.titleVehicle.userData.sirens || []) {
+        if (s?.material) {
+          s.material.emissiveIntensity = 0.45 + Math.sin(performance.now() * 0.012) * 0.4;
+        }
+      }
     }
     // Garage / pick turntable — spin the selected vehicle hero
     if (this.garagePreview) {
@@ -1189,6 +1202,45 @@ export class Game {
       if (fossil.userData.collected || !fossil.visible) continue;
       fossil.rotation.y += dt * 0.8;
     }
+    // Ocean plankton sparkles
+    const plankton = this.world?.userData?.plankton;
+    if (plankton) {
+      const t = performance.now() * 0.001;
+      for (const mote of plankton) {
+        const b = mote.userData.base;
+        const p = mote.userData.phase || 0;
+        mote.position.x = b.x + Math.sin(t * 0.7 + p) * 1.4;
+        mote.position.y = b.y + Math.sin(t * 1.3 + p) * 0.5;
+        mote.position.z = b.z + Math.cos(t * 0.6 + p) * 1.4;
+        mote.material.opacity = 0.3 + Math.sin(t * 4 + p) * 0.25;
+      }
+    }
+    // Mud geyser puffs
+    const geysers = this.world?.userData?.mudGeysers;
+    if (geysers) {
+      this._mudPuffCooldown -= dt;
+      if (this._mudPuffCooldown <= 0) {
+        this._mudPuffCooldown = 0.55;
+        const vent = geysers[Math.floor(Math.random() * geysers.length)];
+        if (vent) {
+          const puff = createDustKick(0x6b5344);
+          puff.position.copy(vent.position).setY(0.4);
+          puff.userData.velocity.y = 2.2;
+          this.scene.add(puff);
+          this.trails.push(puff);
+        }
+      }
+    }
+    // Ambient herd bob
+    for (const h of this.world?.userData?.ambientHerd || []) {
+      h.position.y = 0.9 + Math.sin(performance.now() * 0.002 + (h.userData.phase || 0)) * 0.12;
+    }
+    // Sky flybys cruise across the map
+    for (const f of this.world?.userData?.skyFlybys || []) {
+      f.position.x += (f.userData.speed || 4) * dt;
+      f.position.y = 10 + Math.sin(performance.now() * 0.001 + (f.userData.phase || 0)) * 0.8;
+      if (f.position.x > 40) f.position.x = -40;
+    }
     this._updateMotherRings(dt);
     this._updateRoarRings(dt);
     this._updateShockwaves(dt);
@@ -1294,6 +1346,20 @@ export class Game {
       }
     }
 
+    // Tire skids on hard turns (land missions)
+    if (!this.level.water && moving && Math.abs(axis.x) > 0.55) {
+      this._skidCooldown -= dt;
+      if (this._skidCooldown <= 0) {
+        this._skidCooldown = 0.08;
+        const skid = createTireSkid(0x2a2118);
+        skid.position.copy(v.position);
+        skid.position.y = 0.04;
+        skid.rotation.z = -v.rotation.y;
+        this.scene.add(skid);
+        this.trails.push(skid);
+      }
+    }
+
     // Submarine wake rings expand behind the hull
     if (this.level.water && moving) {
       this._wakeCooldown -= dt;
@@ -1340,13 +1406,23 @@ export class Game {
     const damage = mode === 'zoom' ? 22 : mode === 'scatter' ? 8 : 14;
 
     for (const o of origins) {
-      const p = createProjectile(mode === 'zoom' ? 0x60a5fa : 0xf4c14b);
+      const p = createProjectile(mode === 'zoom' ? 0x60a5fa : mode === 'scatter' ? 0xffe08a : 0xf4c14b);
       p.position.copy(o.pos);
       const d = dir.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), o.yaw);
       p.userData.velocity.copy(d.multiplyScalar(speed));
       p.userData.damage = damage;
+      p.userData.scatterTrail = mode === 'scatter';
       this.scene.add(p);
       this.projectiles.push(p);
+      // Scatter shot leaves a short golden trail spark
+      if (mode === 'scatter') {
+        const spark = createSpark(0xffe08a);
+        spark.position.copy(o.pos);
+        spark.userData.life = 0.25;
+        spark.userData.velocity = d.clone().multiplyScalar(2);
+        this.scene.add(spark);
+        this.sparks.push(spark);
+      }
     }
     this.audio.shoot();
     // Soft haptic for mobile FIRE taps
@@ -1972,6 +2048,10 @@ export class Game {
       hasNext,
       timeText,
     });
+    if (stars >= 3) {
+      this.ui.toast('Perfect Rescue! Eggs, amber & fossils counted!');
+      this.ui.crewCallout('Medic Luma', 'Perfect Rescue — three stars!');
+    }
     this.state = 'result';
   }
 
@@ -2112,6 +2192,8 @@ export class Game {
         if (t.userData.velocity) t.position.addScaledVector(t.userData.velocity, dt);
         t.scale.multiplyScalar(1.03);
         t.material.opacity = Math.max(0, t.userData.life * 0.85);
+      } else if (t.userData.kind === 'skid') {
+        t.material.opacity = Math.max(0, t.userData.life * 0.3);
       } else {
         t.position.y += dt * 0.4;
         t.scale.multiplyScalar(1.02);

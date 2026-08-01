@@ -150,6 +150,26 @@ export function buildWorld(level, scene) {
       swingingVines.push(vine);
     }
     group.userData.swingingVines = swingingVines;
+
+    // Mud geyser vents that puff humid swamp mist
+    const mudGeysers = [];
+    for (let i = 0; i < 6; i++) {
+      const vent = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.55, 0.35, 8),
+        new THREE.MeshStandardMaterial({ color: 0x5a4630, roughness: 1 }),
+      );
+      const a = rand(0, Math.PI * 2);
+      const r = rand(12, 34);
+      vent.position.set(Math.cos(a) * r, 0.15, Math.sin(a) * r);
+      if (Math.abs(vent.position.x) < 4 && vent.position.z > -14 && vent.position.z < 14) {
+        vent.position.x += vent.position.x >= 0 ? 5 : -5;
+      }
+      vent.userData.phase = rand(0, Math.PI * 2);
+      vent.userData.kind = 'mudGeyser';
+      group.add(vent);
+      mudGeysers.push(vent);
+    }
+    group.userData.mudGeysers = mudGeysers;
   }
 
   if (biome === 'cave') {
@@ -428,6 +448,26 @@ export function buildWorld(level, scene) {
       bubbles.push(b);
     }
     group.userData.bubbles = bubbles;
+
+    // Tiny plankton sparkles drifting in ocean currents
+    const plankton = [];
+    for (let i = 0; i < 40; i++) {
+      const mote = new THREE.Mesh(
+        new THREE.SphereGeometry(rand(0.03, 0.07), 5, 5),
+        new THREE.MeshBasicMaterial({
+          color: i % 2 ? 0xb6eaff : 0x7fd0c0,
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false,
+        }),
+      );
+      mote.position.set(rand(-28, 28), rand(0.6, 5), rand(-28, 28));
+      mote.userData.base = mote.position.clone();
+      mote.userData.phase = rand(0, Math.PI * 2);
+      group.add(mote);
+      plankton.push(mote);
+    }
+    group.userData.plankton = plankton;
 
     // Soft caustic / god-ray light for underwater biomes
     const caustic = new THREE.PointLight(0x7fd0c0, 1.1, 42);
@@ -717,11 +757,74 @@ export function buildWorld(level, scene) {
   }
   group.userData.blockers = blockers;
 
+  // Ambient herd silhouettes at the map rim (alive Jurassic park feel)
+  const ambientHerd = [];
+  for (let i = 0; i < 5; i++) {
+    const body = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.45, 1.1, 4, 8),
+      new THREE.MeshStandardMaterial({
+        color: i % 2 ? 0x3f9d5a : 0x4a9bb8,
+        roughness: 0.9,
+        transparent: true,
+        opacity: 0.85,
+      }),
+    );
+    const a = (i / 5) * Math.PI * 2 + 0.3;
+    body.position.set(Math.cos(a) * 38, 0.9, Math.sin(a) * 38);
+    body.lookAt(0, 0.9, 0);
+    body.userData.phase = rand(0, Math.PI * 2);
+    body.userData.kind = 'ambientHerd';
+    group.add(body);
+    ambientHerd.push(body);
+  }
+  group.userData.ambientHerd = ambientHerd;
+
+  // Occasional sky flyby — distant pterosaur gliders
+  const skyFlybys = [];
+  for (let i = 0; i < 3; i++) {
+    const flyer = new THREE.Mesh(
+      new THREE.ConeGeometry(0.35, 1.4, 6),
+      new THREE.MeshStandardMaterial({
+        color: 0x8b6b4a,
+        roughness: 0.75,
+        transparent: true,
+        opacity: 0.8,
+      }),
+    );
+    flyer.rotation.x = Math.PI / 2;
+    flyer.position.set(rand(-30, 30), rand(9, 14), rand(-30, 30));
+    flyer.userData.speed = rand(3.5, 6);
+    flyer.userData.phase = rand(0, Math.PI * 2);
+    flyer.userData.kind = 'skyFlyby';
+    group.add(flyer);
+    skyFlybys.push(flyer);
+  }
+  group.userData.skyFlybys = skyFlybys;
+
   scene.background = new THREE.Color(colors.sky);
   scene.fog = new THREE.Fog(colors.fog, 40, 90);
 
   scene.add(group);
   return group;
+}
+
+/** Flat tire skid mark for hard jeep turns. */
+export function createTireSkid(color = 0x2a2118) {
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.35, 1.1),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.04;
+  mesh.userData.life = 1.8;
+  mesh.userData.kind = 'skid';
+  return mesh;
 }
 
 function makeTree(leafColor) {
