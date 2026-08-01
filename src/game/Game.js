@@ -24,6 +24,9 @@ import {
   createThankYouHeart,
   createDamageSmoke,
   createPlankton,
+  createSkidMark,
+  createWaterSplash,
+  createScatterTrail,
 } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
@@ -121,6 +124,11 @@ export class Game {
     this._planktonT = 0;
     this._motherShield = null;
     this._hearts = [];
+    this._skidCooldown = 0;
+    this._splashCooldown = 0;
+    this._splashSfxT = 0;
+    this._fossilsCollected = 0;
+    this._celebrateOrbit = 0;
     this.titleSpotlight = null;
     this.world = null;
     this.vehicle = null;
@@ -213,7 +221,11 @@ export class Game {
     this.ui.setAlarmRing(false);
     this._clearChargeTelegraph();
     this._eggsCollected = 0;
+    this._fossilsCollected = 0;
+    this._celebrateOrbit = 0;
     this._squealCooldown = 0;
+    this.ui.setZoomScope?.(false);
+    this.ui.setDepthGauge?.(false);
     this.audio.stopAmbient();
   }
 
@@ -490,6 +502,10 @@ export class Game {
     this.audio.startAmbient();
     if (level.boss) this.audio.roar();
     this._eggsCollected = 0;
+    this._fossilsCollected = 0;
+    this._celebrateOrbit = 0;
+    this.ui.setZoomScope?.(false);
+    this.ui.setDepthGauge?.(!!level.water, 0.35);
     this._attachChargeTelegraph();
     // Hide crew roster after the alarm settles
     setTimeout(() => this.ui?.showCrewIntro?.(false), 3200);
@@ -746,7 +762,7 @@ export class Game {
 
     if (this.phase === PHASE.CELEBRATE) {
       this._updateCelebrate(dt);
-      this._updateCamera(dt);
+      // Victory orbit owns the camera — skip drive follow cam
       this._updateActors(dt);
       this._updateSparks(dt);
       this._updateWorldFX(dt);
@@ -801,6 +817,11 @@ export class Game {
     this._updatePlankton(dt);
     this._updateMotherShield(dt);
     this._updateThankYouHearts(dt);
+    this._updatePredatorEyeGlow(dt);
+    this._updateZoomScope();
+    this._updateDepthGauge(dt);
+    this._updateFossils();
+    this._updateAmbientHerd(dt);
     this.ui.updateMissionClock(this._missionElapsed);
 
     if (this.vehicle) {
@@ -921,6 +942,7 @@ export class Game {
 
   _updateCelebrate(dt) {
     this._celebrateT += dt;
+    this._celebrateOrbit = (this._celebrateOrbit || 0) + dt;
     const nest = this.world?.userData?.nestPos;
     if (this.baby && nest) {
       this.baby.position.lerp(new THREE.Vector3(nest.x, 0, nest.z), 1 - Math.pow(0.02, dt));
@@ -932,6 +954,22 @@ export class Game {
     if (this.mother?.visible && nest) {
       this._chase(this.mother, nest, this.mother.userData.speed * 0.8, dt);
       this.mother.userData.anim.state = 'celebrate';
+    }
+    // Victory camera orbit around the nest / baby
+    if (nest || this.baby) {
+      const pivot = nest
+        ? new THREE.Vector3(nest.x, 1.2, nest.z)
+        : this.baby.position.clone().setY(1.2);
+      const ang = this._celebrateOrbit * 1.15;
+      const radius = 9.5;
+      const want = new THREE.Vector3(
+        pivot.x + Math.sin(ang) * radius,
+        5.2,
+        pivot.z + Math.cos(ang) * radius,
+      );
+      this.camera.position.lerp(want, 1 - Math.pow(0.02, dt));
+      this.camera.lookAt(pivot);
+      this._camLookAhead = ang; // surviving marker for celebrate orbit QA
     }
     this._updateConfetti(dt);
     // Nest hatch sparkles while celebrating a safe return
@@ -979,6 +1017,7 @@ export class Game {
   }
 
   _updateWorldFX(dt) {
+    this._updateAmbientHerd(dt);
     const water = this.world?.userData?.waterMesh;
     if (water) {
       water.position.y = (this.level.water ? 0.4 : 0.08) + Math.sin(performance.now() * 0.002) * 0.06;
@@ -1537,6 +1576,43 @@ export class Game {
       }
     }
 
+    // Hard-turn tire skid marks on land
+    if (!this.level.water && moving && Math.abs(axis.x) > 0.55 && -axis.y > 0.2) {
+      this._skidCooldown = (this._skidCooldown || 0) - dt;
+      if (this._skidCooldown <= 0) {
+        this._skidCooldown = 0.1;
+        const skid = createSkidMark();
+        skid.position.copy(v.position);
+        skid.position.y = 0.03;
+        skid.position.add(new THREE.Vector3(0, 0, 1.0).applyQuaternion(v.quaternion));
+        skid.rotation.z = -v.rotation.y;
+        this.scene.add(skid);
+        this.trails.push(skid);
+      }
+    }
+
+    // Water splash spray when surging / boosting through water
+    if (this.level.water && moving && (-axis.y > 0.5 || this._boostActive)) {
+      this._splashCooldown = (this._splashCooldown || 0) - dt;
+      if (this._splashCooldown <= 0) {
+        this._splashCooldown = 0.09;
+        for (let i = 0; i < 3; i++) {
+          const drop = createWaterSplash();
+          drop.position.copy(v.position);
+          drop.position.y = 0.4;
+          drop.position.x += (Math.random() - 0.5) * 0.8;
+          drop.position.z += (Math.random() - 0.5) * 0.8;
+          this.scene.add(drop);
+          this.sparks.push(drop);
+        }
+        this._splashSfxT = (this._splashSfxT || 0) - dt;
+        if (this._splashSfxT <= 0) {
+          this._splashSfxT = 0.35;
+          this.audio.splash?.();
+        }
+      }
+    }
+
     const wantFire = this.input.consumeFire();
     if (wantFire && this.phase !== PHASE.WIN && this.phase !== PHASE.LOSE) {
       this._tryFire();
@@ -1569,11 +1645,13 @@ export class Game {
     const damage = mode === 'zoom' ? 22 : mode === 'scatter' ? 8 : 14;
 
     for (const o of origins) {
-      const p = createProjectile(mode === 'zoom' ? 0x60a5fa : 0xf4c14b);
+      const p = createProjectile(mode === 'zoom' ? 0x60a5fa : mode === 'scatter' ? 0xffe08a : 0xf4c14b);
       p.position.copy(o.pos);
       const d = dir.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), o.yaw);
       p.userData.velocity.copy(d.multiplyScalar(speed));
       p.userData.damage = damage;
+      p.userData.scatterTrail = mode === 'scatter';
+      p.userData.trailT = 0;
       this.scene.add(p);
       this.projectiles.push(p);
     }
@@ -2063,12 +2141,15 @@ export class Game {
     this.ui.setMission('Escort baby to the glowing nest!');
     const tip = document.getElementById('tutorial-tip');
     if (tip) tip.classList.add('hidden');
-    // Reveal escort eggs
+    // Reveal escort eggs + fossils
     for (const egg of this.world?.userData?.eggs || []) {
       if (!egg.userData.collected) egg.visible = true;
     }
+    for (const fossil of this.world?.userData?.fossils || []) {
+      if (!fossil.userData.collected) fossil.visible = true;
+    }
     this._spawnEscortChevrons();
-    this.ui.toast('Predator retreats! Escort the baby — grab glowing eggs!');
+    this.ui.toast('Predator retreats! Escort the baby — grab eggs & fossils!');
     this._radioChatter('Escort mode — follow the nest beacon!');
     this.missionScore += 200;
     this.ui.updateScore(this.missionScore);
@@ -2240,6 +2321,17 @@ export class Game {
       const p = this.projectiles[i];
       p.position.addScaledVector(p.userData.velocity, dt);
       p.userData.life -= dt;
+      // Scatter pellet spark trails
+      if (p.userData.scatterTrail) {
+        p.userData.trailT = (p.userData.trailT || 0) - dt;
+        if (p.userData.trailT <= 0) {
+          p.userData.trailT = 0.04;
+          const bead = createScatterTrail(0xffe08a);
+          bead.position.copy(p.position);
+          this.scene.add(bead);
+          this.sparks.push(bead);
+        }
+      }
       let hit = false;
       if (this.predator && this.predator.visible && this.phase !== PHASE.ESCORT) {
         const dx = p.position.x - this.predator.position.x;
@@ -2300,6 +2392,13 @@ export class Game {
         s.userData.velocity.y += 0.15 * dt;
         s.scale.multiplyScalar(1.015);
         s.material.opacity = Math.max(0, s.userData.life * 0.95);
+      } else if (s.userData.kind === 'waterSplash') {
+        s.userData.velocity.y -= 6 * dt;
+        s.scale.multiplyScalar(0.97);
+        s.material.opacity = Math.max(0, s.userData.life * 1.5);
+      } else if (s.userData.kind === 'scatterTrail') {
+        s.scale.multiplyScalar(0.9);
+        s.material.opacity = Math.max(0, s.userData.life * 3);
       } else {
         s.scale.multiplyScalar(0.96);
       }
@@ -2324,6 +2423,8 @@ export class Game {
         if (t.userData.velocity) t.position.addScaledVector(t.userData.velocity, dt);
         t.scale.multiplyScalar(1.03);
         t.material.opacity = Math.max(0, t.userData.life * 0.85);
+      } else if (t.userData.kind === 'skid') {
+        t.material.opacity = Math.max(0, (t.userData.life / 2.2) * 0.55);
       } else {
         t.position.y += dt * 0.4;
         t.scale.multiplyScalar(1.02);
@@ -2572,6 +2673,84 @@ export class Game {
     this.sparks.push(smoke);
   }
 
+  /** Predator charge eye glow — pupils flare during headbutt telegraph */
+  _updatePredatorEyeGlow(_dt) {
+    const pupils = this.predator?.userData?._pupils;
+    if (!pupils?.length) return;
+    const charging =
+      this.phase === PHASE.HEADBUTT ||
+      (this.phase === PHASE.COMBAT && (this._chargeTelegraph?.visible || this._proximityTension > 0.55));
+    const want = charging ? 1.35 + Math.sin(performance.now() * 0.02) * 0.35 : 0.15;
+    for (const p of pupils) {
+      if (p.material) {
+        p.material.emissiveIntensity = THREE.MathUtils.lerp(
+          p.material.emissiveIntensity ?? 0.15,
+          want,
+          0.18,
+        );
+        p.material.emissive?.setHex?.(charging ? 0xff3300 : 0xff2200);
+      }
+    }
+  }
+
+  /** Zoom weapon mode scope vignette */
+  _updateZoomScope() {
+    const on =
+      this.vehicle?.userData?.weaponMode === 'zoom' &&
+      [PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase);
+    this.ui.setZoomScope?.(on);
+  }
+
+  /** Submarine / water mission depth gauge HUD */
+  _updateDepthGauge(_dt) {
+    if (!this.level?.water || !this.vehicle) {
+      this.ui.setDepthGauge?.(false);
+      return;
+    }
+    // Map arena radius to a kid-friendly depth reading
+    const r = Math.hypot(this.vehicle.position.x, this.vehicle.position.z);
+    const depthNorm = Math.min(1, 0.2 + r / 48);
+    this.ui.setDepthGauge?.(true, depthNorm);
+  }
+
+  /** Fossil collectibles during escort */
+  _updateFossils() {
+    if (this.phase !== PHASE.ESCORT && this.phase !== PHASE.CELEBRATE) return;
+    const fossils = this.world?.userData?.fossils;
+    if (!fossils || !this.vehicle) return;
+    const t = performance.now() * 0.001;
+    for (const fossil of fossils) {
+      if (fossil.userData.collected) continue;
+      fossil.rotation.z = t * 1.2 + (fossil.userData.phase || 0);
+      fossil.position.y = 0.12 + Math.sin(t * 3 + (fossil.userData.phase || 0)) * 0.06;
+      const dx = fossil.position.x - this.vehicle.position.x;
+      const dz = fossil.position.z - this.vehicle.position.z;
+      if (dx * dx + dz * dz < 2.6 * 2.6) {
+        fossil.userData.collected = true;
+        fossil.visible = false;
+        this._fossilsCollected = (this._fossilsCollected || 0) + 1;
+        this.missionScore += 75;
+        this.ui.updateScore(this.missionScore);
+        this.audio.fossil?.();
+        this._spawnSparks(fossil.position.clone().setY(0.6), 0xd4b896, 8);
+        this.ui.toast(`Fossil found! +75 (${this._fossilsCollected}/4)`);
+        this.ui.crewCallout('Medic Luma', 'Paleontology find — fossil stamped!');
+      }
+    }
+  }
+
+  /** Distant herd silhouettes gently bob on the horizon */
+  _updateAmbientHerd(dt) {
+    const herd = this.world?.userData?.ambientHerd;
+    if (!herd?.length) return;
+    const t = performance.now() * 0.001;
+    for (const sil of herd) {
+      const phase = sil.userData.phase || 0;
+      sil.position.y = Math.sin(t * 0.8 + phase) * 0.08;
+      sil.rotation.y += dt * 0.05;
+    }
+  }
+
   /** Ocean bioluminescent plankton trail behind water vehicles */
   _updatePlankton(dt) {
     if (!this.level?.water || !this.vehicle) return;
@@ -2683,6 +2862,11 @@ export class Game {
     for (const egg of this.world?.userData?.eggs || []) {
       if (!egg.visible || egg.userData.collected) continue;
       plot(egg, '#ffe8b0', 3);
+    }
+    // Fossils — tan blips on radar during escort
+    for (const fossil of this.world?.userData?.fossils || []) {
+      if (!fossil.visible || fossil.userData.collected) continue;
+      plot(fossil, '#c4a35a', 3);
     }
     // Vehicle always center
     ctx.fillStyle = '#ffffff';

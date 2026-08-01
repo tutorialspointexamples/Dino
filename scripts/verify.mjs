@@ -230,6 +230,18 @@ ok(world.includes('nestCrack') && game.includes('_revealNestCrack') && game.incl
 ok(read('src/game/UI.js').includes('padlock-shake') && read('src/style.css').includes('padlockShake'), 'e9eb-9 locked level padlock shake');
 ok(world.includes('createPlankton') && game.includes('_updatePlankton') && game.includes("kind === 'plankton'"), 'e9eb-10 ocean plankton trail');
 
+// Branch 8c65 polish iterations (10)
+ok(dino.includes('_pupils') && game.includes('_updatePredatorEyeGlow') && game.includes('emissiveIntensity'), '8c65-1 predator charge eye glow');
+ok(world.includes('createSkidMark') && game.includes("kind === 'skid'") && game.includes('_skidCooldown'), '8c65-2 tire skid marks');
+ok(world.includes('createWaterSplash') && game.includes('_splashCooldown') && read('src/game/Audio.js').includes('splash()'), '8c65-3 water splash spray');
+ok(html.includes('zoom-scope') && read('src/game/UI.js').includes('setZoomScope') && game.includes('_updateZoomScope'), '8c65-4 zoom scope vignette');
+ok(world.includes('createScatterTrail') && game.includes('scatterTrail') && game.includes("kind === 'scatterTrail'"), '8c65-5 scatter pellet spark trails');
+ok(game.includes('_celebrateOrbit') && game.includes('Victory camera orbit') && game.includes('_celebrateOrbit'), '8c65-6 victory camera orbit');
+ok(world.includes('ambientHerd') && game.includes('_updateAmbientHerd'), '8c65-7 distant herd silhouettes');
+ok(world.includes("kind = 'fossil'") && game.includes('_updateFossils') && read('src/game/Audio.js').includes('fossil()'), '8c65-8 escort fossil pickups');
+ok(html.includes('depth-gauge') && read('src/game/UI.js').includes('setDepthGauge') && game.includes('_updateDepthGauge'), '8c65-9 submarine depth gauge');
+ok(html.includes('stamp-book-panel') && read('src/style.css').includes('stampPageFlip') && read('src/game/UI.js').includes('page-flip') && read('src/game/Audio.js').includes('pageFlip()'), '8c65-10 stamp book page flip');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

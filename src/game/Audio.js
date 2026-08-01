@@ -221,6 +221,24 @@ export class AudioBus {
     });
   }
 
+  /** Water splash when the Guard surges through ocean / swamp */
+  splash() {
+    this.tone({ freq: 240, dur: 0.08, type: 'triangle', gain: 0.045, slide: -80 });
+    setTimeout(() => this.tone({ freq: 180, dur: 0.1, type: 'sine', gain: 0.035, slide: -40 }), 40);
+  }
+
+  /** Fossil pickup chime (paleontology collectible) */
+  fossil() {
+    this.tone({ freq: 520, dur: 0.1, type: 'triangle', gain: 0.055, slide: 120 });
+    setTimeout(() => this.tone({ freq: 780, dur: 0.12, type: 'sine', gain: 0.045 }), 80);
+  }
+
+  /** Stamp book page-flip rustle */
+  pageFlip() {
+    this.tone({ freq: 420, dur: 0.05, type: 'sawtooth', gain: 0.03, slide: -160 });
+    setTimeout(() => this.tone({ freq: 280, dur: 0.06, type: 'triangle', gain: 0.025, slide: -80 }), 40);
+  }
+
   ui() {
     this.tone({ freq: 660, dur: 0.06, type: 'triangle', gain: 0.05 });
   }

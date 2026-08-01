@@ -56,20 +56,20 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (branch e9eb)
+### Verification iterations (branch 8c65)
 
-1. **Volcano ember sparks** — rising glowing embers over lava biomes  
-2. **Mother protect shield** — translucent bubble when mother assists  
-3. **Vehicle damage smoke** — Guard jeep smokes when HP is critical  
-4. **Thank-you hearts** — baby heart particles + chime on nest celebrate  
-5. **Hub babies-saved counter** — “Saved N” badge on the Jurassic Map  
-6. **Combo milestone fanfare** — x5 / x10 HUD pop + SFX  
-7. **Jeep horn on boost** — horn + crew callout when siren boost engages  
-8. **Nest hatch crack** — crack seams reveal during celebration  
-9. **Locked level padlock shake** — locked map cards shake when tapped  
-10. **Ocean plankton trail** — bioluminescent sparkles behind water vehicles  
+1. **Predator charge eye glow** — emissive pupils flare during headbutt / proximity threat  
+2. **Tire skid marks** — hard-turn jeep skids on land biomes  
+3. **Water splash spray** — surge/boost splash droplets + SFX in water missions  
+4. **Zoom scope vignette** — crosshair scope overlay when Zoom Aim is active  
+5. **Scatter pellet spark trails** — golden bead trails behind Scatter darts  
+6. **Victory camera orbit** — nest celebration orbits the rescued baby  
+7. **Distant herd silhouettes** — ambient park dinosaurs on the horizon  
+8. **Escort fossil pickups** — paleontology fossils for bonus score + radar blips  
+9. **Submarine depth gauge** — kid-friendly DEPTH meter on water missions  
+10. **Stamp book page flip** — page-turn animation + rustle when opening stamps  
 
-Prior branches (1c1b / 9f1d / 7dce / ed9a+) also cover cave headlights, sonar, SOS flares, retreat smoke, biome medals, stamp ink, proximity tension, silhouette briefing, crystal prisms, radio chatter, vines, lava rivers, ocean currents, garage turntable, roar flash, paleo tips, friends compete, and more (see `npm run verify`).
+Prior branches (e9eb / 1c1b / 9f1d / 7dce / ed9a+) also cover volcano embers, mother shield, damage smoke, thank-you hearts, hub Saved counter, combo milestones, boost horn, nest hatch crack, padlock shake, plankton, cave headlights, sonar, SOS flares, and more (see `npm run verify`).
 
 ## Project layout
 

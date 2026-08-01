@@ -74,9 +74,23 @@ export function createDinosaur(def) {
 
   const eyeL = addMesh(head, new THREE.SphereGeometry(0.07 * s, 10, 8), 0xffffff, [-0.16 * s, 0.1 * s, 0.28 * s]);
   const eyeR = addMesh(head, new THREE.SphereGeometry(0.07 * s, 10, 8), 0xffffff, [0.16 * s, 0.1 * s, 0.28 * s]);
-  addMesh(head, new THREE.SphereGeometry(0.035 * s, 8, 6), 0x111111, [-0.16 * s, 0.1 * s, 0.34 * s]);
-  addMesh(head, new THREE.SphereGeometry(0.035 * s, 8, 6), 0x111111, [0.16 * s, 0.1 * s, 0.34 * s]);
+  // Predators get emissive pupils so charge eye-glow can telegraph headbutts
+  const pupilMat = (isPred) =>
+    new THREE.MeshStandardMaterial({
+      color: 0x111111,
+      emissive: isPred ? 0xff2200 : 0x000000,
+      emissiveIntensity: isPred ? 0.15 : 0,
+      roughness: 0.4,
+    });
+  const isPred = def.role === 'predator';
+  const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.035 * s, 8, 6), pupilMat(isPred));
+  pupilL.position.set(-0.16 * s, 0.1 * s, 0.34 * s);
+  head.add(pupilL);
+  const pupilR = new THREE.Mesh(new THREE.SphereGeometry(0.035 * s, 8, 6), pupilMat(isPred));
+  pupilR.position.set(0.16 * s, 0.1 * s, 0.34 * s);
+  head.add(pupilR);
   root.userData._eyes = [eyeL, eyeR];
+  root.userData._pupils = isPred ? [pupilL, pupilR] : [];
 
   // Morph ornaments
   if (morph === 'trike') {

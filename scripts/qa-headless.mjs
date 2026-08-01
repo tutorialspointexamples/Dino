@@ -890,6 +890,113 @@ async function main() {
   });
   console.log('e9eb iterations:', iterE9eb);
 
+  // —— 8c65 polish iterations ——
+  const iter8c65 = await page.evaluate(async () => {
+    const g = window.__DINO_GUARD__;
+    const qa = window.__DINO_GUARD_QA__;
+    // 1 predator charge eye glow
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const pupils = g.predator?.userData?._pupils?.length || 0;
+    g.phase = 'headbutt';
+    g._updatePredatorEyeGlow(0.02);
+    const eyeGlow = (g.predator?.userData?._pupils?.[0]?.material?.emissiveIntensity || 0) > 0.5;
+    // 2 tire skid marks
+    g.input.move = { x: 0.9, y: -0.8 };
+    g._skidCooldown = 0;
+    const skidBefore = g.trails.filter((t) => t.userData.kind === 'skid').length;
+    g._driveVehicle(0.02, g.input.getAxis());
+    const skidAfter = g.trails.filter((t) => t.userData.kind === 'skid').length;
+    // 3 water splash
+    qa.startLevel(5);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    g.input.move = { x: 0, y: -1 };
+    g._boostActive = true;
+    g._splashCooldown = 0;
+    const splashBefore = g.sparks.filter((s) => s.userData.kind === 'waterSplash').length;
+    g._driveVehicle(0.02, g.input.getAxis());
+    const splashAfter = g.sparks.filter((s) => s.userData.kind === 'waterSplash').length;
+    const splashSfx = typeof g.audio.splash === 'function';
+    // 4 zoom scope
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    g.phase = 'combat';
+    g.setWeaponMode('zoom');
+    g._updateZoomScope();
+    const zoomScope = !document.getElementById('zoom-scope')?.classList.contains('hidden');
+    // 5 scatter trails
+    g.setWeaponMode('scatter');
+    g.vehicle.userData.fireCooldown = 0;
+    g._tryFire();
+    const scatterProj = g.projectiles.some((p) => p.userData.scatterTrail);
+    g._updateProjectiles(0.05);
+    const scatterTrail = g.sparks.some((s) => s.userData.kind === 'scatterTrail');
+    // 6 victory camera orbit
+    g.phase = 'celebrate';
+    g._celebrateT = 0;
+    g._celebrateOrbit = 0;
+    const camBefore = g.camera.position.clone();
+    g._updateCelebrate(0.2);
+    const orbitMoved = g.camera.position.distanceTo(camBefore) > 0.05 || g._celebrateOrbit > 0;
+    const orbitWired = typeof g._celebrateOrbit === 'number';
+    // 7 ambient herd
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const herd = g.world?.userData?.ambientHerd?.length || 0;
+    // 8 fossils
+    g.phase = 'escort';
+    for (const f of g.world?.userData?.fossils || []) {
+      f.visible = true;
+      f.userData.collected = false;
+    }
+    const fossilCount = g.world?.userData?.fossils?.length || 0;
+    if (g.world?.userData?.fossils?.[0] && g.vehicle) {
+      g.vehicle.position.copy(g.world.userData.fossils[0].position);
+      g._updateFossils();
+    }
+    const fossilGot = (g._fossilsCollected || 0) >= 1;
+    const fossilSfx = typeof g.audio.fossil === 'function';
+    // 9 depth gauge
+    qa.startLevel(5);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    g._updateDepthGauge(0.02);
+    const depthShown = !document.getElementById('depth-gauge')?.classList.contains('hidden');
+    const depthText = document.getElementById('depth-value')?.textContent || '';
+    // 10 stamp page flip
+    g.ui.showStamps();
+    await new Promise((r) => setTimeout(r, 40));
+    const pageFlip = !!document.querySelector('.stamp-book-panel.page-flip');
+    const pageSfx = typeof g.audio.pageFlip === 'function';
+    return {
+      pupils,
+      eyeGlow,
+      skidBefore,
+      skidAfter,
+      splashBefore,
+      splashAfter,
+      splashSfx,
+      zoomScope,
+      scatterProj,
+      scatterTrail,
+      orbitMoved,
+      orbitWired,
+      herd,
+      fossilCount,
+      fossilGot,
+      fossilSfx,
+      depthShown,
+      depthText,
+      pageFlip,
+      pageSfx,
+    };
+  });
+  console.log('8c65 iterations:', iter8c65);
+
   await browser.close();
   preview.kill();
 
@@ -1055,7 +1162,25 @@ async function main() {
     !iterE9eb.crackExists ||
     !iterE9eb.crackVisible ||
     !iterE9eb.padlock ||
-    iterE9eb.plankAfter <= iterE9eb.plankBefore;
+    iterE9eb.plankAfter <= iterE9eb.plankBefore ||
+    iter8c65.pupils < 2 ||
+    !iter8c65.eyeGlow ||
+    iter8c65.skidAfter <= iter8c65.skidBefore ||
+    iter8c65.splashAfter <= iter8c65.splashBefore ||
+    !iter8c65.splashSfx ||
+    !iter8c65.zoomScope ||
+    !iter8c65.scatterProj ||
+    !iter8c65.scatterTrail ||
+    !iter8c65.orbitMoved ||
+    !iter8c65.orbitWired ||
+    iter8c65.herd < 3 ||
+    iter8c65.fossilCount < 4 ||
+    !iter8c65.fossilGot ||
+    !iter8c65.fossilSfx ||
+    !iter8c65.depthShown ||
+    !/\d+m/.test(iter8c65.depthText) ||
+    !iter8c65.pageFlip ||
+    !iter8c65.pageSfx;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

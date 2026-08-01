@@ -752,6 +752,61 @@ export function buildWorld(level, scene) {
   }
   group.userData.eggs = eggs;
 
+  // Escort fossil pickups — paleontology collectibles for bonus score
+  const fossils = [];
+  for (let i = 0; i < 4; i++) {
+    const fossil = new THREE.Mesh(
+      new THREE.TorusGeometry(0.28, 0.08, 6, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0xd4b896,
+        emissive: 0xc4a35a,
+        emissiveIntensity: 0.35,
+        roughness: 0.7,
+      }),
+    );
+    fossil.rotation.x = Math.PI / 2;
+    const a = (i / 4) * Math.PI * 2 + 1.1;
+    fossil.position.set(Math.cos(a) * 11, 0.12, -14 + Math.sin(a) * 6);
+    fossil.userData.kind = 'fossil';
+    fossil.userData.collected = false;
+    fossil.userData.phase = rand(0, Math.PI * 2);
+    fossil.visible = false;
+    group.add(fossil);
+    fossils.push(fossil);
+  }
+  group.userData.fossils = fossils;
+
+  // Distant herd silhouettes for land biomes (park atmosphere)
+  if (!water && (biome === 'forest' || biome === 'swamp' || biome === 'desert' || biome === 'crater')) {
+    const ambientHerd = [];
+    for (let i = 0; i < 5; i++) {
+      const sil = new THREE.Group();
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0x1a2a18,
+        transparent: true,
+        opacity: 0.35,
+        depthWrite: false,
+      });
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 6), mat);
+      body.scale.set(1.4, 0.7, 0.9);
+      body.position.y = 0.9;
+      sil.add(body);
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 1.4, 6), mat);
+      neck.position.set(0.5, 1.5, 0);
+      neck.rotation.z = -0.6;
+      sil.add(neck);
+      const a = rand(0, Math.PI * 2);
+      const r = rand(32, 46);
+      sil.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
+      sil.lookAt(0, 0, 0);
+      sil.userData.phase = rand(0, Math.PI * 2);
+      sil.userData.baseY = 0;
+      group.add(sil);
+      ambientHerd.push(sil);
+    }
+    group.userData.ambientHerd = ambientHerd;
+  }
+
   // Soft sky clouds for atmosphere (not flat single-color sky alone)
   const clouds = [];
   for (let i = 0; i < 10; i++) {
@@ -1247,5 +1302,50 @@ export function createPlankton(color = 0x7ef0c8) {
     0.2 + Math.random() * 0.5,
     0.4 + Math.random() * 0.5,
   );
+  return mesh;
+}
+
+/** Dark tire skid mark left when the jeep turns hard on land. */
+export function createSkidMark(color = 0x2a2218) {
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.35, 1.1),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.userData.life = 2.2;
+  mesh.userData.kind = 'skid';
+  return mesh;
+}
+
+/** Fast water splash droplet when the jeep/sub surges through water. */
+export function createWaterSplash(color = 0xb6eaff) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.12 + Math.random() * 0.1, 6, 6),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 }),
+  );
+  mesh.userData.life = 0.55;
+  mesh.userData.kind = 'waterSplash';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 2.2,
+    2.4 + Math.random() * 1.6,
+    (Math.random() - 0.5) * 2.2,
+  );
+  return mesh;
+}
+
+/** Tiny spark trail bead for Scatter-mode pellets. */
+export function createScatterTrail(color = 0xffe08a) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.07, 6, 6),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 }),
+  );
+  mesh.userData.life = 0.28;
+  mesh.userData.kind = 'scatterTrail';
   return mesh;
 }

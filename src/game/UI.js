@@ -256,7 +256,16 @@ export class UI {
 
   showStamps() {
     this.hideAll();
-    this.$('screen-stamps').classList.remove('hidden');
+    const screen = this.$('screen-stamps');
+    screen.classList.remove('hidden');
+    // Stamp book page-flip animation on open
+    const panel = screen.querySelector('.stamp-book-panel');
+    if (panel) {
+      panel.classList.remove('page-flip');
+      void panel.offsetWidth;
+      panel.classList.add('page-flip');
+    }
+    this.game.audio.pageFlip?.();
     const stamps = this.game.save.stamps;
     const total = Object.keys(DINOSAURS).length;
     const pct = Math.round((stamps.length / Math.max(1, total)) * 100);
@@ -747,5 +756,22 @@ export class UI {
     el.classList.remove('ping');
     void el.offsetWidth;
     el.classList.add('ping');
+  }
+
+  setZoomScope(show) {
+    this.$('zoom-scope')?.classList.toggle('hidden', !show);
+  }
+
+  setDepthGauge(show, norm = 0.35) {
+    const el = this.$('depth-gauge');
+    if (!el) return;
+    el.classList.toggle('hidden', !show);
+    el.setAttribute('aria-hidden', show ? 'false' : 'true');
+    if (!show) return;
+    const bar = this.$('depth-bar');
+    const val = this.$('depth-value');
+    const clamped = Math.max(0.08, Math.min(1, norm));
+    if (bar) bar.style.transform = `scaleY(${clamped})`;
+    if (val) val.textContent = `${Math.round(8 + clamped * 42)}m`;
   }
 }
