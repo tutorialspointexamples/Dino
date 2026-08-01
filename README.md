@@ -56,18 +56,20 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (branch 134f)
+### Verification iterations (branch ed9a)
 
-1. **Single-pass dino animation** — removed double `updateAnim` so walk cycles run at correct speed  
-2. **Predator limp visuals** — asymmetric stride + body lean when low HP  
-3. **Siren glow materials** — blue/red lightbar emissive actually lights during boost  
-4. **Fail-screen Try Again** — restart CTA when a mission is lost  
-5. **Live HUD mission clock** — TIME pill updates during the rescue  
-6. **Escort path refresh + egg radar** — chevrons follow baby→nest; eggs plot on mini-map  
-7. **Muzzle flash** — short additive flash on every shot (mode-tinted)  
-8. **Vehicle hit flash** — chassis flash on headbutt / croc nibble  
-9. **Wheel steer + chassis lean** — front wheels yaw and body banks into turns  
-10. **Boost FOV punch** — camera whoosh when siren boost is active  
+1. **Swinging coral relics** — ocean coral sways with soft emissive pulse  
+2. **Deep-sea swirl whirlpool** — rotating current visual on the boss water level  
+3. **Danxia terraces** — water-eroded layered mountain stacks  
+4. **Weapon turret tint** — gun/torpedo tube glows Auto / Zoom / Scatter colors  
+5. **Celebrate hop dance** — baby + mother victory bounce before results  
+6. **Roadblock bounce feedback** — sparks + toast when hitting blockers  
+7. **Mother flank bodyguard** — mother escorts beside the baby to the nest  
+8. **Camera look-ahead** — drive camera leans into the road ahead  
+9. **Hub NEXT pulse + stamp share** — next mission pulse; tap Dinosaur Master to copy progress  
+10. **Firefly biolum light + crystal shimmer** — cave glow light + pulsing crystals  
+
+Prior branches also cover limp anim, siren emissive, muzzle flash, boost FOV, radar eggs, and more (see `npm run verify`).
 
 ## Project layout
 
