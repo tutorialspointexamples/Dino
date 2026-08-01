@@ -2683,11 +2683,10 @@ export class Game {
     const want = charging ? 1.35 + Math.sin(performance.now() * 0.02) * 0.35 : 0.15;
     for (const p of pupils) {
       if (p.material) {
-        p.material.emissiveIntensity = THREE.MathUtils.lerp(
-          p.material.emissiveIntensity ?? 0.15,
-          want,
-          0.18,
-        );
+        // Snap up when charging so the telegraph reads instantly for kids
+        p.material.emissiveIntensity = charging
+          ? want
+          : THREE.MathUtils.lerp(p.material.emissiveIntensity ?? 0.15, want, 0.12);
         p.material.emissive?.setHex?.(charging ? 0xff3300 : 0xff2200);
       }
     }
