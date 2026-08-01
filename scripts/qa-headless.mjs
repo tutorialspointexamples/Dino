@@ -558,7 +558,7 @@ async function main() {
     // 6 garage preview
     g.ui.showGarage();
     await new Promise((r) => setTimeout(r, 60));
-    const garagePreview = !!g.garagePreview && g.state === 'garage';
+    const garagePreview = !!g.garagePreview && !!g.garageTurntable && g.state === 'garage';
     // 7 roar flash wiring
     const roarEl = !!document.getElementById('roar-flash');
     const roarFn = typeof g.ui.flashRoar === 'function';

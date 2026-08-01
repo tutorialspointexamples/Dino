@@ -188,7 +188,7 @@ ok(world.includes('meteorSmoke') && world.includes('meteorImpactGlow') && game.i
 ok(world.includes('lavaRivers') && game.includes('lavaRivers'), '7dce-3 lava river ribbons');
 ok(world.includes('oceanCurrents') && world.includes("level.id === 'ocean_current'") && game.includes('ocean_current'), '7dce-4 ocean current ribbons + drift');
 ok(world.includes('forkedRoutes') && world.includes('forkA'), '7dce-5 forked dual rescue routes');
-ok(game.includes('showGaragePreview') && game.includes('garagePreview') && read('src/game/UI.js').includes('showGaragePreview'), '7dce-6 garage 3D turntable preview');
+ok(game.includes('showGaragePreview') && game.includes('garageTurntable') && read('src/game/UI.js').includes('showGaragePreview'), '7dce-6 garage 3D turntable preview');
 ok(game.includes('_chaseRoarPunchT') && html.includes('roar-flash') && read('src/game/UI.js').includes('flashRoar'), '7dce-7 chase-start roar flash');
 ok(html.includes('paleo-tip') && read('src/game/UI.js').includes('showPaleoTip') && game.includes('showPaleoTip'), '7dce-8 paleontology tip on mother assist');
 ok(html.includes('friends-compare') && read('src/game/UI.js').includes('_renderFriendsCompare') && read('src/style.css').includes('friends-compare'), '7dce-9 friends stamp compete card');

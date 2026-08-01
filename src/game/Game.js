@@ -96,6 +96,7 @@ export class Game {
     this._baseFov = 55;
     this.heals = [];
     this.garagePreview = null;
+    this.garageTurntable = null;
     this._chaseRoarPunchT = 0;
     this.world = null;
     this.vehicle = null;
@@ -284,14 +285,31 @@ export class Game {
     if (!this.titleVehicle && !this.titleDinos?.length) {
       this._buildTitleDiorama();
     }
-    // Hide title jeep so the selected ride is the hero
+    // Hide title jeep / dinos so the selected ride is the clear hero turntable
     if (this.titleVehicle) this.titleVehicle.visible = false;
+    for (const d of this.titleDinos || []) d.visible = false;
     const preview = createVehicle(def);
-    preview.position.set(0.2, 0, 3.2);
+    preview.position.set(0, 0.15, 2.4);
     preview.rotation.y = -0.4;
+    preview.scale.setScalar(1.25);
     preview.userData.defId = def.id;
     preview.userData.kind = 'vehicle';
     preview.userData.isGaragePreview = true;
+    // Soft glowing turntable disc under the vehicle
+    const pad = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.6, 2.8, 0.18, 32),
+      new THREE.MeshStandardMaterial({
+        color: 0x1f6b3a,
+        emissive: 0xf4c14b,
+        emissiveIntensity: 0.35,
+        roughness: 0.55,
+        metalness: 0.15,
+      }),
+    );
+    pad.position.set(0, 0.05, 2.4);
+    pad.name = 'garageTurntable';
+    this.scene.add(pad);
+    this.garageTurntable = pad;
     this.scene.add(preview);
     this.garagePreview = preview;
     this.state = 'garage';
@@ -302,7 +320,12 @@ export class Game {
       this.scene.remove(this.garagePreview);
       this.garagePreview = null;
     }
+    if (this.garageTurntable) {
+      this.scene.remove(this.garageTurntable);
+      this.garageTurntable = null;
+    }
     if (this.titleVehicle) this.titleVehicle.visible = true;
+    for (const d of this.titleDinos || []) d.visible = true;
   }
 
   startMission(level, vehicleId) {
@@ -613,15 +636,19 @@ export class Game {
     // Garage / pick turntable — spin the selected vehicle hero
     if (this.garagePreview) {
       this.garagePreview.userData.updateAnim(dt, true);
-      this.garagePreview.rotation.y += dt * 0.85;
-      this.garagePreview.position.y = Math.sin(performance.now() * 0.002) * 0.08;
+      this.garagePreview.rotation.y += dt * 1.15;
+      this.garagePreview.position.y = 0.15 + Math.sin(performance.now() * 0.0025) * 0.1;
+      if (this.garageTurntable) {
+        this.garageTurntable.rotation.y -= dt * 0.55;
+        this.garageTurntable.material.emissiveIntensity = 0.28 + Math.sin(performance.now() * 0.004) * 0.18;
+      }
     }
     const t = performance.now() * 0.00035;
-    const focusZ = this.garagePreview ? 3.2 : 0;
-    this.camera.position.x = Math.sin(t) * (this.garagePreview ? 3.2 : 5);
-    this.camera.position.y = this.garagePreview ? 4.2 : 5.2;
-    this.camera.position.z = (this.garagePreview ? 7.2 : 8.5) + Math.cos(t) * 1.2;
-    this.camera.lookAt(0, 1.2, focusZ * 0.35);
+    const focusZ = this.garagePreview ? 2.4 : 0;
+    this.camera.position.x = Math.sin(t) * (this.garagePreview ? 2.4 : 5);
+    this.camera.position.y = this.garagePreview ? 3.8 : 5.2;
+    this.camera.position.z = (this.garagePreview ? 6.4 : 8.5) + Math.cos(t) * 0.9;
+    this.camera.lookAt(0, 1.1, focusZ * 0.45);
   }
 
   _updateMission(dt) {
@@ -1393,7 +1420,7 @@ export class Game {
       this._chaseRoarPunchT -= dt;
       if (this._chaseRoarPunchT <= 0) this.ui.flashRoar?.(false);
     }
-    const roarBoost = this._chaseRoarPunchT > 0 ? 8 * Math.min(1, this._chaseRoarPunchT / 0.55) : 0;
+    const roarBoost = this._chaseRoarPunchT > 0 ? 10 * Math.min(1, this._chaseRoarPunchT / 0.75) : 0;
     const wantFov =
       this._baseFov +
       roarBoost +
@@ -1437,11 +1464,12 @@ export class Game {
       // Chase-start roar punch — camera + screen flash
       this.audio.roar();
       this.shakeT = Math.max(this.shakeT, 0.45);
-      this._chaseRoarPunchT = 0.55;
-      this.camera.fov = this._baseFov + 6;
+      this._chaseRoarPunchT = 0.75;
+      this.camera.fov = this._baseFov + 10;
       this.camera.updateProjectionMatrix();
       this.ui.flashRoar?.(true);
       this.ui.toast('ROAR! The boss is chasing the baby!');
+      this.ui.crewCallout('Scout Mina', 'ROAR! Predator on the move — intercept!');
     }
 
     if (this.phase === PHASE.CHASE) {

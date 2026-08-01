@@ -881,18 +881,41 @@ h2 {
   pointer-events: none;
   z-index: 18;
   background:
-    radial-gradient(circle at 50% 40%, rgba(232, 93, 76, 0.45), transparent 55%),
-    rgba(196, 92, 38, 0.22);
+    radial-gradient(circle at 50% 38%, rgba(232, 93, 76, 0.7), transparent 50%),
+    radial-gradient(circle at 50% 100%, rgba(244, 193, 75, 0.35), transparent 45%),
+    rgba(139, 46, 20, 0.4);
   opacity: 0;
 }
 
 .roar-flash.on {
-  animation: roarFlashPulse 0.55s ease-out forwards;
+  animation: roarFlashPulse 0.7s ease-out forwards;
+}
+
+.roar-flash.on::after {
+  content: 'ROAR!';
+  position: absolute;
+  left: 50%;
+  top: 28%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 8vw, 4rem);
+  font-weight: 800;
+  color: #fff8e7;
+  text-shadow: 0 4px 0 #8b2e14, 0 0 24px rgba(232, 93, 76, 0.9);
+  letter-spacing: 0.08em;
+  animation: roarWordPop 0.7s ease-out forwards;
 }
 
 @keyframes roarFlashPulse {
-  0% { opacity: 0.9; }
+  0% { opacity: 1; }
+  35% { opacity: 0.85; }
   100% { opacity: 0; }
+}
+
+@keyframes roarWordPop {
+  0% { opacity: 1; transform: translateX(-50%) scale(0.7); }
+  40% { opacity: 1; transform: translateX(-50%) scale(1.08); }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.2); }
 }
 
 .paleo-tip {
