@@ -218,6 +218,18 @@ ok(read('src/game/UI.js').includes('showStampDetail') && read('src/game/UI.js').
 ok(game.includes('_fail') && game.includes('setZoomOverlay'), 'gap: fail sticky HUD cleanup');
 ok(read('src/game/UI.js').includes('refreshContinueCta') && read('src/game/UI.js').includes('lastLevelId'), 'gap: Continue CTA refresh from save');
 
+// Branch 0133 gap-fix pass 2 (10)
+ok(game.includes('_updateVictoryCamera') && game.includes('Skip chase camera'), 'gap2-1 celebrate victory camera orbit');
+ok(game.includes('setZoomOverlay') && read('src/style.css').includes('zoom-scope'), 'gap2-2 zoom scope overlay');
+ok(world.includes("kind = 'fossil'") && game.includes('_updateFossils') && game.includes('_fossilsCollected'), 'gap2-3 escort fossils');
+ok(game.includes('_updateVehicleDamageSmoke') && game.includes('_damageSmoke'), 'gap2-4 vehicle damage smoke');
+ok(read('src/game/UI.js').includes('padlockShake') || read('src/style.css').includes('padlockShake'), 'gap2-5 locked map padlock shake');
+ok(read('src/game/data.js').includes('dinoHabitat') && read('src/game/UI.js').includes('stampHabitatFilter') && html.includes('stamp-filters'), 'gap2-6 stamp habitat filters');
+ok(game.includes('_updateSosFlares') && game.includes('sosFlare'), 'gap2-7 baby SOS flares');
+ok(game.includes('_updateMotherShield') && game.includes('_motherShield'), 'gap2-8 mother protect shield');
+ok(game.includes('flashRoar?.(false)') && game.includes('_beginEscort'), 'gap2-9 roar flash cleared on escort');
+ok(game.includes('_fossilsCollected') && game.includes('collectibles'), 'gap2-10 fossils count toward Perfect stars');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

@@ -206,8 +206,12 @@ export class Game {
     this._clearChargeTelegraph();
     this._eggsCollected = 0;
     this._amberCollected = 0;
+    this._fossilsCollected = 0;
     this._squealCooldown = 0;
     this._chirpCooldown = 0;
+    this._clearMotherShield();
+    this._clearDamageSmoke();
+    this._clearSosFlares();
     this.audio.stopAmbient();
   }
 
@@ -381,7 +385,9 @@ export class Game {
     this._stunStars = [];
     this._chirpBubbles = [];
     this._amberCollected = 0;
+    this._fossilsCollected = 0;
     this._chirpCooldown = 0;
+    this._sosCooldown = 0;
     this._boostFuel = 1;
     this._boostActive = false;
     this._boostSfxT = 0;
@@ -472,6 +478,7 @@ export class Game {
     }
     this._eggsCollected = 0;
     this._amberCollected = 0;
+    this._fossilsCollected = 0;
     this._attachChargeTelegraph();
     // Hide crew roster after the alarm settles
     setTimeout(() => this.ui?.showCrewIntro?.(false), 3200);
@@ -657,8 +664,9 @@ export class Game {
     const jeepRatio = this.vehicle
       ? Math.max(0, this.vehicle.userData.hp / (this.vehicle.userData.maxHp || 1))
       : 0;
-    // Amber gems count toward Perfect Rescue alongside eggs
-    const collectibles = (this._eggsCollected || 0) + (this._amberCollected || 0);
+    // Amber + fossils count toward Perfect Rescue alongside eggs
+    const collectibles =
+      (this._eggsCollected || 0) + (this._amberCollected || 0) + (this._fossilsCollected || 0);
     let stars = 1;
     if (babyRatio > 0.35 && jeepRatio > 0.25) stars = 2;
     if (babyRatio > 0.65 && jeepRatio > 0.45 && collectibles >= 2) stars = 3;
@@ -740,7 +748,8 @@ export class Game {
 
     if (this.phase === PHASE.CELEBRATE) {
       this._updateCelebrate(dt);
-      this._updateCamera(dt);
+      // Skip chase camera so victory orbit is not overwritten
+      this._updateVictoryCamera(dt);
       this._updateActors(dt);
       this._updateSparks(dt);
       this._updateWorldFX(dt);
@@ -749,6 +758,7 @@ export class Game {
       this._updateRadar();
       this._updateAimLock();
       this.ui.updateNestProximity(false);
+      this.ui.setZoomOverlay(false);
       return;
     }
 
@@ -787,6 +797,7 @@ export class Game {
     this._updateAimLock();
     this._updateEggs();
     this._updateAmbers();
+    this._updateFossils();
     this._updateSearchlight(dt);
     this._updateRoarRings(dt);
     this._updateShockwaves(dt);
@@ -795,6 +806,13 @@ export class Game {
     this._updateEscortChirps(dt);
     this._updateNestProximityHud();
     this._updateHpVignette();
+    this._updateVehicleDamageSmoke(dt);
+    this._updateMotherShield(dt);
+    this._updateSosFlares(dt);
+    this.ui.setZoomOverlay(
+      this.vehicle?.userData?.weaponMode === 'zoom' &&
+        [PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase),
+    );
     this.ui.updateMissionClock(this._missionElapsed);
 
     if (this.vehicle) {
@@ -1837,8 +1855,12 @@ export class Game {
     for (const amber of this.world?.userData?.ambers || []) {
       if (!amber.userData.collected) amber.visible = true;
     }
+    for (const fossil of this.world?.userData?.fossils || []) {
+      if (!fossil.userData.collected) fossil.visible = true;
+    }
+    this.ui.flashRoar?.(false);
     this._spawnEscortChevrons();
-    this.ui.toast('Predator retreats! Escort the baby — grab eggs & amber!');
+    this.ui.toast('Predator retreats! Escort the baby — grab eggs, amber & fossils!');
     this.missionScore += 200;
     this.ui.updateScore(this.missionScore);
     // Nudge baby toward nest so completion is reliable
@@ -1950,7 +1972,10 @@ export class Game {
     this.ui.updateNestCompass(false);
     this.ui.updateNestProximity(false);
     this.ui.setZoomOverlay?.(false);
+    this.ui.flashRoar?.(false);
     this._clearSearchlight();
+    this._clearMotherShield();
+    this._clearDamageSmoke();
     document.getElementById('tutorial-tip')?.classList.add('hidden');
     this.audio.lose();
     this.ui.setPhaseRibbon(false);
@@ -2237,6 +2262,25 @@ export class Game {
     }
   }
 
+  _updateFossils() {
+    if (this.phase !== PHASE.ESCORT || !this.vehicle) return;
+    const fossils = this.world?.userData?.fossils;
+    if (!fossils) return;
+    for (const fossil of fossils) {
+      if (fossil.userData.collected || !fossil.visible) continue;
+      if (this.vehicle.position.distanceTo(fossil.position) < 2.2) {
+        fossil.userData.collected = true;
+        fossil.visible = false;
+        this._fossilsCollected = (this._fossilsCollected || 0) + 1;
+        this.missionScore += 60;
+        this.ui.updateScore(this.missionScore);
+        this.audio.collect();
+        this._spawnSparks(fossil.position.clone().setY(0.8), 0xd6c3a0, 8);
+        this.ui.toast(`Fossil find! +60 (${this._fossilsCollected}/2)`);
+      }
+    }
+  }
+
   _spawnMotherRing(origin) {
     const ring = createMotherRing(0xf4c14b);
     ring.position.set(origin.x, 0.08, origin.z);
@@ -2336,6 +2380,11 @@ export class Game {
     for (const amber of this.world?.userData?.ambers || []) {
       if (!amber.visible || amber.userData.collected) continue;
       plot(amber, '#ff8c1a', 3);
+    }
+    // Fossils — tan blips
+    for (const fossil of this.world?.userData?.fossils || []) {
+      if (!fossil.visible || fossil.userData.collected) continue;
+      plot(fossil, '#d6c3a0', 3);
     }
     // Vehicle always center
     ctx.fillStyle = '#ffffff';
@@ -2500,5 +2549,135 @@ export class Game {
     const nestDist = Math.hypot(this.baby.position.x - nest.x, this.baby.position.z - nest.z);
     const prox = Math.max(0, Math.min(1, 1 - nestDist / 28));
     this.ui.updateNestProximity(true, prox, Math.max(0, nestDist - 3));
+  }
+
+  /** Victory orbit around the nest — does not call chase camera. */
+  _updateVictoryCamera(dt) {
+    const nest = this.world?.userData?.nestPos || new THREE.Vector3(0, 0, -16);
+    const t = performance.now() * 0.0007;
+    const radius = 9.5;
+    const target = new THREE.Vector3(
+      nest.x + Math.cos(t) * radius,
+      5.2,
+      nest.z + Math.sin(t) * radius,
+    );
+    this.camera.position.lerp(target, 1 - Math.pow(0.02, dt));
+    this.camera.lookAt(nest.x, 1.2, nest.z);
+    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, this._baseFov, 0.08);
+    this.camera.updateProjectionMatrix();
+  }
+
+  _updateVehicleDamageSmoke(dt) {
+    if (!this.vehicle) {
+      this._clearDamageSmoke();
+      return;
+    }
+    const ratio = this.vehicle.userData.hp / (this.vehicle.userData.maxHp || 1);
+    if (ratio > 0.35) {
+      this._clearDamageSmoke();
+      return;
+    }
+    if (!this._damageSmoke) {
+      const smoke = new THREE.Mesh(
+        new THREE.SphereGeometry(0.25, 8, 8),
+        new THREE.MeshBasicMaterial({
+          color: 0x6b7280,
+          transparent: true,
+          opacity: 0.45,
+          depthWrite: false,
+        }),
+      );
+      smoke.position.set(0, 1.4, 0.6);
+      this.vehicle.add(smoke);
+      this._damageSmoke = smoke;
+    }
+    const t = performance.now() * 0.001;
+    this._damageSmoke.scale.setScalar(0.8 + Math.sin(t * 6) * 0.25 + (1 - ratio) * 0.4);
+    this._damageSmoke.material.opacity = 0.25 + (1 - ratio) * 0.45;
+    this._damageSmoke.position.y = 1.3 + Math.sin(t * 5) * 0.15;
+  }
+
+  _clearDamageSmoke() {
+    if (!this._damageSmoke) return;
+    this._damageSmoke.parent?.remove(this._damageSmoke);
+    this._damageSmoke = null;
+  }
+
+  _updateMotherShield(dt) {
+    if (this.phase !== PHASE.MOTHER || !this.mother?.visible || !this.baby) {
+      this._clearMotherShield();
+      return;
+    }
+    if (!this._motherShield) {
+      const shield = new THREE.Mesh(
+        new THREE.SphereGeometry(2.2, 18, 14),
+        new THREE.MeshBasicMaterial({
+          color: 0x60a5fa,
+          transparent: true,
+          opacity: 0.18,
+          depthWrite: false,
+          wireframe: true,
+        }),
+      );
+      this.scene.add(shield);
+      this._motherShield = shield;
+    }
+    this._motherShield.position.copy(this.baby.position);
+    this._motherShield.position.y = 1.1;
+    const pulse = 1 + Math.sin(performance.now() * 0.006) * 0.08;
+    this._motherShield.scale.setScalar(pulse);
+    this._motherShield.material.opacity = 0.12 + Math.sin(performance.now() * 0.008) * 0.08;
+    this._motherShield.rotation.y += dt * 1.2;
+  }
+
+  _clearMotherShield() {
+    if (!this._motherShield) return;
+    this.scene.remove(this._motherShield);
+    this._motherShield = null;
+  }
+
+  _updateSosFlares(dt) {
+    const dangerPhases = [PHASE.INTRO, PHASE.CHASE, PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT];
+    if (!this.baby || !dangerPhases.includes(this.phase) || !this.predator) {
+      return;
+    }
+    const threat = this.predator.position.distanceTo(this.baby.position);
+    if (threat > 4.5) return;
+    this._sosCooldown = (this._sosCooldown || 0) - dt;
+    if (this._sosCooldown > 0) return;
+    this._sosCooldown = 0.85;
+    const flare = new THREE.Mesh(
+      new THREE.SphereGeometry(0.16, 8, 8),
+      new THREE.MeshBasicMaterial({
+        color: 0xff6b4a,
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false,
+      }),
+    );
+    flare.position.copy(this.baby.position);
+    flare.position.y += 1.9;
+    flare.userData.life = 0.7;
+    flare.userData.kind = 'sosFlare';
+    this.scene.add(flare);
+    this._sosFlares = this._sosFlares || [];
+    this._sosFlares.push(flare);
+    // Decay existing flares
+    for (let i = (this._sosFlares?.length || 0) - 1; i >= 0; i--) {
+      const f = this._sosFlares[i];
+      if (f === flare) continue;
+      f.userData.life -= dt;
+      f.position.y += dt * 1.4;
+      f.material.opacity = Math.max(0, f.userData.life);
+      if (f.userData.life <= 0) {
+        this.scene.remove(f);
+        this._sosFlares.splice(i, 1);
+      }
+    }
+  }
+
+  _clearSosFlares() {
+    for (const f of this._sosFlares || []) this.scene.remove(f);
+    this._sosFlares = [];
   }
 }

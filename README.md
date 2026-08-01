@@ -69,7 +69,7 @@ npm run qa
 9. **Rainforest pollen motes** — floating golden pollen in forest biomes  
 10. **Nest proximity HUD** — distance meter while escorting  
 
-Gap-fix pass covers sticky HUD cleanup, amber Perfect stars, countdown soft light, Continue toast/callout, boss alarm roar ring, escort light-off, quit-to-map overlays, and Continue CTA refresh.
+Gap-fix passes cover sticky HUD cleanup, amber/fossil Perfect stars, countdown soft light, Continue toast/callout, boss alarm roar ring, escort light-off, quit-to-map overlays, celebrate victory orbit, zoom scope, damage smoke, padlock shake, stamp habitat filters, baby SOS flares, and mother protect shield.
 
 Prior branches (7dce/ed9a+) also cover garage turntable, roar flash, paleo tips, friends compete, vines/lava/ocean FX, coral sway, whirlpool, and more (see `npm run verify`).
 

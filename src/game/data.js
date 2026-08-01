@@ -1,5 +1,13 @@
 /** Dinosaur Guard 2 — content data (26 dinos, 6 police cars, 4 subs, 4 crew) */
 
+/** Habitat bucket for stamp book filters (land / sea / flyer). */
+export function dinoHabitat(d) {
+  if (!d) return 'land';
+  if (d.morph === 'ptera') return 'flyer';
+  if (d.morph === 'mosa') return 'sea';
+  return 'land';
+}
+
 export const CREW = [
   { id: 'captain_rio', name: 'Captain Rio', color: 0xf4c14b, role: 'Driver' },
   { id: 'scout_mina', name: 'Scout Mina', color: 0x60a5fa, role: 'Spotter' },

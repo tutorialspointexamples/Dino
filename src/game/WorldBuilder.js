@@ -620,6 +620,28 @@ export function buildWorld(level, scene) {
   }
   group.userData.ambers = ambers;
 
+  // Escort fossils — paleontology collectibles
+  const fossils = [];
+  for (let i = 0; i < 2; i++) {
+    const fossil = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.28, 0.32, 0.12, 8),
+      new THREE.MeshStandardMaterial({
+        color: 0xd6c3a0,
+        emissive: 0xc4a35a,
+        emissiveIntensity: 0.2,
+        roughness: 0.85,
+      }),
+    );
+    fossil.rotation.x = Math.PI / 2;
+    fossil.position.set(i === 0 ? -4.5 : 4.5, 0.2, -12);
+    fossil.userData.kind = 'fossil';
+    fossil.userData.collected = false;
+    fossil.visible = false;
+    group.add(fossil);
+    fossils.push(fossil);
+  }
+  group.userData.fossils = fossils;
+
   // Rainforest floating pollen motes
   if (biome === 'forest') {
     const pollen = [];

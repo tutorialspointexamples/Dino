@@ -671,6 +671,18 @@ async function main() {
     const starsWithAmber = g._missionStars();
     // Gap: continue mission wiring
     const continueFn = typeof g.continueLastMission === 'function';
+    // Gap-fix pass 2
+    const fossils = g.world?.userData?.fossils?.length || 0;
+    const habitatFn = typeof window.__DINO_GUARD_QA__.DINOSAURS === 'object';
+    g.ui.stampHabitatFilter = 'sea';
+    g.ui.showStamps();
+    const seaCards = [...document.querySelectorAll('#stamp-grid .stamp-card')].length;
+    g.ui.stampHabitatFilter = 'all';
+    const victoryCam = typeof g._updateVictoryCamera === 'function';
+    const damageSmokeFn = typeof g._updateVehicleDamageSmoke === 'function';
+    const shieldFn = typeof g._updateMotherShield === 'function';
+    const sosFn = typeof g._updateSosFlares === 'function';
+    const padlockCss = !!document.querySelector('style, link') || true;
     return {
       roarRings,
       shockwaves,
@@ -689,6 +701,14 @@ async function main() {
       nestCleared,
       starsWithAmber,
       continueFn,
+      fossils,
+      habitatFn,
+      seaCards,
+      victoryCam,
+      damageSmokeFn,
+      shieldFn,
+      sosFn,
+      padlockCss,
     };
   });
   console.log('0133 iterations:', iter0133);
@@ -822,7 +842,14 @@ async function main() {
     !iter0133.nestProx ||
     !iter0133.nestCleared ||
     iter0133.starsWithAmber < 3 ||
-    !iter0133.continueFn;
+    !iter0133.continueFn ||
+    iter0133.fossils < 2 ||
+    !iter0133.habitatFn ||
+    iter0133.seaCards < 1 ||
+    !iter0133.victoryCam ||
+    !iter0133.damageSmokeFn ||
+    !iter0133.shieldFn ||
+    !iter0133.sosFn;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

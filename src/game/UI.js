@@ -1,4 +1,4 @@
-import { CREW, DINOSAURS, LEVELS, VEHICLES, hexCss } from './data.js';
+import { CREW, DINOSAURS, LEVELS, VEHICLES, dinoHabitat, hexCss } from './data.js';
 import { isVehicleUnlocked } from './Save.js';
 
 export class UI {
@@ -6,6 +6,7 @@ export class UI {
     this.game = game;
     this.selectedPickVehicle = null;
     this.pendingLevel = null;
+    this.stampHabitatFilter = 'all';
 
     this.$ = (id) => document.getElementById(id);
     this.bind();
@@ -124,6 +125,9 @@ export class UI {
       btn.onclick = () => {
         if (!unlocked) {
           this.toast('Complete the earlier mission first!');
+          btn.classList.remove('shake');
+          void btn.offsetWidth;
+          btn.classList.add('shake');
           return;
         }
         this.openVehiclePick(level);
@@ -262,13 +266,24 @@ export class UI {
     }
     // Friends compare card — compete on stamp collection progress
     this._renderFriendsCompare(stamps.length, total, pct);
+    // Habitat filter buttons
+    document.querySelectorAll('.stamp-filter').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.habitat === this.stampHabitatFilter);
+      btn.onclick = () => {
+        this.stampHabitatFilter = btn.dataset.habitat || 'all';
+        this.showStamps();
+      };
+    });
     const grid = this.$('stamp-grid');
     grid.innerHTML = '';
     Object.values(DINOSAURS).forEach((d) => {
+      const habitat = dinoHabitat(d);
+      if (this.stampHabitatFilter !== 'all' && habitat !== this.stampHabitatFilter) return;
       const have = stamps.includes(d.id);
       const card = document.createElement('button');
       card.type = 'button';
       card.className = `item-card stamp-card${have ? '' : ' locked'}`;
+      card.dataset.habitat = habitat;
       card.innerHTML = `
         <div class="dino-swatch" style="background:linear-gradient(135deg,${hexCss(d.color)},${hexCss(d.accent)});opacity:${have ? 1 : 0.35}"></div>
         <h3>${have ? d.name : '???'}</h3>
