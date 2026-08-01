@@ -218,6 +218,18 @@ ok(read('src/style.css').includes('ink-splash') && read('src/game/UI.js').includ
 ok(game.includes('_updateProximityTension') && game.includes('_proximityTension') && game.includes('proximityTighten'), '1c1b-9 predator proximity tension FOV');
 ok(html.includes('pick-briefing') && read('src/game/UI.js').includes('pick-sil-baby') && read('src/style.css').includes('sil-hop'), '1c1b-10 mission silhouette briefing');
 
+// Branch e9eb polish iterations (10)
+ok(world.includes('emberSparks') && game.includes('emberSparks'), 'e9eb-1 volcano ember sparks');
+ok(world.includes('createMotherShield') && game.includes('_spawnMotherShield') && game.includes('_updateMotherShield'), 'e9eb-2 mother protect shield');
+ok(world.includes('createDamageSmoke') && game.includes('_updateDamageSmoke'), 'e9eb-3 vehicle damage smoke');
+ok(world.includes('createThankYouHeart') && game.includes('_spawnThankYouHearts') && read('src/game/Audio.js').includes('hearts()'), 'e9eb-4 thank-you hearts');
+ok(html.includes('hub-rescued') && read('src/game/UI.js').includes('hub-rescued') && read('src/style.css').includes('rescued-badge'), 'e9eb-5 hub babies-saved counter');
+ok(read('src/game/UI.js').includes('flashComboMilestone') && read('src/style.css').includes('combo-milestone') && read('src/game/Audio.js').includes('combo('), 'e9eb-6 combo milestone fanfare');
+ok(read('src/game/Audio.js').includes('horn()') && game.includes('_wasBoosting') && game.includes('audio.horn'), 'e9eb-7 jeep horn on boost');
+ok(world.includes('nestCrack') && game.includes('_revealNestCrack') && game.includes('_updateNestCrack'), 'e9eb-8 nest hatch crack');
+ok(read('src/game/UI.js').includes('padlock-shake') && read('src/style.css').includes('padlockShake'), 'e9eb-9 locked level padlock shake');
+ok(world.includes('createPlankton') && game.includes('_updatePlankton') && game.includes("kind === 'plankton'"), 'e9eb-10 ocean plankton trail');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

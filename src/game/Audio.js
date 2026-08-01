@@ -200,6 +200,27 @@ export class AudioBus {
     setTimeout(() => this.tone({ freq: 320, dur: 0.08, type: 'sine', gain: 0.05 }), 60);
   }
 
+  /** Jeep / submarine horn when siren boost engages */
+  horn() {
+    this.tone({ freq: 220, dur: 0.16, type: 'square', gain: 0.07, slide: -20 });
+    setTimeout(() => this.tone({ freq: 280, dur: 0.14, type: 'square', gain: 0.06, slide: -30 }), 90);
+  }
+
+  /** Combo milestone fanfare (x5 / x10) */
+  combo(n = 5) {
+    const base = n >= 10 ? [523, 659, 784, 988] : [440, 554, 659];
+    base.forEach((f, i) => {
+      setTimeout(() => this.tone({ freq: f, dur: 0.1, type: 'triangle', gain: 0.065 }), i * 70);
+    });
+  }
+
+  /** Soft thank-you chime with baby hearts */
+  hearts() {
+    [659, 784, 988].forEach((f, i) => {
+      setTimeout(() => this.tone({ freq: f, dur: 0.12, type: 'sine', gain: 0.05 }), i * 90);
+    });
+  }
+
   ui() {
     this.tone({ freq: 660, dur: 0.06, type: 'triangle', gain: 0.05 });
   }

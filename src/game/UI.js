@@ -82,6 +82,12 @@ export class UI {
     this.$('screen-hub').classList.remove('hidden');
     const save = this.game.save;
     this.$('hub-progress').textContent = `${save.cleared.length}/${LEVELS.length}`;
+    const rescuedEl = this.$('hub-rescued');
+    if (rescuedEl) {
+      const n = save.cleared?.length || 0;
+      rescuedEl.textContent = `Saved ${n}`;
+      rescuedEl.title = `${n} baby dinosaur${n === 1 ? '' : 's'} rescued`;
+    }
     const grid = this.$('level-grid');
     grid.innerHTML = '';
     // Highlight the next unlocked uncleared mission (kids' "play here" cue)
@@ -121,6 +127,11 @@ export class UI {
       btn.onclick = () => {
         if (!unlocked) {
           this.toast('Complete the earlier mission first!');
+          // Locked padlock shake — kids get clear locked feedback
+          btn.classList.remove('padlock-shake');
+          void btn.offsetWidth;
+          btn.classList.add('padlock-shake');
+          this.game.audio.ui?.();
           return;
         }
         this.openVehiclePick(level);
@@ -647,7 +658,21 @@ export class UI {
       el.classList.add('pop');
     } else {
       el.classList.add('hidden');
+      el.classList.remove('combo-milestone');
     }
+  }
+
+  /** Bigger combo HUD pop on x5 / x10 milestones */
+  flashComboMilestone(n) {
+    const el = this.$('combo-hud');
+    if (!el) return;
+    el.classList.remove('hidden', 'combo-milestone');
+    void el.offsetWidth;
+    el.classList.add('combo-milestone');
+    const count = this.$('combo-count');
+    if (count) count.textContent = `x${n}`;
+    clearTimeout(this._comboMilestoneTimer);
+    this._comboMilestoneTimer = setTimeout(() => el.classList.remove('combo-milestone'), 900);
   }
 
   setHpVignette(amount) {

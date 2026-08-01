@@ -389,6 +389,26 @@ export function buildWorld(level, scene) {
       ash.push(flake);
     }
     group.userData.ash = ash;
+    // Rising volcanic ember sparks for lava biomes
+    const emberSparks = [];
+    for (let i = 0; i < 28; i++) {
+      const ember = new THREE.Mesh(
+        new THREE.SphereGeometry(rand(0.06, 0.14), 6, 6),
+        new THREE.MeshBasicMaterial({
+          color: i % 2 ? 0xff6b2a : 0xffc14b,
+          transparent: true,
+          opacity: 0.9,
+        }),
+      );
+      ember.position.set(rand(-22, 24), rand(0.4, 3.5), rand(-22, 10));
+      ember.userData.base = ember.position.clone();
+      ember.userData.phase = rand(0, Math.PI * 2);
+      ember.userData.speed = rand(1.2, 2.4);
+      ember.userData.kind = 'ember';
+      group.add(ember);
+      emberSparks.push(ember);
+    }
+    group.userData.emberSparks = emberSparks;
   }
 
   if (biome === 'desert') {
@@ -693,7 +713,21 @@ export function buildWorld(level, scene) {
   nestIncubator.rotation.x = -Math.PI / 2;
   nestIncubator.position.set(0, 0.08, -16);
   group.add(nestIncubator);
-  group.userData.nestBeacon = { beacon, beaconRing, nestIncubator };
+  // Nest hatch crack lines — revealed during celebrate when the egg "opens"
+  const nestCrack = new THREE.Group();
+  nestCrack.position.set(0, 0.55, -16);
+  nestCrack.visible = false;
+  const crackMat = new THREE.MeshBasicMaterial({ color: 0x3a2410, transparent: true, opacity: 0.85 });
+  for (let i = 0; i < 4; i++) {
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.55, 0.08), crackMat);
+    const a = (i / 4) * Math.PI * 2 + 0.3;
+    seam.position.set(Math.cos(a) * 0.35, 0.1, Math.sin(a) * 0.2);
+    seam.rotation.z = a * 0.4;
+    nestCrack.add(seam);
+  }
+  nestCrack.userData.kind = 'nestCrack';
+  group.add(nestCrack);
+  group.userData.nestBeacon = { beacon, beaconRing, nestIncubator, nestCrack };
 
   // Escort collectible eggs for bonus score / learning loop
   const eggs = [];
@@ -1145,6 +1179,73 @@ export function createBoostBubble(color = 0xb6eaff) {
     (Math.random() - 0.5) * 0.8,
     1.4 + Math.random() * 1.2,
     0.8 + Math.random() * 0.6,
+  );
+  return mesh;
+}
+
+/** Mother protect shield bubble when she arrives to assist. */
+export function createMotherShield(color = 0x60a5fa) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(2.4, 18, 14),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.28,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      wireframe: false,
+    }),
+  );
+  mesh.userData.life = 2.4;
+  mesh.userData.kind = 'motherShield';
+  return mesh;
+}
+
+/** Rising thank-you heart particle from a rescued baby. */
+export function createThankYouHeart(color = 0xff6b8a) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.16, 8, 8),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 }),
+  );
+  mesh.scale.set(1, 0.85, 1.15);
+  mesh.userData.life = 1.4;
+  mesh.userData.kind = 'thankHeart';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 0.8,
+    2.2 + Math.random() * 1.2,
+    (Math.random() - 0.5) * 0.8,
+  );
+  return mesh;
+}
+
+/** Dark damage smoke when the Guard vehicle is critically hurt. */
+export function createDamageSmoke(color = 0x4a4a4a) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28, 8, 8),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 }),
+  );
+  mesh.userData.life = 0.85;
+  mesh.userData.kind = 'damageSmoke';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 0.5,
+    1.5 + Math.random() * 0.8,
+    (Math.random() - 0.5) * 0.5,
+  );
+  return mesh;
+}
+
+/** Bioluminescent plankton sparkle for ocean / submarine trails. */
+export function createPlankton(color = 0x7ef0c8) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.08 + Math.random() * 0.06, 6, 6),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 }),
+  );
+  mesh.userData.life = 0.9;
+  mesh.userData.kind = 'plankton';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 0.6,
+    0.2 + Math.random() * 0.5,
+    0.4 + Math.random() * 0.5,
   );
   return mesh;
 }

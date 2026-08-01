@@ -56,20 +56,20 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (branch 1c1b)
+### Verification iterations (branch e9eb)
 
-1. **Cave / crater headlights** — SpotLights cut through dark biomes  
-2. **Rainforest lightning + thunder** — storm flashes over Tropical Rainforest  
-3. **Submarine sonar pings** — expanding rings + SONAR HUD on water missions  
-4. **Baby SOS flare** — critical HP flares + SOS banner + distress chirp  
-5. **Predator retreat smoke** — smoke cloud when escort begins  
-6. **Hub biome medals** — CLEARED medal ribbon on finished map cards  
-7. **Boost bubble jets** — submarine dash bubble trail  
-8. **Stamp ink splash** — encyclopedia stamp land + ink thud SFX  
-9. **Predator proximity tension** — FOV tighten + close-range roar  
-10. **Mission silhouette briefing** — animated baby vs predator on vehicle pick  
+1. **Volcano ember sparks** — rising glowing embers over lava biomes  
+2. **Mother protect shield** — translucent bubble when mother assists  
+3. **Vehicle damage smoke** — Guard jeep smokes when HP is critical  
+4. **Thank-you hearts** — baby heart particles + chime on nest celebrate  
+5. **Hub babies-saved counter** — “Saved N” badge on the Jurassic Map  
+6. **Combo milestone fanfare** — x5 / x10 HUD pop + SFX  
+7. **Jeep horn on boost** — horn + crew callout when siren boost engages  
+8. **Nest hatch crack** — crack seams reveal during celebration  
+9. **Locked level padlock shake** — locked map cards shake when tapped  
+10. **Ocean plankton trail** — bioluminescent sparkles behind water vehicles  
 
-Prior branches (9f1d / 7dce / ed9a+) also cover crystal prisms, radio chatter, vines, lava rivers, ocean currents, garage turntable, roar flash, paleo tips, friends compete, coral sway, whirlpool, mother flank, look-ahead camera, and more (see `npm run verify`).
+Prior branches (1c1b / 9f1d / 7dce / ed9a+) also cover cave headlights, sonar, SOS flares, retreat smoke, biome medals, stamp ink, proximity tension, silhouette briefing, crystal prisms, radio chatter, vines, lava rivers, ocean currents, garage turntable, roar flash, paleo tips, friends compete, and more (see `npm run verify`).
 
 ## Project layout
 

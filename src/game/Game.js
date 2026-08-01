@@ -20,6 +20,10 @@ import {
   createSosFlare,
   createRetreatSmoke,
   createBoostBubble,
+  createMotherShield,
+  createThankYouHeart,
+  createDamageSmoke,
+  createPlankton,
 } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
@@ -112,6 +116,11 @@ export class Game {
     this._proximityRoarT = 0;
     this._sonars = [];
     this._sosFlares = [];
+    this._wasBoosting = false;
+    this._damageSmokeT = 0;
+    this._planktonT = 0;
+    this._motherShield = null;
+    this._hearts = [];
     this.titleSpotlight = null;
     this.world = null;
     this.vehicle = null;
@@ -741,6 +750,8 @@ export class Game {
       this._updateActors(dt);
       this._updateSparks(dt);
       this._updateWorldFX(dt);
+      this._updateThankYouHearts(dt);
+      this._updateNestCrack(dt);
       this._updateRadar();
       this._updateAimLock();
       return;
@@ -786,6 +797,10 @@ export class Game {
     this._updateSonar(dt);
     this._updateSosFlares(dt);
     this._updateBoostBubbles(dt);
+    this._updateDamageSmoke(dt);
+    this._updatePlankton(dt);
+    this._updateMotherShield(dt);
+    this._updateThankYouHearts(dt);
     this.ui.updateMissionClock(this._missionElapsed);
 
     if (this.vehicle) {
@@ -1238,6 +1253,22 @@ export class Game {
         }
       }
     }
+    // Volcano ember sparks rise from lava
+    const embers = this.world?.userData?.emberSparks;
+    if (embers) {
+      const t = performance.now() * 0.001;
+      for (const e of embers) {
+        const b = e.userData.base;
+        const p = e.userData.phase || 0;
+        const spd = e.userData.speed || 1.6;
+        const rise = ((t * spd + p) % 4.5);
+        e.position.x = b.x + Math.sin(t * 2 + p) * 0.35;
+        e.position.y = 0.3 + rise * 1.8;
+        e.position.z = b.z + Math.cos(t * 1.4 + p) * 0.35;
+        e.material.opacity = Math.max(0.05, 0.95 - rise * 0.18);
+        e.scale.setScalar(0.7 + Math.sin(t * 6 + p) * 0.25);
+      }
+    }
     this._updateMotherRings(dt);
   }
 
@@ -1422,7 +1453,13 @@ export class Game {
     const wantBoost = this.input.isBoosting() && moving && -axis.y > 0.15;
     if (wantBoost && this._boostFuel > 0.05) {
       this._boostFuel = Math.max(0, this._boostFuel - dt * 0.45);
+      // Jeep / sub horn on boost engage (rising edge)
+      if (!this._wasBoosting) {
+        this.audio.horn?.();
+        this.ui.crewCallout?.('Captain Rio', 'Siren boost — hang on!');
+      }
       this._boostActive = true;
+      this._wasBoosting = true;
       this._boostSfxT -= dt;
       if (this._boostSfxT <= 0) {
         this.audio.boost();
@@ -1430,6 +1467,7 @@ export class Game {
       }
     } else {
       this._boostActive = false;
+      this._wasBoosting = false;
       this._boostFuel = Math.min(1, this._boostFuel + dt * 0.22);
     }
     this.ui.setBoostHud(this._boostActive, this._boostFuel);
@@ -1822,6 +1860,7 @@ export class Game {
         this.shakeT = Math.max(this.shakeT, 0.35);
         this._spawnSparks(mother.position.clone().setY(1.6), 0xf4c14b, 10);
         this._spawnMotherRing(mother.position.clone());
+        this._spawnMotherShield(mother);
         this._radioChatter('Mother assist inbound — cover the baby!');
       }
       if (predator.userData.hp <= 0) {
@@ -2065,6 +2104,8 @@ export class Game {
     this.ui.showSkipCountdown(false);
     this.ui.toast('Baby dinosaur rescued!');
     this.audio.win();
+    this._revealNestCrack();
+    this._spawnThankYouHearts();
   }
 
   _finishWin() {
@@ -2251,6 +2292,14 @@ export class Game {
         s.userData.velocity.y += 0.6 * dt;
         s.scale.multiplyScalar(1.01);
         s.material.opacity = Math.max(0, s.userData.life * 1.1);
+      } else if (s.userData.kind === 'damageSmoke') {
+        s.userData.velocity.y += 0.5 * dt;
+        s.scale.multiplyScalar(1.025);
+        s.material.opacity = Math.max(0, s.userData.life * 0.55);
+      } else if (s.userData.kind === 'plankton') {
+        s.userData.velocity.y += 0.15 * dt;
+        s.scale.multiplyScalar(1.015);
+        s.material.opacity = Math.max(0, s.userData.life * 0.95);
       } else {
         s.scale.multiplyScalar(0.96);
       }
@@ -2298,6 +2347,8 @@ export class Game {
     if (this._hitCombo >= 5 && this._hitCombo % 5 === 0) {
       this.ui.toast(`Combo x${this._hitCombo}!`);
       this.ui.crewCallout('Gunner Kai', `Keep the streak — x${this._hitCombo}!`);
+      this.ui.flashComboMilestone?.(this._hitCombo);
+      this.audio.combo?.(this._hitCombo);
     }
   }
 
@@ -2421,6 +2472,128 @@ export class Game {
     ring.position.set(origin.x, 0.08, origin.z);
     this.scene.add(ring);
     this._motherRings.push(ring);
+  }
+
+  /** Mother protect shield bubble on arrival */
+  _spawnMotherShield(mother) {
+    if (this._motherShield) {
+      this.scene.remove(this._motherShield);
+      this._motherShield = null;
+    }
+    const shield = createMotherShield(0x60a5fa);
+    shield.position.copy(mother.position);
+    shield.position.y = 1.2;
+    this.scene.add(shield);
+    this._motherShield = shield;
+  }
+
+  _updateMotherShield(dt) {
+    const shield = this._motherShield;
+    if (!shield) return;
+    if (this.mother?.visible) {
+      shield.position.x = this.mother.position.x;
+      shield.position.z = this.mother.position.z;
+      shield.position.y = 1.2 + Math.sin(performance.now() * 0.004) * 0.15;
+    }
+    shield.userData.life -= dt;
+    shield.rotation.y += dt * 1.4;
+    const pulse = 1 + Math.sin(performance.now() * 0.006) * 0.06;
+    shield.scale.setScalar(pulse);
+    shield.material.opacity = Math.max(0, Math.min(0.35, shield.userData.life * 0.14));
+    if (shield.userData.life <= 0) {
+      this.scene.remove(shield);
+      this._motherShield = null;
+    }
+  }
+
+  /** Thank-you hearts when baby is safe at the nest */
+  _spawnThankYouHearts() {
+    if (!this.baby) return;
+    this.audio.hearts?.();
+    for (let i = 0; i < 8; i++) {
+      const heart = createThankYouHeart(i % 2 ? 0xff6b8a : 0xffa0c0);
+      heart.position.copy(this.baby.position);
+      heart.position.y = 1.1;
+      heart.position.x += (Math.random() - 0.5) * 0.8;
+      heart.position.z += (Math.random() - 0.5) * 0.8;
+      this.scene.add(heart);
+      this._hearts.push(heart);
+    }
+  }
+
+  _updateThankYouHearts(dt) {
+    if (!this._hearts?.length) return;
+    for (let i = this._hearts.length - 1; i >= 0; i--) {
+      const h = this._hearts[i];
+      h.position.addScaledVector(h.userData.velocity, dt);
+      h.userData.life -= dt;
+      h.rotation.y += dt * 3;
+      h.material.opacity = Math.max(0, h.userData.life / 1.4);
+      h.scale.setScalar(0.8 + (1 - h.userData.life / 1.4) * 0.6);
+      if (h.userData.life <= 0) {
+        this.scene.remove(h);
+        this._hearts.splice(i, 1);
+      }
+    }
+  }
+
+  /** Show nest hatch crack during celebrate */
+  _revealNestCrack() {
+    const crack = this.world?.userData?.nestBeacon?.nestCrack;
+    if (!crack) return;
+    crack.visible = true;
+    crack.scale.setScalar(0.2);
+    crack.userData.revealT = 0;
+  }
+
+  _updateNestCrack(dt) {
+    const crack = this.world?.userData?.nestBeacon?.nestCrack;
+    if (!crack?.visible) return;
+    crack.userData.revealT = (crack.userData.revealT || 0) + dt;
+    const t = Math.min(1, crack.userData.revealT / 0.45);
+    crack.scale.setScalar(0.2 + t * 0.9);
+    crack.rotation.y += dt * 0.8;
+  }
+
+  /** Critical Guard HP damage smoke */
+  _updateDamageSmoke(dt) {
+    if (!this.vehicle) return;
+    const ratio = this.vehicle.userData.hp / (this.vehicle.userData.maxHp || 1);
+    if (ratio >= 0.35) return;
+    if ([PHASE.WIN, PHASE.LOSE, PHASE.COUNTDOWN].includes(this.phase)) return;
+    this._damageSmokeT = (this._damageSmokeT || 0) - dt;
+    if (this._damageSmokeT > 0) return;
+    this._damageSmokeT = 0.16;
+    const smoke = createDamageSmoke();
+    smoke.position.copy(this.vehicle.position);
+    smoke.position.y = 1.1 + Math.random() * 0.3;
+    smoke.position.x += (Math.random() - 0.5) * 0.4;
+    this.scene.add(smoke);
+    this.sparks.push(smoke);
+  }
+
+  /** Ocean bioluminescent plankton trail behind water vehicles */
+  _updatePlankton(dt) {
+    if (!this.level?.water || !this.vehicle) return;
+    const axis = this.input.getAxis();
+    const moving = Math.abs(axis.x) + Math.abs(axis.y) > 0.08 || this._boostActive;
+    if (!moving) return;
+    this._planktonT = (this._planktonT || 0) - dt;
+    if (this._planktonT > 0) return;
+    this._planktonT = 0.08;
+    const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      this.vehicle.rotation.y,
+    );
+    for (let i = 0; i < 2; i++) {
+      const p = createPlankton(i % 2 ? 0x7ef0c8 : 0x60a5fa);
+      p.position.copy(this.vehicle.position);
+      p.position.y = 0.2 + Math.random() * 0.5;
+      p.position.addScaledVector(forward, 0.9 + Math.random() * 0.5);
+      p.position.x += (Math.random() - 0.5) * 0.7;
+      this.scene.add(p);
+      this.sparks.push(p);
+    }
   }
 
   _updateMotherRings(dt) {

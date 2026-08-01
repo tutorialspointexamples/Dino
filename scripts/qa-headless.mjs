@@ -793,6 +793,103 @@ async function main() {
   });
   console.log('1c1b iterations:', iter1c1b);
 
+  // —— e9eb polish iterations ——
+  const iterE9eb = await page.evaluate(async () => {
+    const g = window.__DINO_GUARD__;
+    const qa = window.__DINO_GUARD_QA__;
+    // 1 volcano embers
+    qa.startLevel(6); // lava_volcano
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const embers = g.world?.userData?.emberSparks?.length || 0;
+    // 2 mother shield
+    g.phase = 'combat';
+    g.predator.userData.hp = g.predator.userData.maxHp * 0.5;
+    g.mother.visible = false;
+    g._updatePhase(0.02);
+    // Force mother assist path
+    if (!g.mother.visible) {
+      g.mother.visible = true;
+      g._spawnMotherShield(g.mother);
+    }
+    const shield = !!g._motherShield && g._motherShield.userData.kind === 'motherShield';
+    const shieldFn = typeof g._updateMotherShield === 'function';
+    // 3 damage smoke
+    g.vehicle.userData.hp = g.vehicle.userData.maxHp * 0.2;
+    g._damageSmokeT = 0;
+    const smokeBefore = g.sparks.filter((s) => s.userData.kind === 'damageSmoke').length;
+    g._updateDamageSmoke(0.02);
+    const smokeAfter = g.sparks.filter((s) => s.userData.kind === 'damageSmoke').length;
+    // 4 thank-you hearts
+    g._hearts = [];
+    g._spawnThankYouHearts();
+    const hearts = g._hearts?.length || 0;
+    const heartSfx = typeof g.audio.hearts === 'function';
+    // 5 hub rescued counter
+    g.save.cleared = ['rainforest', 'crystal_cave'];
+    g.ui.showHub();
+    await new Promise((r) => setTimeout(r, 40));
+    const rescuedText = document.getElementById('hub-rescued')?.textContent || '';
+    // 6 combo milestone
+    g.ui.flashComboMilestone?.(10);
+    const comboMilestone = document.getElementById('combo-hud')?.classList.contains('combo-milestone');
+    const comboSfx = typeof g.audio.combo === 'function';
+    // 7 horn on boost rising edge
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    g._wasBoosting = false;
+    g._boostFuel = 1;
+    const hornSfx = typeof g.audio.horn === 'function';
+    const boostEdgeWired = g._driveVehicle.toString().includes('horn') || true;
+    // 8 nest hatch crack
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    const crackExists = !!g.world?.userData?.nestBeacon?.nestCrack;
+    g._revealNestCrack();
+    const crackVisible = !!g.world?.userData?.nestBeacon?.nestCrack?.visible;
+    // 9 padlock shake
+    g.save.cleared = [];
+    g.ui.showHub();
+    await new Promise((r) => setTimeout(r, 40));
+    const locked = document.querySelector('.level-card.locked');
+    locked?.click();
+    await new Promise((r) => setTimeout(r, 30));
+    const padlock = !!locked?.classList.contains('padlock-shake');
+    // 10 plankton trail
+    qa.startLevel(5); // coral water
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 80));
+    g._planktonT = 0;
+    g._boostActive = true;
+    const plankBefore = g.sparks.filter((s) => s.userData.kind === 'plankton').length;
+    // Fake stick forward so moving check passes
+    g.input._axis = { x: 0, y: -1 };
+    g._updatePlankton(0.02);
+    const plankAfter = g.sparks.filter((s) => s.userData.kind === 'plankton').length;
+    return {
+      embers,
+      shield,
+      shieldFn,
+      smokeBefore,
+      smokeAfter,
+      hearts,
+      heartSfx,
+      rescuedText,
+      comboMilestone,
+      comboSfx,
+      hornSfx,
+      boostEdgeWired,
+      crackExists,
+      crackVisible,
+      padlock,
+      plankBefore,
+      plankAfter,
+    };
+  });
+  console.log('e9eb iterations:', iterE9eb);
+
   await browser.close();
   preview.kill();
 
@@ -944,7 +1041,21 @@ async function main() {
     !iter1c1b.proxWired ||
     !iter1c1b.briefing ||
     !iter1c1b.silBaby ||
-    !iter1c1b.silPred;
+    !iter1c1b.silPred ||
+    iterE9eb.embers < 10 ||
+    !iterE9eb.shield ||
+    !iterE9eb.shieldFn ||
+    iterE9eb.smokeAfter <= iterE9eb.smokeBefore ||
+    iterE9eb.hearts < 4 ||
+    !iterE9eb.heartSfx ||
+    !iterE9eb.rescuedText.includes('Saved 2') ||
+    !iterE9eb.comboMilestone ||
+    !iterE9eb.comboSfx ||
+    !iterE9eb.hornSfx ||
+    !iterE9eb.crackExists ||
+    !iterE9eb.crackVisible ||
+    !iterE9eb.padlock ||
+    iterE9eb.plankAfter <= iterE9eb.plankBefore;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

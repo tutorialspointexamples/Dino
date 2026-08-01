@@ -835,6 +835,63 @@ h2 {
   animation: starPop 0.28s cubic-bezier(0.2, 1.4, 0.3, 1);
 }
 
+.combo-hud.combo-milestone {
+  border-color: rgba(255, 107, 138, 0.95);
+  box-shadow: 0 0 0 3px rgba(244, 193, 75, 0.35);
+  animation: comboMilestonePop 0.55s cubic-bezier(0.2, 1.5, 0.3, 1);
+}
+
+.combo-hud.combo-milestone strong {
+  color: #ff6b8a;
+  font-size: 1.75rem;
+}
+
+@keyframes comboMilestonePop {
+  0% {
+    transform: scale(0.7);
+  }
+  45% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.hub-stats {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.rescued-badge {
+  background: linear-gradient(135deg, rgba(98, 210, 111, 0.35), rgba(244, 193, 75, 0.28)) !important;
+  border: 1px solid rgba(98, 210, 111, 0.55);
+}
+
+.level-card.padlock-shake {
+  animation: padlockShake 0.45s ease;
+}
+
+@keyframes padlockShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px) rotate(-1.5deg);
+  }
+  40% {
+    transform: translateX(6px) rotate(1.5deg);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+
 .hp-vignette {
   position: absolute;
   inset: 0;
