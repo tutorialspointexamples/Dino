@@ -597,6 +597,52 @@ export function buildWorld(level, scene) {
   }
   group.userData.eggs = eggs;
 
+  // Escort amber gems — bonus collectibles for Perfect Rescue
+  const ambers = [];
+  for (let i = 0; i < 3; i++) {
+    const amber = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.32, 0),
+      new THREE.MeshStandardMaterial({
+        color: 0xffb347,
+        emissive: 0xff8c1a,
+        emissiveIntensity: 0.55,
+        roughness: 0.35,
+        metalness: 0.2,
+      }),
+    );
+    const a = (i / 3) * Math.PI * 2 + 1.1;
+    amber.position.set(Math.cos(a) * 5.5, 0.55, -16 + Math.sin(a) * 3.5);
+    amber.userData.kind = 'amber';
+    amber.userData.collected = false;
+    amber.visible = false;
+    group.add(amber);
+    ambers.push(amber);
+  }
+  group.userData.ambers = ambers;
+
+  // Rainforest floating pollen motes
+  if (biome === 'forest') {
+    const pollen = [];
+    for (let i = 0; i < 36; i++) {
+      const mote = new THREE.Mesh(
+        new THREE.SphereGeometry(rand(0.04, 0.09), 6, 6),
+        new THREE.MeshBasicMaterial({
+          color: 0xffe8a0,
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false,
+        }),
+      );
+      mote.position.set(rand(-22, 22), rand(0.8, 6), rand(-22, 22));
+      mote.userData.base = mote.position.clone();
+      mote.userData.phase = rand(0, Math.PI * 2);
+      mote.userData.drift = rand(0.2, 0.55);
+      group.add(mote);
+      pollen.push(mote);
+    }
+    group.userData.pollen = pollen;
+  }
+
   // Soft sky clouds for atmosphere (not flat single-color sky alone)
   const clouds = [];
   for (let i = 0; i < 10; i++) {
@@ -919,5 +965,80 @@ export function createMotherRing(color = 0xf4c14b) {
   mesh.position.y = 0.08;
   mesh.userData.life = 1.1;
   mesh.userData.kind = 'motherRing';
+  return mesh;
+}
+
+/** Sonic roar rings that expand outward from a predator roar. */
+export function createRoarRing(color = 0xe85d4c) {
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(0.4, 0.7, 36),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.9;
+  mesh.userData.life = 0.85;
+  mesh.userData.kind = 'roarRing';
+  return mesh;
+}
+
+/** Mother-assist shockwave disc that punches outward on arrival. */
+export function createShockwave(color = 0x60a5fa) {
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(0.5, 1.15, 40),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.9,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.1;
+  mesh.userData.life = 0.95;
+  mesh.userData.kind = 'shockwave';
+  return mesh;
+}
+
+/** Floating stun stars when a predator retreats. */
+export function createStunStar(color = 0xffe08a) {
+  const mesh = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.22, 0),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+    }),
+  );
+  mesh.userData.life = 1.1;
+  mesh.userData.kind = 'stunStar';
+  mesh.userData.velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 2.2,
+    1.6 + Math.random() * 1.4,
+    (Math.random() - 0.5) * 2.2,
+  );
+  return mesh;
+}
+
+/** Soft buddy chirp bubble above the baby during escort. */
+export function createChirpBubble(color = 0xffffff) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.18, 10, 8),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.7,
+      depthWrite: false,
+    }),
+  );
+  mesh.userData.life = 0.9;
+  mesh.userData.kind = 'chirpBubble';
   return mesh;
 }

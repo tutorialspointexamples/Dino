@@ -6,6 +6,7 @@ const defaultSave = () => ({
   selectedVehicle: 'police_scout',
   score: 0,
   bestStars: {},
+  lastLevelId: null,
 });
 
 export function loadSave() {
@@ -14,6 +15,7 @@ export function loadSave() {
     if (!raw) return defaultSave();
     const data = { ...defaultSave(), ...JSON.parse(raw) };
     if (!data.bestStars || typeof data.bestStars !== 'object') data.bestStars = {};
+    if (data.lastLevelId == null) data.lastLevelId = null;
     return data;
   } catch {
     return defaultSave();

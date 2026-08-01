@@ -16,6 +16,10 @@ import {
   createNestChevron,
   createMotherRing,
   createMuzzleFlash,
+  createRoarRing,
+  createShockwave,
+  createStunStar,
+  createChirpBubble,
 } from './WorldBuilder.js';
 import { Input } from './Input.js';
 import { UI } from './UI.js';
@@ -83,6 +87,13 @@ export class Game {
     this._confetti = [];
     this._chevrons = [];
     this._motherRings = [];
+    this._roarRings = [];
+    this._shockwaves = [];
+    this._stunStars = [];
+    this._chirpBubbles = [];
+    this._searchlight = null;
+    this._amberCollected = 0;
+    this._chirpCooldown = 0;
     this._predatorBaseSpeed = 0;
     this._boostFuel = 1;
     this._boostActive = false;
@@ -144,7 +155,12 @@ export class Game {
     for (const c of this._confetti || []) this.scene.remove(c);
     for (const c of this._chevrons || []) this.scene.remove(c);
     for (const r of this._motherRings || []) this.scene.remove(r);
+    for (const r of this._roarRings || []) this.scene.remove(r);
+    for (const s of this._shockwaves || []) this.scene.remove(s);
+    for (const s of this._stunStars || []) this.scene.remove(s);
+    for (const b of this._chirpBubbles || []) this.scene.remove(b);
     for (const f of this._muzzleFlashes || []) this.scene.remove(f);
+    this._clearSearchlight();
     this.projectiles = [];
     this.sparks = [];
     this.trails = [];
@@ -152,6 +168,10 @@ export class Game {
     this._confetti = [];
     this._chevrons = [];
     this._motherRings = [];
+    this._roarRings = [];
+    this._shockwaves = [];
+    this._stunStars = [];
+    this._chirpBubbles = [];
     this._muzzleFlashes = [];
     this._vehicleHitFlashT = 0;
     this._chevronRefreshT = 0;
@@ -168,6 +188,8 @@ export class Game {
     this.ui?.showCrewIntro?.(false);
     this.ui?.setBoostHud?.(false, 1);
     this.ui?.updateMissionClock?.(0);
+    this.ui?.updateNestProximity?.(false);
+    this.ui?.setZoomOverlay?.(false);
     this.shakeT = 0;
     this._weaponCycleT = 0;
     this._weaponCycleIdx = 0;
@@ -183,7 +205,9 @@ export class Game {
     this.ui.setAlarmRing(false);
     this._clearChargeTelegraph();
     this._eggsCollected = 0;
+    this._amberCollected = 0;
     this._squealCooldown = 0;
+    this._chirpCooldown = 0;
     this.audio.stopAmbient();
   }
 
@@ -335,6 +359,8 @@ export class Game {
     this._chaseRoarPunchT = 0;
     this.level = level;
     this._missionVehicleId = vehicleId;
+    this.save.lastLevelId = level.id;
+    writeSave(this.save);
     this.missionScore = 0;
     this.phase = PHASE.COUNTDOWN;
     this.phaseT = 0;
@@ -350,6 +376,12 @@ export class Game {
     this._confetti = [];
     this._chevrons = [];
     this._motherRings = [];
+    this._roarRings = [];
+    this._shockwaves = [];
+    this._stunStars = [];
+    this._chirpBubbles = [];
+    this._amberCollected = 0;
+    this._chirpCooldown = 0;
     this._boostFuel = 1;
     this._boostActive = false;
     this._boostSfxT = 0;
@@ -362,6 +394,7 @@ export class Game {
     this.camera.fov = this._baseFov;
     this.camera.updateProjectionMatrix();
     this.ui.updateMissionClock(0);
+    this.ui.updateNestProximity(false);
 
     this.world = buildWorld(level, this.scene);
 
@@ -431,8 +464,14 @@ export class Game {
     this.audio.alarm();
     this.audio.countdown();
     this.audio.startAmbient();
-    if (level.boss) this.audio.roar();
+    this._ensureSearchlight(0.35);
+    if (level.boss) {
+      this.audio.roar();
+      // Boss alarm immediate roar ring
+      this._spawnRoarRing(this.predator.position.clone().setY(1.1), 0xe85d4c);
+    }
     this._eggsCollected = 0;
+    this._amberCollected = 0;
     this._attachChargeTelegraph();
     // Hide crew roster after the alarm settles
     setTimeout(() => this.ui?.showCrewIntro?.(false), 3200);
@@ -501,8 +540,28 @@ export class Game {
     this.paused = false;
     this.ui.hidePause();
     this.audio.stopAmbient();
+    this.ui.updateNestProximity(false);
+    this.ui.setZoomOverlay?.(false);
+    this.ui.setAimLock(false);
+    this._clearSearchlight();
     this.showTitleScene();
     this.ui.showHub();
+  }
+
+  /** Resume the last started mission from the title Continue CTA. */
+  continueLastMission() {
+    const id = this.save.lastLevelId;
+    const level = LEVELS.find((l) => l.id === id) || LEVELS[0];
+    const idx = LEVELS.findIndex((l) => l.id === level.id);
+    const unlocked = idx <= 0 || this.save.cleared.includes(LEVELS[idx - 1].id);
+    if (!unlocked) {
+      this.ui.toast('Clear the previous mission first!');
+      this.ui.showHub();
+      return;
+    }
+    this.ui.toast('Continuing last rescue…');
+    this.ui.crewCallout?.('Captain Rio', 'Continue Rescue — Guard rolling out!');
+    this.ui.openVehiclePick(level);
   }
 
   restartMission() {
@@ -598,9 +657,11 @@ export class Game {
     const jeepRatio = this.vehicle
       ? Math.max(0, this.vehicle.userData.hp / (this.vehicle.userData.maxHp || 1))
       : 0;
+    // Amber gems count toward Perfect Rescue alongside eggs
+    const collectibles = (this._eggsCollected || 0) + (this._amberCollected || 0);
     let stars = 1;
     if (babyRatio > 0.35 && jeepRatio > 0.25) stars = 2;
-    if (babyRatio > 0.65 && jeepRatio > 0.45 && this._eggsCollected >= 2) stars = 3;
+    if (babyRatio > 0.65 && jeepRatio > 0.45 && collectibles >= 2) stars = 3;
     return stars;
   }
 
@@ -669,8 +730,11 @@ export class Game {
       this._updateActors(dt);
       this._updateFireflies(dt);
       this._updateWorldFX(dt);
+      this._updateSearchlight(dt);
+      this._updateRoarRings(dt);
       this._updateRadar();
       this._updateAimLock();
+      this.ui.updateNestProximity(false);
       return;
     }
 
@@ -680,8 +744,11 @@ export class Game {
       this._updateActors(dt);
       this._updateSparks(dt);
       this._updateWorldFX(dt);
+      this._updateStunStars(dt);
+      this._updateChirpBubbles(dt);
       this._updateRadar();
       this._updateAimLock();
+      this.ui.updateNestProximity(false);
       return;
     }
 
@@ -719,6 +786,14 @@ export class Game {
     this._updateRadar();
     this._updateAimLock();
     this._updateEggs();
+    this._updateAmbers();
+    this._updateSearchlight(dt);
+    this._updateRoarRings(dt);
+    this._updateShockwaves(dt);
+    this._updateStunStars(dt);
+    this._updateChirpBubbles(dt);
+    this._updateEscortChirps(dt);
+    this._updateNestProximityHud();
     this._updateHpVignette();
     this.ui.updateMissionClock(this._missionElapsed);
 
@@ -1084,6 +1159,34 @@ export class Game {
       }
     }
     this._updateMotherRings(dt);
+    // Rainforest floating pollen motes
+    const pollen = this.world?.userData?.pollen;
+    if (pollen) {
+      const t = performance.now() * 0.001;
+      for (const mote of pollen) {
+        const b = mote.userData.base;
+        const p = mote.userData.phase || 0;
+        const drift = mote.userData.drift || 0.35;
+        mote.position.x = b.x + Math.sin(t * drift + p) * 1.4;
+        mote.position.y = b.y + Math.sin(t * 0.9 + p * 1.3) * 0.6;
+        mote.position.z = b.z + Math.cos(t * drift * 0.8 + p) * 1.4;
+        mote.material.opacity = 0.3 + Math.sin(t * 2.5 + p) * 0.25;
+      }
+    }
+    // Amber gem bob / spin while visible
+    const ambers = this.world?.userData?.ambers;
+    if (ambers) {
+      const t = performance.now() * 0.001;
+      for (const a of ambers) {
+        if (a.userData.collected) continue;
+        a.position.y = 0.55 + Math.sin(t * 3.2 + a.position.x) * 0.14;
+        a.rotation.y += dt * 2.4;
+        a.rotation.x = Math.sin(t * 2 + a.position.z) * 0.25;
+        if (a.material?.emissiveIntensity != null) {
+          a.material.emissiveIntensity = 0.4 + Math.sin(t * 4 + a.position.x) * 0.25;
+        }
+      }
+    }
   }
 
   _resolveBlockers(dt = 0.016) {
@@ -1461,13 +1564,16 @@ export class Game {
       this.phase = PHASE.CHASE;
       this.ui.setMission('Chase the predator — get close!');
       this.ui.setPhaseRibbon(true, 'CHASE', 'chase');
-      // Chase-start roar punch — camera + screen flash
+      // Chase-start roar punch — camera + screen flash + sonic rings
       this.audio.roar();
       this.shakeT = Math.max(this.shakeT, 0.45);
       this._chaseRoarPunchT = 0.75;
       this.camera.fov = this._baseFov + 10;
       this.camera.updateProjectionMatrix();
       this.ui.flashRoar?.(true);
+      this._ensureSearchlight(1.15);
+      this._spawnRoarRing(this.predator.position.clone().setY(1.1), 0xe85d4c);
+      this._spawnRoarRing(this.predator.position.clone().setY(1.4), 0xffe08a);
       this.ui.toast('ROAR! The boss is chasing the baby!');
       this.ui.crewCallout('Scout Mina', 'ROAR! Predator on the move — intercept!');
     }
@@ -1515,6 +1621,7 @@ export class Game {
         this.shakeT = Math.max(this.shakeT, 0.35);
         this._spawnSparks(mother.position.clone().setY(1.6), 0xf4c14b, 10);
         this._spawnMotherRing(mother.position.clone());
+        this._spawnShockwave(mother.position.clone());
       }
       if (predator.userData.hp <= 0) {
         this._beginEscort();
@@ -1649,6 +1756,9 @@ export class Game {
         const rel = toNest - vehicle.rotation.y;
         this.ui.updateNestCompass(true, -rel);
       }
+      // Nest proximity HUD meter (closer = fuller bar)
+      const prox = Math.max(0, Math.min(1, 1 - nestDist / 28));
+      this.ui.updateNestProximity(true, prox, Math.max(0, nestDist - 3));
       // Complete when baby arrives — generous radius + short dwell
       if (nestDist < 3.5) {
         this._escortDwelling = (this._escortDwelling || 0) + dt;
@@ -1706,20 +1816,29 @@ export class Game {
     this.phase = PHASE.ESCORT;
     this.phaseT = 0;
     this._escortDwelling = 0;
-    if (this.predator) this.predator.userData.anim.state = 'hurt';
+    if (this.predator) {
+      this.predator.userData.anim.state = 'hurt';
+      this._spawnStunStars(this.predator.position.clone().setY(2.2), 8);
+    }
     this.ui.showAim(false);
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
+    this.ui.setZoomOverlay?.(false);
+    this.ui.setAimLock(false);
+    this._clearSearchlight();
     this.ui.setPhaseRibbon(true, 'ESCORT TO NEST', 'escort');
     this.ui.setMission('Escort baby to the glowing nest!');
     const tip = document.getElementById('tutorial-tip');
     if (tip) tip.classList.add('hidden');
-    // Reveal escort eggs
+    // Reveal escort eggs + amber gems
     for (const egg of this.world?.userData?.eggs || []) {
       if (!egg.userData.collected) egg.visible = true;
     }
+    for (const amber of this.world?.userData?.ambers || []) {
+      if (!amber.userData.collected) amber.visible = true;
+    }
     this._spawnEscortChevrons();
-    this.ui.toast('Predator retreats! Escort the baby — grab glowing eggs!');
+    this.ui.toast('Predator retreats! Escort the baby — grab eggs & amber!');
     this.missionScore += 200;
     this.ui.updateScore(this.missionScore);
     // Nudge baby toward nest so completion is reliable
@@ -1747,7 +1866,10 @@ export class Game {
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
     this.ui.updateNestCompass(false);
+    this.ui.updateNestProximity(false);
+    this.ui.setZoomOverlay?.(false);
     this.ui.setAlarmRing(false);
+    this._clearSearchlight();
     document.getElementById('tutorial-tip')?.classList.add('hidden');
     this.ui.setMission('Safe at the nest — celebration!');
     this.ui.setPhaseRibbon(true, 'CELEBRATE', 'escort');
@@ -1796,6 +1918,7 @@ export class Game {
     const timeText = `Rescue time: ${mins}:${String(secs).padStart(2, '0')}`;
     this.audio.stamp();
     this.ui.updateNestCompass(false);
+    this.ui.updateNestProximity(false);
     this.ui.hideCrewCallout();
     this.ui.setPhaseRibbon(false);
     this.ui.showSkipCountdown(false);
@@ -1814,6 +1937,7 @@ export class Game {
       hasNext,
       timeText,
     });
+    this.ui.flashPhoto?.();
     this.state = 'result';
   }
 
@@ -1824,6 +1948,9 @@ export class Game {
     this.ui.setDanger(false);
     this.ui.setHeadbuttAlarm(false);
     this.ui.updateNestCompass(false);
+    this.ui.updateNestProximity(false);
+    this.ui.setZoomOverlay?.(false);
+    this._clearSearchlight();
     document.getElementById('tutorial-tip')?.classList.add('hidden');
     this.audio.lose();
     this.ui.setPhaseRibbon(false);
@@ -2091,6 +2218,25 @@ export class Game {
     }
   }
 
+  _updateAmbers() {
+    if (this.phase !== PHASE.ESCORT || !this.vehicle) return;
+    const ambers = this.world?.userData?.ambers;
+    if (!ambers) return;
+    for (const amber of ambers) {
+      if (amber.userData.collected || !amber.visible) continue;
+      if (this.vehicle.position.distanceTo(amber.position) < 2.1) {
+        amber.userData.collected = true;
+        amber.visible = false;
+        this._amberCollected = (this._amberCollected || 0) + 1;
+        this.missionScore += 80;
+        this.ui.updateScore(this.missionScore);
+        this.audio.collect();
+        this._spawnSparks(amber.position.clone().setY(1), 0xff8c1a, 10);
+        this.ui.toast(`Amber gem! +80 (${this._amberCollected}/3)`);
+      }
+    }
+  }
+
   _spawnMotherRing(origin) {
     const ring = createMotherRing(0xf4c14b);
     ring.position.set(origin.x, 0.08, origin.z);
@@ -2186,6 +2332,11 @@ export class Game {
       if (!egg.visible || egg.userData.collected) continue;
       plot(egg, '#ffe8b0', 3);
     }
+    // Amber gems — orange blips
+    for (const amber of this.world?.userData?.ambers || []) {
+      if (!amber.visible || amber.userData.collected) continue;
+      plot(amber, '#ff8c1a', 3);
+    }
     // Vehicle always center
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
@@ -2194,5 +2345,160 @@ export class Game {
     ctx.lineTo(cx - 5, cy + 5);
     ctx.closePath();
     ctx.fill();
+  }
+
+  _spawnRoarRing(origin, color = 0xe85d4c) {
+    const ring = createRoarRing(color);
+    ring.position.set(origin.x, origin.y || 0.9, origin.z);
+    this.scene.add(ring);
+    this._roarRings.push(ring);
+  }
+
+  _updateRoarRings(dt) {
+    if (!this._roarRings?.length) return;
+    for (let i = this._roarRings.length - 1; i >= 0; i--) {
+      const ring = this._roarRings[i];
+      ring.userData.life -= dt;
+      const grow = 1 + (0.85 - ring.userData.life) * 5.5;
+      ring.scale.setScalar(grow);
+      ring.material.opacity = Math.max(0, ring.userData.life * 0.9);
+      if (ring.userData.life <= 0) {
+        this.scene.remove(ring);
+        this._roarRings.splice(i, 1);
+      }
+    }
+  }
+
+  _spawnShockwave(origin) {
+    const wave = createShockwave(0x60a5fa);
+    wave.position.set(origin.x, 0.1, origin.z);
+    this.scene.add(wave);
+    this._shockwaves.push(wave);
+  }
+
+  _updateShockwaves(dt) {
+    if (!this._shockwaves?.length) return;
+    for (let i = this._shockwaves.length - 1; i >= 0; i--) {
+      const wave = this._shockwaves[i];
+      wave.userData.life -= dt;
+      const grow = 1 + (0.95 - wave.userData.life) * 7.5;
+      wave.scale.setScalar(grow);
+      wave.material.opacity = Math.max(0, wave.userData.life * 0.85);
+      if (wave.userData.life <= 0) {
+        this.scene.remove(wave);
+        this._shockwaves.splice(i, 1);
+      }
+    }
+  }
+
+  _spawnStunStars(origin, n = 6) {
+    for (let i = 0; i < n; i++) {
+      const star = createStunStar(i % 2 ? 0xffe08a : 0xffffff);
+      star.position.copy(origin);
+      star.position.x += (Math.random() - 0.5) * 0.6;
+      star.position.z += (Math.random() - 0.5) * 0.6;
+      this.scene.add(star);
+      this._stunStars.push(star);
+    }
+  }
+
+  _updateStunStars(dt) {
+    if (!this._stunStars?.length) return;
+    for (let i = this._stunStars.length - 1; i >= 0; i--) {
+      const star = this._stunStars[i];
+      star.userData.life -= dt;
+      if (star.userData.velocity) {
+        star.position.addScaledVector(star.userData.velocity, dt);
+        star.userData.velocity.y -= 3.2 * dt;
+      }
+      star.rotation.y += dt * 6;
+      star.rotation.z += dt * 4;
+      star.material.opacity = Math.max(0, star.userData.life);
+      if (star.userData.life <= 0) {
+        this.scene.remove(star);
+        this._stunStars.splice(i, 1);
+      }
+    }
+  }
+
+  _updateEscortChirps(dt) {
+    if (this.phase !== PHASE.ESCORT || !this.baby) return;
+    this._chirpCooldown -= dt;
+    if (this._chirpCooldown > 0) return;
+    this._chirpCooldown = 1.35 + Math.random() * 0.6;
+    this.audio.chirp();
+    const bubble = createChirpBubble(0xffffff);
+    bubble.position.copy(this.baby.position);
+    bubble.position.y += 1.7;
+    this.scene.add(bubble);
+    this._chirpBubbles.push(bubble);
+  }
+
+  _updateChirpBubbles(dt) {
+    if (!this._chirpBubbles?.length) return;
+    for (let i = this._chirpBubbles.length - 1; i >= 0; i--) {
+      const b = this._chirpBubbles[i];
+      b.userData.life -= dt;
+      b.position.y += dt * 1.1;
+      b.scale.multiplyScalar(1.02);
+      b.material.opacity = Math.max(0, b.userData.life * 0.75);
+      if (b.userData.life <= 0) {
+        this.scene.remove(b);
+        this._chirpBubbles.splice(i, 1);
+      }
+    }
+  }
+
+  _ensureSearchlight(intensity = 1) {
+    if (!this._searchlight) {
+      const light = new THREE.SpotLight(0xfff2c8, intensity, 42, 0.42, 0.45, 1.2);
+      light.castShadow = false;
+      light.position.set(0, 10, 0);
+      const target = new THREE.Object3D();
+      target.position.set(0, 0, 0);
+      this.scene.add(target);
+      light.target = target;
+      this.scene.add(light);
+      this._searchlight = { light, target };
+    } else {
+      this._searchlight.light.intensity = intensity;
+      this._searchlight.light.visible = true;
+    }
+  }
+
+  _clearSearchlight() {
+    if (!this._searchlight) return;
+    this.scene.remove(this._searchlight.light);
+    this.scene.remove(this._searchlight.target);
+    this._searchlight = null;
+  }
+
+  _updateSearchlight(dt) {
+    if (!this._searchlight) return;
+    const chasePhases = [PHASE.COUNTDOWN, PHASE.INTRO, PHASE.CHASE, PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT];
+    if (!chasePhases.includes(this.phase) || !this.predator?.visible) {
+      this._searchlight.light.visible = false;
+      return;
+    }
+    const soft = this.phase === PHASE.COUNTDOWN;
+    const base = soft ? 0.35 : 1.05;
+    const pulse = soft ? 0.12 : 0.28;
+    this._searchlight.light.visible = true;
+    this._searchlight.light.intensity = base + Math.sin(performance.now() * 0.004) * pulse;
+    const pred = this.predator.position;
+    this._searchlight.light.position.set(pred.x, 11, pred.z + 2.5);
+    this._searchlight.target.position.set(pred.x, 0.2, pred.z);
+    this._searchlight.target.updateMatrixWorld();
+  }
+
+  _updateNestProximityHud() {
+    if (this.phase !== PHASE.ESCORT || !this.baby || !this.world?.userData?.nestPos) {
+      this.ui.updateNestProximity(false);
+      return;
+    }
+    const nest = this.world.userData.nestPos;
+    const nestDist = Math.hypot(this.baby.position.x - nest.x, this.baby.position.z - nest.z);
+    const prox = Math.max(0, Math.min(1, 1 - nestDist / 28));
+    this.ui.updateNestProximity(true, prox, Math.max(0, nestDist - 3));
   }
 }

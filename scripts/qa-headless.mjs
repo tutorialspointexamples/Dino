@@ -605,6 +605,94 @@ async function main() {
   });
   console.log('7dce iterations:', iter7dce);
 
+  // Branch 0133 polish + gap-fix iterations
+  const iter0133 = await page.evaluate(async () => {
+    const qa = window.__DINO_GUARD_QA__;
+    const g = window.__DINO_GUARD__;
+    // 1 roar rings via INTRO→CHASE
+    qa.startLevel(0);
+    g.phase = 'intro';
+    g.phaseT = 1.25;
+    g._updatePhase(0.02);
+    const roarRings = g._roarRings?.length || 0;
+    // 2 mother shockwave
+    g.phase = 'combat';
+    g.phaseT = 3;
+    if (g.predator) g.predator.userData.hp = g.predator.userData.maxHp * 0.5;
+    g._updatePhase(0.02);
+    const shockwaves = g._shockwaves?.length || 0;
+    const motherVisible = !!g.mother?.visible;
+    // 3 amber gems
+    qa.forceEscort();
+    await new Promise((r) => setTimeout(r, 40));
+    const ambers = g.world?.userData?.ambers?.length || 0;
+    const amberVisible = (g.world?.userData?.ambers || []).filter((a) => a.visible).length;
+    // 4 stun stars on retreat
+    const stunStars = g._stunStars?.length || 0;
+    // 5 searchlight cleared on escort
+    const searchOff = !g._searchlight;
+    // 6 Continue CTA + lastLevelId
+    const lastId = g.save.lastLevelId === 'rainforest' || !!g.save.lastLevelId;
+    g.ui.refreshContinueCta();
+    const continueBtn = !!document.getElementById('btn-continue') &&
+      !document.getElementById('btn-continue').classList.contains('hidden');
+    // 7 chirp bubbles
+    g._chirpCooldown = 0;
+    g._updateEscortChirps(0.02);
+    const chirps = g._chirpBubbles?.length || 0;
+    const chirpAudio = typeof g.audio.chirp === 'function';
+    // 8 photo flash
+    g.ui.flashPhoto();
+    const photoEl = document.getElementById('photo-flash');
+    const photoOn = !!photoEl && photoEl.classList.contains('on');
+    // 9 pollen
+    qa.startLevel(0);
+    qa.skipCountdown();
+    await new Promise((r) => setTimeout(r, 40));
+    const pollen = g.world?.userData?.pollen?.length || 0;
+    // 10 nest proximity
+    qa.forceEscort();
+    g._updateNestProximityHud();
+    const nestProx = !!document.getElementById('nest-proximity') &&
+      !document.getElementById('nest-proximity').classList.contains('hidden');
+    // Gap: fail clears nest proximity
+    g.ui.updateNestProximity(true, 0.5, 10);
+    g._fail('QA fail cleanup');
+    const nestCleared = document.getElementById('nest-proximity')?.classList.contains('hidden');
+    // Gap: amber in stars
+    g._eggsCollected = 0;
+    g._amberCollected = 2;
+    if (g.baby) {
+      g.baby.userData.hp = g.baby.userData.maxHp;
+    }
+    if (g.vehicle) {
+      g.vehicle.userData.hp = g.vehicle.userData.maxHp;
+    }
+    const starsWithAmber = g._missionStars();
+    // Gap: continue mission wiring
+    const continueFn = typeof g.continueLastMission === 'function';
+    return {
+      roarRings,
+      shockwaves,
+      motherVisible,
+      ambers,
+      amberVisible,
+      stunStars,
+      searchOff,
+      lastId,
+      continueBtn,
+      chirps,
+      chirpAudio,
+      photoOn,
+      pollen,
+      nestProx,
+      nestCleared,
+      starsWithAmber,
+      continueFn,
+    };
+  });
+  console.log('0133 iterations:', iter0133);
+
   await browser.close();
   preview.kill();
 
@@ -717,7 +805,24 @@ async function main() {
     !iter7dce.friends ||
     !iter7dce.shareBtn ||
     iter7dce.petals < 5 ||
-    !iter7dce.bloom;
+    !iter7dce.bloom ||
+    iter0133.roarRings < 1 ||
+    iter0133.shockwaves < 1 ||
+    !iter0133.motherVisible ||
+    iter0133.ambers < 3 ||
+    iter0133.amberVisible < 1 ||
+    iter0133.stunStars < 1 ||
+    !iter0133.searchOff ||
+    !iter0133.lastId ||
+    !iter0133.continueBtn ||
+    iter0133.chirps < 1 ||
+    !iter0133.chirpAudio ||
+    !iter0133.photoOn ||
+    iter0133.pollen < 10 ||
+    !iter0133.nestProx ||
+    !iter0133.nestCleared ||
+    iter0133.starsWithAmber < 3 ||
+    !iter0133.continueFn;
   if (errors.length) console.error('Page errors', errors);
   console.log(failed ? 'QA FAIL' : 'QA PASS');
   process.exit(failed ? 1 : 0);

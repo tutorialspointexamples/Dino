@@ -56,20 +56,22 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (branch 7dce)
+### Verification iterations (branch 0133)
 
-1. **Swinging swamp vines** — vine swamp hangers sway with emissive pulse  
-2. **Meteorite impact glow + smoke** — crater core glow light + rising smoke pillars  
-3. **Lava river ribbons** — flowing emissive lava streams on the volcano floor  
-4. **Ocean current ribbons + drift** — tropical current lanes + subtle sub drift  
-5. **Forked dual rescue routes** — left/right alternate rescue path designs  
-6. **Garage 3D turntable** — spinning vehicle preview in garage / mission pick  
-7. **Chase-start roar flash** — screen flash + FOV punch when chase begins  
-8. **Paleontology tip** — educational fact toast when mother dinosaur assists  
-9. **Friends stamp compete card** — collection race UI + share challenge  
-10. **King flower petal bloom** — rainforest petals spin and pulse  
+1. **Predator roar sonic rings** — expanding rings on chase-start ROAR  
+2. **Mother arrival shockwave** — blue ground punch when mother assists  
+3. **Escort amber gems** — collectible amber (+ radar + Perfect stars)  
+4. **Predator retreat stun stars** — floating stars when the hunter flees  
+5. **Chase search spotlight** — soft during alarm, bright during chase  
+6. **Continue Rescue CTA** — title button resumes `lastLevelId`  
+7. **Baby escort chirp bubbles** — chirp SFX + floating bubbles to the nest  
+8. **Stamp photo flash** — camera flash on result stamp + encyclopedia detail  
+9. **Rainforest pollen motes** — floating golden pollen in forest biomes  
+10. **Nest proximity HUD** — distance meter while escorting  
 
-Prior branches (ed9a+) also cover coral sway, whirlpool, Danxia terraces, turret tint, celebrate hop, roadblock feedback, mother flank, look-ahead camera, firefly biolum, limp anim, muzzle flash, and more (see `npm run verify`).
+Gap-fix pass covers sticky HUD cleanup, amber Perfect stars, countdown soft light, Continue toast/callout, boss alarm roar ring, escort light-off, quit-to-map overlays, and Continue CTA refresh.
+
+Prior branches (7dce/ed9a+) also cover garage turntable, roar flash, paleo tips, friends compete, vines/lava/ocean FX, coral sway, whirlpool, and more (see `npm run verify`).
 
 ## Project layout
 

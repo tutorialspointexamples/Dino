@@ -13,6 +13,7 @@ export class UI {
 
   bind() {
     this.$('btn-play').onclick = () => this.showHub();
+    this.$('btn-continue')?.addEventListener('click', () => this.game.continueLastMission());
     this.$('btn-garage').onclick = () => this.showGarage();
     this.$('btn-stamps').onclick = () => this.showStamps();
     this.$('btn-hub-back').onclick = () => this.showTitle();
@@ -64,7 +65,22 @@ export class UI {
   showTitle() {
     this.hideAll();
     this.$('screen-title').classList.remove('hidden');
+    this.refreshContinueCta();
     this.game.showTitleScene();
+  }
+
+  /** Show Continue Rescue when a lastLevelId is saved. */
+  refreshContinueCta() {
+    const btn = this.$('btn-continue');
+    if (!btn) return;
+    const id = this.game.save?.lastLevelId;
+    const level = id ? LEVELS.find((l) => l.id === id) : null;
+    if (!level) {
+      btn.classList.add('hidden');
+      return;
+    }
+    btn.classList.remove('hidden');
+    btn.textContent = `Continue Rescue — ${level.name}`;
   }
 
   showHub() {
@@ -280,6 +296,7 @@ export class UI {
       swatch.style.background = `linear-gradient(135deg,${hexCss(d.color)},${hexCss(d.accent)})`;
     }
     overlay.classList.remove('hidden');
+    this.flashPhoto();
   }
 
   hideStampDetail() {
@@ -294,6 +311,39 @@ export class UI {
     this.updateHp(1);
     this.flashRoar(false);
     this.hidePaleoTip();
+    this.updateNestProximity(false);
+    this.setZoomOverlay(false);
+  }
+
+  /** Nest proximity meter during escort. */
+  updateNestProximity(show, ratio = 0, dist = 0) {
+    const el = this.$('nest-proximity');
+    if (!el) return;
+    el.classList.toggle('hidden', !show);
+    if (!show) return;
+    const bar = this.$('nest-prox-bar');
+    const label = this.$('nest-prox-dist');
+    if (bar) bar.style.transform = `scaleX(${Math.max(0.04, Math.min(1, ratio))})`;
+    if (label) label.textContent = `${Math.max(0, Math.round(dist))}m`;
+  }
+
+  /** Optional zoom-scope overlay cleanup hook. */
+  setZoomOverlay(on) {
+    document.body.classList.toggle('zoom-scope', !!on);
+  }
+
+  /** Stamp photo flash (result + detail modal). */
+  flashPhoto() {
+    const el = this.$('photo-flash');
+    if (!el) return;
+    el.classList.remove('hidden', 'on');
+    void el.offsetWidth;
+    el.classList.add('on');
+    clearTimeout(this._photoFlashTimer);
+    this._photoFlashTimer = setTimeout(() => {
+      el.classList.remove('on');
+      el.classList.add('hidden');
+    }, 450);
   }
 
   /** Chase-start roar screen flash */
@@ -414,6 +464,8 @@ export class UI {
   }) {
     this.$('hud').classList.add('hidden');
     this.$('nest-compass')?.classList.add('hidden');
+    this.updateNestProximity(false);
+    this.setZoomOverlay(false);
     this.setCombo(0);
     this.setHpVignette(0);
     this.setAimLock(false);

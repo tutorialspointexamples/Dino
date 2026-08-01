@@ -194,6 +194,30 @@ ok(html.includes('paleo-tip') && read('src/game/UI.js').includes('showPaleoTip')
 ok(html.includes('friends-compare') && read('src/game/UI.js').includes('_renderFriendsCompare') && read('src/style.css').includes('friends-compare'), '7dce-9 friends stamp compete card');
 ok(world.includes('userData.petals') && game.includes('userData.petals') && game.includes('King flower petal bloom'), '7dce-10 king flower petal bloom pulse');
 
+// Branch 0133 polish iterations (10)
+ok(world.includes('createRoarRing') && game.includes('_spawnRoarRing') && game.includes('_updateRoarRings'), '0133-1 predator roar sonic rings');
+ok(world.includes('createShockwave') && game.includes('_spawnShockwave') && game.includes('_updateShockwaves'), '0133-2 mother arrival shockwave');
+ok(world.includes("kind = 'amber'") && game.includes('_updateAmbers') && game.includes('_amberCollected'), '0133-3 escort amber gems');
+ok(world.includes('createStunStar') && game.includes('_spawnStunStars'), '0133-4 predator retreat stun stars');
+ok(game.includes('_ensureSearchlight') && game.includes('_updateSearchlight') && game.includes('SpotLight'), '0133-5 chase search spotlight');
+ok(read('src/game/Save.js').includes('lastLevelId') && game.includes('continueLastMission') && html.includes('btn-continue'), '0133-6 Continue Rescue CTA');
+ok(world.includes('createChirpBubble') && game.includes('_updateEscortChirps') && read('src/game/Audio.js').includes('chirp()'), '0133-7 baby escort chirp bubbles');
+ok(html.includes('photo-flash') && read('src/game/UI.js').includes('flashPhoto'), '0133-8 stamp photo flash');
+ok(world.includes('userData.pollen') && game.includes('pollen') && game.includes('Rainforest floating pollen'), '0133-9 rainforest pollen motes');
+ok(html.includes('nest-proximity') && read('src/game/UI.js').includes('updateNestProximity') && game.includes('_updateNestProximityHud'), '0133-10 nest proximity HUD');
+
+// Branch 0133 gap-fix checks
+ok(game.includes('updateNestProximity(false)') && game.includes('_fail('), 'gap: nest proximity cleared on fail');
+ok(game.includes('_amberCollected') && game.includes('collectibles'), 'gap: amber counts toward Perfect stars');
+ok(game.includes("soft ? 0.35") && game.includes('PHASE.COUNTDOWN'), 'gap: soft searchlight during countdown');
+ok(game.includes("Captain Rio") && game.includes('Continuing last rescue'), 'gap: Continue toast + Captain Rio');
+ok(game.includes('level.boss') && game.includes('_spawnRoarRing(this.predator'), 'gap: boss alarm roar ring');
+ok(game.includes('_clearSearchlight()') && game.includes('_beginEscort'), 'gap: searchlight off on escort');
+ok(game.includes('quitToHub') && game.includes('updateNestProximity(false)'), 'gap: quit-to-map clears nest/zoom');
+ok(read('src/game/UI.js').includes('showStampDetail') && read('src/game/UI.js').includes('flashPhoto'), 'gap: stamp detail photo flash');
+ok(game.includes('_fail') && game.includes('setZoomOverlay'), 'gap: fail sticky HUD cleanup');
+ok(read('src/game/UI.js').includes('refreshContinueCta') && read('src/game/UI.js').includes('lastLevelId'), 'gap: Continue CTA refresh from save');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');
