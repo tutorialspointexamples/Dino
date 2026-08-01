@@ -435,9 +435,11 @@ h2 {
 
 .baby-hp {
   position: absolute;
-  top: 100px;
+  /* Sit below the 140px radar so the BABY bar stays readable */
+  top: calc(162px + env(safe-area-inset-top, 0px));
   left: 12px;
   min-width: 140px;
+  z-index: 12;
 }
 
 .bar.baby i {
@@ -466,7 +468,8 @@ h2 {
 
 .phase-ribbon {
   position: absolute;
-  top: calc(48px + env(safe-area-inset-top, 0px));
+  /* Below the mission pill row so CHASE/COMBAT stays clear of SCORE */
+  top: calc(58px + env(safe-area-inset-top, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: 13;
@@ -1121,12 +1124,12 @@ h2 {
   }
 
   .baby-hp {
-    top: 152px;
+    top: calc(178px + env(safe-area-inset-top, 0px));
     min-width: 120px;
   }
 
   .phase-ribbon {
-    top: calc(96px + env(safe-area-inset-top, 0px));
+    top: calc(108px + env(safe-area-inset-top, 0px));
     font-size: 0.75rem;
   }
 
