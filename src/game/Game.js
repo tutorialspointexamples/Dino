@@ -323,19 +323,26 @@ export class Game {
     preview.userData.defId = def.id;
     preview.userData.kind = 'vehicle';
     preview.userData.isGaragePreview = true;
-    // Soft glowing turntable disc under the vehicle
+    // Soft glowing turntable disc under the vehicle (bright rim for playtest visibility)
     const pad = new THREE.Mesh(
       new THREE.CylinderGeometry(2.6, 2.8, 0.18, 32),
       new THREE.MeshStandardMaterial({
-        color: 0x1f6b3a,
+        color: 0x245c38,
         emissive: 0xf4c14b,
-        emissiveIntensity: 0.35,
-        roughness: 0.55,
-        metalness: 0.15,
+        emissiveIntensity: 0.55,
+        roughness: 0.45,
+        metalness: 0.2,
       }),
     );
     pad.position.set(0, 0.05, 2.4);
     pad.name = 'garageTurntable';
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(2.55, 0.06, 8, 40),
+      new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.85 }),
+    );
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = 0.12;
+    pad.add(rim);
     this.scene.add(pad);
     this.garageTurntable = pad;
     this.scene.add(preview);
@@ -709,7 +716,7 @@ export class Game {
       this.garagePreview.position.y = 0.15 + Math.sin(performance.now() * 0.0025) * 0.1;
       if (this.garageTurntable) {
         this.garageTurntable.rotation.y -= dt * 0.55;
-        this.garageTurntable.material.emissiveIntensity = 0.28 + Math.sin(performance.now() * 0.004) * 0.18;
+        this.garageTurntable.material.emissiveIntensity = 0.45 + Math.sin(performance.now() * 0.004) * 0.25;
       }
     }
     const t = performance.now() * 0.00035;
@@ -2637,10 +2644,19 @@ export class Game {
   }
 
   _updateSosFlares(dt) {
-    const dangerPhases = [PHASE.INTRO, PHASE.CHASE, PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT];
-    if (!this.baby || !dangerPhases.includes(this.phase) || !this.predator) {
-      return;
+    this._sosFlares = this._sosFlares || [];
+    for (let i = this._sosFlares.length - 1; i >= 0; i--) {
+      const f = this._sosFlares[i];
+      f.userData.life -= dt;
+      f.position.y += dt * 1.4;
+      f.material.opacity = Math.max(0, f.userData.life);
+      if (f.userData.life <= 0) {
+        this.scene.remove(f);
+        this._sosFlares.splice(i, 1);
+      }
     }
+    const dangerPhases = [PHASE.INTRO, PHASE.CHASE, PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT];
+    if (!this.baby || !dangerPhases.includes(this.phase) || !this.predator) return;
     const threat = this.predator.position.distanceTo(this.baby.position);
     if (threat > 4.5) return;
     this._sosCooldown = (this._sosCooldown || 0) - dt;
@@ -2660,20 +2676,7 @@ export class Game {
     flare.userData.life = 0.7;
     flare.userData.kind = 'sosFlare';
     this.scene.add(flare);
-    this._sosFlares = this._sosFlares || [];
     this._sosFlares.push(flare);
-    // Decay existing flares
-    for (let i = (this._sosFlares?.length || 0) - 1; i >= 0; i--) {
-      const f = this._sosFlares[i];
-      if (f === flare) continue;
-      f.userData.life -= dt;
-      f.position.y += dt * 1.4;
-      f.material.opacity = Math.max(0, f.userData.life);
-      if (f.userData.life <= 0) {
-        this.scene.remove(f);
-        this._sosFlares.splice(i, 1);
-      }
-    }
   }
 
   _clearSosFlares() {
