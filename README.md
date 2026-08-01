@@ -56,20 +56,20 @@ npm run verify
 npm run qa
 ```
 
-### Verification iterations (branch 7dce)
+### Verification iterations (branch 9f1d)
 
-1. **Swinging swamp vines** — vine swamp hangers sway with emissive pulse  
-2. **Meteorite impact glow + smoke** — crater core glow light + rising smoke pillars  
-3. **Lava river ribbons** — flowing emissive lava streams on the volcano floor  
-4. **Ocean current ribbons + drift** — tropical current lanes + subtle sub drift  
-5. **Forked dual rescue routes** — left/right alternate rescue path designs  
-6. **Garage 3D turntable** — spinning vehicle preview in garage / mission pick  
-7. **Chase-start roar flash** — screen flash + FOV punch when chase begins  
-8. **Paleontology tip** — educational fact toast when mother dinosaur assists  
-9. **Friends stamp compete card** — collection race UI + share challenge  
-10. **King flower petal bloom** — rainforest petals spin and pulse  
+1. **Crystal prism rainbow beams** — light shafts in Crystal Cave  
+2. **Danxia sand dust wind** — grit particles across red stone ridges  
+3. **Swamp mud geyser pots** — bubbling mud vents in Vine Swamp  
+4. **Ambient pterosaur sky flybys** — winged silhouettes circling land biomes  
+5. **Baby panic dust trail** — dust kicks while the baby flees  
+6. **Guard radio chatter** — radio beep + HUD strip on phase changes  
+7. **Title spotlight + jeep siren pulse** — living hub diorama  
+8. **Perfect rescue achievement toast** — fanfare burst on 3-star clears  
+9. **Nest incubation glow + hatch sparkles** — safer nest read + celebrate FX  
+10. **Stamp habitat filter tabs** — All / Land / Sea / Flyer encyclopedia filter  
 
-Prior branches (ed9a+) also cover coral sway, whirlpool, Danxia terraces, turret tint, celebrate hop, roadblock feedback, mother flank, look-ahead camera, firefly biolum, limp anim, muzzle flash, and more (see `npm run verify`).
+Prior branches (7dce / ed9a+) also cover vines, lava rivers, ocean currents, garage turntable, roar flash, paleo tips, friends compete, coral sway, whirlpool, mother flank, look-ahead camera, and more (see `npm run verify`).
 
 ## Project layout
 

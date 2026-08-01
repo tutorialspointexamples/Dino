@@ -937,6 +937,109 @@ h2 {
   animation: paleoTipIn 0.35s ease-out;
 }
 
+.radio-chatter {
+  position: absolute;
+  left: 16px;
+  top: 22%;
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: min(260px, 46vw);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(15, 40, 28, 0.82);
+  border: 1px solid rgba(126, 200, 227, 0.45);
+  font-size: 0.86rem;
+  pointer-events: none;
+  animation: paleoTipIn 0.3s ease-out;
+}
+
+.radio-chatter strong {
+  font-family: var(--font-display);
+  color: var(--sky);
+  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+}
+
+.achievement-toast {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  z-index: 28;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: min(280px, 80vw);
+  padding: 16px 22px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(31, 107, 58, 0.94), rgba(20, 53, 34, 0.94));
+  border: 2px solid rgba(244, 193, 75, 0.75);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  text-align: center;
+  pointer-events: none;
+}
+
+.achievement-toast strong {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  color: var(--sun);
+}
+
+.achievement-toast span {
+  font-size: 0.92rem;
+  opacity: 0.92;
+}
+
+.achievement-toast.pop {
+  animation: achievePop 0.55s ease-out;
+}
+
+@keyframes achievePop {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.7); }
+  55% { opacity: 1; transform: translateX(-50%) scale(1.06); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+.stamp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.stamp-filter {
+  border: 1px solid rgba(126, 200, 227, 0.4);
+  background: rgba(15, 40, 28, 0.45);
+  color: var(--cream);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.86rem;
+  padding: 8px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.stamp-filter.active {
+  background: rgba(63, 157, 90, 0.55);
+  border-color: rgba(244, 193, 75, 0.65);
+  color: var(--sun);
+}
+
+.habitat-chip {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(126, 200, 227, 0.22);
+  color: var(--sky);
+}
+
 @keyframes paleoTipIn {
   from { opacity: 0; transform: translateX(-50%) translateY(10px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }

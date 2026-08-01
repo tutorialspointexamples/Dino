@@ -163,6 +163,19 @@ export class AudioBus {
     setTimeout(() => this.tone({ freq: 1320, dur: 0.1, type: 'sine', gain: 0.05 }), 80);
   }
 
+  /** Short Guard radio beep for mission chatter */
+  radio() {
+    this.tone({ freq: 620, dur: 0.05, type: 'square', gain: 0.045 });
+    setTimeout(() => this.tone({ freq: 780, dur: 0.07, type: 'square', gain: 0.04 }), 55);
+  }
+
+  /** Perfect rescue fanfare */
+  perfect() {
+    [523, 659, 784, 1046, 1318].forEach((f, i) => {
+      setTimeout(() => this.tone({ freq: f, dur: 0.16, type: 'triangle', gain: 0.08 }), i * 95);
+    });
+  }
+
   ui() {
     this.tone({ freq: 660, dur: 0.06, type: 'triangle', gain: 0.05 });
   }

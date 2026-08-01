@@ -98,6 +98,9 @@ export class Game {
     this.garagePreview = null;
     this.garageTurntable = null;
     this._chaseRoarPunchT = 0;
+    this._panicDustT = 0;
+    this._hatchSparkT = 0;
+    this.titleSpotlight = null;
     this.world = null;
     this.vehicle = null;
     this.baby = null;
@@ -203,6 +206,15 @@ export class Game {
     sun.name = 'titleSun';
     this.scene.add(sun);
 
+    // Soft spotlight sweep so the title diorama feels alive
+    const spot = new THREE.SpotLight(0xfff3a0, 1.35, 40, 0.55, 0.45, 1);
+    spot.position.set(6, 12, 8);
+    spot.target.position.set(0, 1.2, 0);
+    spot.name = 'titleSpot';
+    this.scene.add(spot);
+    this.scene.add(spot.target);
+    this.titleSpotlight = spot;
+
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(40, 40),
       new THREE.MeshStandardMaterial({ color: 0x2f7a3e, roughness: 1 }),
@@ -240,7 +252,7 @@ export class Game {
     this.clearGaragePreview();
     for (const o of [...this.scene.children]) {
       if (
-        ['titleLight', 'titleSun', 'titleGround', 'titleAmb'].includes(o.name) ||
+        ['titleLight', 'titleSun', 'titleGround', 'titleAmb', 'titleSpot'].includes(o.name) ||
         o.userData?.kind === 'dinosaur' ||
         o.userData?.kind === 'vehicle' ||
         o.name === 'world'
@@ -250,6 +262,7 @@ export class Game {
     }
     this.titleDinos = [];
     this.titleVehicle = null;
+    this.titleSpotlight = null;
   }
 
   showTitleScene() {
@@ -632,6 +645,12 @@ export class Game {
     if (this.titleVehicle?.visible) {
       this.titleVehicle.userData.updateAnim(dt, true);
       this.titleVehicle.rotation.y += dt * 0.2;
+      // Title jeep siren pulse — Guard presence on the hub diorama
+      for (const s of this.titleVehicle.userData.sirens || []) {
+        if (s.material) {
+          s.material.emissiveIntensity = 0.35 + Math.sin(performance.now() * 0.008) * 0.45;
+        }
+      }
     }
     // Garage / pick turntable — spin the selected vehicle hero
     if (this.garagePreview) {
@@ -642,6 +661,13 @@ export class Game {
         this.garageTurntable.rotation.y -= dt * 0.55;
         this.garageTurntable.material.emissiveIntensity = 0.28 + Math.sin(performance.now() * 0.004) * 0.18;
       }
+    }
+    // Spotlight sweep across the title cast
+    if (this.titleSpotlight) {
+      const st = performance.now() * 0.00055;
+      this.titleSpotlight.position.x = Math.sin(st) * 8;
+      this.titleSpotlight.position.z = 6 + Math.cos(st * 0.8) * 4;
+      this.titleSpotlight.intensity = 1.1 + Math.sin(st * 3) * 0.35;
     }
     const t = performance.now() * 0.00035;
     const focusZ = this.garagePreview ? 2.4 : 0;
@@ -719,6 +745,7 @@ export class Game {
     this._updateRadar();
     this._updateAimLock();
     this._updateEggs();
+    this._updateBabyPanicDust(dt);
     this._updateHpVignette();
     this.ui.updateMissionClock(this._missionElapsed);
 
@@ -853,12 +880,20 @@ export class Game {
       this.mother.userData.anim.state = 'celebrate';
     }
     this._updateConfetti(dt);
+    // Nest hatch sparkles while celebrating a safe return
+    this._hatchSparkT = (this._hatchSparkT || 0) - dt;
+    if (this._hatchSparkT <= 0 && this.baby) {
+      this._hatchSparkT = 0.18;
+      this._spawnSparks(this.baby.position.clone().setY(0.9 + Math.random()), 0xffe08a, 4);
+      this._spawnHealSpark?.(this.baby.position.clone().setY(1.1));
+    }
     if (this._celebrateT > 0.35 && this._celebrateT < 0.4) {
       this._spawnSparks(this.baby.position.clone().setY(1.5), 0xf4c14b, 16);
       this._spawnSparks(this.baby.position.clone().setY(1.2), 0x62d26f, 12);
       this._spawnConfettiBurst(this.baby.position.clone(), 28);
       this.ui.setPhaseRibbon(true, 'SAFE!', 'escort');
       this.ui.crewCallout('Medic Luma', 'Baby safe at the nest — stamp unlocked!');
+      this._radioChatter('Nest secure — hatch celebration!');
     }
     if (this._celebrateT >= 1.6) this._finishWin();
   }
@@ -901,6 +936,11 @@ export class Game {
       nestFX.beacon.material.emissiveIntensity = pulse;
       nestFX.beaconRing.scale.setScalar(1 + Math.sin(performance.now() * 0.004) * 0.08);
       nestFX.beaconRing.material.opacity = 0.35 + pulse * 0.35;
+      if (nestFX.nestIncubator) {
+        const warm = 0.22 + Math.sin(performance.now() * 0.0035) * 0.12;
+        nestFX.nestIncubator.material.opacity = warm;
+        nestFX.nestIncubator.scale.setScalar(1 + Math.sin(performance.now() * 0.0028) * 0.1);
+      }
     }
     const bubbles = this.world?.userData?.bubbles;
     if (bubbles) {
@@ -1083,7 +1123,92 @@ export class Game {
         c.material.emissiveIntensity = 0.3 + Math.sin(t * 2.8 + (c.userData.phase || 0)) * 0.35;
       }
     }
+    // Crystal prism rainbow beams
+    const beams = this.world?.userData?.prismBeams;
+    if (beams) {
+      const t = performance.now() * 0.001;
+      for (const b of beams) {
+        const p = b.userData.phase || 0;
+        b.material.opacity = (b.userData.baseOpacity || 0.25) + Math.sin(t * 2.6 + p) * 0.12;
+        b.rotation.y += dt * 0.35;
+        b.scale.y = 1 + Math.sin(t * 1.8 + p) * 0.08;
+      }
+    }
+    // Danxia sand dust wind
+    const sand = this.world?.userData?.sandDust;
+    if (sand) {
+      const t = performance.now() * 0.001;
+      for (const grit of sand) {
+        const b = grit.userData.base;
+        const p = grit.userData.phase || 0;
+        const spd = grit.userData.speed || 3;
+        grit.position.x = b.x + ((t * spd + p * 4) % 40) - 20;
+        grit.position.y = b.y + Math.sin(t * 2 + p) * 0.35;
+        grit.position.z = b.z + Math.sin(t * 0.7 + p) * 2.5;
+        grit.material.opacity = 0.25 + Math.sin(t * 3 + p) * 0.2;
+      }
+    }
+    // Swamp mud geyser bubbles
+    const geysers = this.world?.userData?.mudGeysers;
+    if (geysers) {
+      const t = performance.now() * 0.001;
+      for (const pot of geysers) {
+        const p = pot.userData.phase || 0;
+        if (pot.userData.pool?.material) {
+          pot.userData.pool.material.emissiveIntensity = 0.2 + Math.sin(t * 4 + p) * 0.18;
+        }
+        for (const blob of pot.userData.blobs || []) {
+          const bp = blob.userData.phase || 0;
+          const rise = ((t * 1.6 + bp) % 1.8);
+          blob.position.y = (blob.userData.baseY || 0.35) + rise * 1.1;
+          blob.position.x = Math.sin(t * 3 + bp) * 0.12;
+          blob.material.opacity = Math.max(0.05, 0.75 - rise * 0.4);
+          blob.scale.setScalar(0.7 + rise * 0.5);
+        }
+      }
+    }
+    // Ambient pterosaur sky flybys
+    const flybys = this.world?.userData?.skyFlybys;
+    if (flybys) {
+      const t = performance.now() * 0.001;
+      for (const f of flybys) {
+        const p = f.userData.phase || 0;
+        const r = f.userData.radius || 28;
+        const ang = t * (f.userData.speed || 5) * 0.08 + p;
+        f.position.x = Math.cos(ang) * r;
+        f.position.z = Math.sin(ang) * r;
+        f.position.y = (f.userData.height || 11) + Math.sin(t * 2 + p) * 0.6;
+        f.rotation.y = -ang + Math.PI / 2;
+        for (const w of f.userData.wings || []) {
+          w.rotation.x = Math.sin(t * 8 + p) * 0.45 * (w.userData.side || 1);
+        }
+      }
+    }
     this._updateMotherRings(dt);
+  }
+
+  /** Baby panic dust trail while fleeing a predator */
+  _updateBabyPanicDust(dt) {
+    if (!this.baby?.visible) return;
+    if (![PHASE.INTRO, PHASE.CHASE, PHASE.COMBAT, PHASE.MOTHER, PHASE.HEADBUTT].includes(this.phase)) {
+      return;
+    }
+    this._panicDustT = (this._panicDustT || 0) - dt;
+    if (this._panicDustT > 0) return;
+    this._panicDustT = 0.14;
+    const dust = createDustKick(0xc4a35a);
+    dust.position.copy(this.baby.position);
+    dust.position.y = 0.08;
+    dust.position.x += (Math.random() - 0.5) * 0.4;
+    dust.position.z += (Math.random() - 0.5) * 0.4;
+    this.scene.add(dust);
+    this.sparks.push(dust);
+  }
+
+  /** Guard radio chatter beep + toast on phase changes */
+  _radioChatter(line) {
+    this.audio.radio?.();
+    this.ui.showRadioChatter?.(line);
   }
 
   _resolveBlockers(dt = 0.016) {
@@ -1470,6 +1595,7 @@ export class Game {
       this.ui.flashRoar?.(true);
       this.ui.toast('ROAR! The boss is chasing the baby!');
       this.ui.crewCallout('Scout Mina', 'ROAR! Predator on the move — intercept!');
+      this._radioChatter('Chase active — intercept the predator!');
     }
 
     if (this.phase === PHASE.CHASE) {
@@ -1485,6 +1611,7 @@ export class Game {
         this.ui.crewCallout('Gunner Kai', 'Smart aiming modes launching — Auto, Zoom, Scatter!');
         this.setWeaponMode('auto');
         this.ui.setWeaponModeUI('auto');
+        this._radioChatter('Weapons free — Auto / Zoom / Scatter online!');
       }
     }
 
@@ -1515,6 +1642,7 @@ export class Game {
         this.shakeT = Math.max(this.shakeT, 0.35);
         this._spawnSparks(mother.position.clone().setY(1.6), 0xf4c14b, 10);
         this._spawnMotherRing(mother.position.clone());
+        this._radioChatter('Mother assist inbound — cover the baby!');
       }
       if (predator.userData.hp <= 0) {
         this._beginEscort();
@@ -1720,6 +1848,7 @@ export class Game {
     }
     this._spawnEscortChevrons();
     this.ui.toast('Predator retreats! Escort the baby — grab glowing eggs!');
+    this._radioChatter('Escort mode — follow the nest beacon!');
     this.missionScore += 200;
     this.ui.updateScore(this.missionScore);
     // Nudge baby toward nest so completion is reliable
@@ -1802,6 +1931,10 @@ export class Game {
     this.ui.setAimLock(false);
     this.ui.setRadarDanger(false);
     this.ui.setBoostHud(false, this._boostFuel);
+    if (stars >= 3) {
+      this.audio.perfect?.();
+      this.ui.showAchievementToast?.('PERFECT RESCUE!', 'All stars — eggs, baby & jeep safe!');
+    }
     this.ui.showResult({
       win: true,
       message: `Great work, Guard! +${this.missionScore} points`,

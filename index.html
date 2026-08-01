@@ -77,6 +77,12 @@
             <div class="master-bar"><i id="master-bar"></i></div>
           </div>
           <div id="friends-compare" class="friends-compare" aria-label="Compete with friends on stamp progress"></div>
+          <div id="stamp-filters" class="stamp-filters" role="tablist" aria-label="Filter stamps by habitat">
+            <button type="button" class="stamp-filter active" data-filter="all">All</button>
+            <button type="button" class="stamp-filter" data-filter="land">Land</button>
+            <button type="button" class="stamp-filter" data-filter="sea">Sea</button>
+            <button type="button" class="stamp-filter" data-filter="flyer">Flyer</button>
+          </div>
           <div id="stamp-grid" class="card-grid"></div>
         </div>
       </div>
@@ -140,6 +146,8 @@
         <div id="danger-banner" class="danger-banner hidden">BABY IN DANGER!</div>
         <div id="roar-flash" class="roar-flash hidden" aria-hidden="true"></div>
         <div id="paleo-tip" class="paleo-tip hidden" aria-live="polite"></div>
+        <div id="radio-chatter" class="radio-chatter hidden" aria-live="polite"></div>
+        <div id="achievement-toast" class="achievement-toast hidden" aria-live="polite"></div>
         <div id="alarm-ring" class="alarm-ring hidden" aria-hidden="true">ALARM</div>
         <div id="mission-countdown" class="mission-countdown hidden" aria-live="assertive">3</div>
         <button id="btn-skip-countdown" class="btn small skip-countdown hidden" type="button">Skip ▶</button>

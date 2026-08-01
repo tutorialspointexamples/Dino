@@ -194,6 +194,18 @@ ok(html.includes('paleo-tip') && read('src/game/UI.js').includes('showPaleoTip')
 ok(html.includes('friends-compare') && read('src/game/UI.js').includes('_renderFriendsCompare') && read('src/style.css').includes('friends-compare'), '7dce-9 friends stamp compete card');
 ok(world.includes('userData.petals') && game.includes('userData.petals') && game.includes('King flower petal bloom'), '7dce-10 king flower petal bloom pulse');
 
+// Branch 9f1d polish iterations (10)
+ok(world.includes('prismBeams') && world.includes("level.id === 'crystal_cave'") && game.includes('prismBeams'), '9f1d-1 crystal prism rainbow beams');
+ok(world.includes('sandDust') && world.includes("level.id === 'danxia'") && game.includes('sandDust'), '9f1d-2 Danxia sand dust wind');
+ok(world.includes('mudGeysers') && game.includes('mudGeysers'), '9f1d-3 swamp mud geyser pots');
+ok(world.includes('skyFlybys') && game.includes('skyFlybys'), '9f1d-4 ambient pterosaur sky flybys');
+ok(game.includes('_updateBabyPanicDust') && game.includes('_panicDustT'), '9f1d-5 baby panic dust trail');
+ok(html.includes('radio-chatter') && read('src/game/UI.js').includes('showRadioChatter') && read('src/game/Audio.js').includes('radio()'), '9f1d-6 Guard radio chatter');
+ok(game.includes('titleSpotlight') && game.includes('titleSpot') && game.includes('sirens'), '9f1d-7 title spotlight sweep + jeep siren pulse');
+ok(html.includes('achievement-toast') && read('src/game/UI.js').includes('showAchievementToast') && read('src/game/Audio.js').includes('perfect()'), '9f1d-8 perfect rescue achievement toast');
+ok(world.includes('nestIncubator') && game.includes('nestIncubator') && game.includes('_hatchSparkT'), '9f1d-9 nest incubation glow + hatch sparkles');
+ok(html.includes('stamp-filters') && data.includes('dinoHabitat') && read('src/game/UI.js').includes('stampFilter'), '9f1d-10 stamp habitat filter tabs');
+
 const pkg = JSON.parse(read('package.json'));
 ok(pkg.dependencies?.three, 'three.js dependency');
 ok(pkg.scripts?.dev && pkg.scripts?.build && pkg.scripts?.verify && pkg.scripts?.qa, 'vite + verify/qa scripts');

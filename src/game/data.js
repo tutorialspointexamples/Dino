@@ -548,3 +548,11 @@ export function hexCss(n) {
 export function dinosaurCount() {
   return Object.keys(DINOSAURS).length;
 }
+
+/** Stamp book habitat filter: land / sea / flyer */
+export function dinoHabitat(d) {
+  if (!d) return 'land';
+  if (d.morph === 'ptera') return 'flyer';
+  if (d.morph === 'mosa') return 'sea';
+  return 'land';
+}

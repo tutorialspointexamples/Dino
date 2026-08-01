@@ -1,4 +1,4 @@
-import { CREW, DINOSAURS, LEVELS, VEHICLES, hexCss } from './data.js';
+import { CREW, DINOSAURS, LEVELS, VEHICLES, hexCss, dinoHabitat } from './data.js';
 import { isVehicleUnlocked } from './Save.js';
 
 export class UI {
@@ -6,6 +6,7 @@ export class UI {
     this.game = game;
     this.selectedPickVehicle = null;
     this.pendingLevel = null;
+    this.stampFilter = 'all';
 
     this.$ = (id) => document.getElementById(id);
     this.bind();
@@ -37,6 +38,15 @@ export class UI {
     };
     this.$('btn-skip-countdown')?.addEventListener('click', () => this.game.skipCountdown());
     this.$('btn-stamp-detail-close')?.addEventListener('click', () => this.hideStampDetail());
+    document.querySelectorAll('#stamp-filters .stamp-filter').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.stampFilter = btn.dataset.filter || 'all';
+        document.querySelectorAll('#stamp-filters .stamp-filter').forEach((b) => {
+          b.classList.toggle('active', b === btn);
+        });
+        this.showStamps();
+      });
+    });
 
     document.querySelectorAll('#weapon-modes .mode').forEach((btn) => {
       btn.onclick = () => {
@@ -246,17 +256,25 @@ export class UI {
     }
     // Friends compare card — compete on stamp collection progress
     this._renderFriendsCompare(stamps.length, total, pct);
+    const filter = this.stampFilter || 'all';
+    document.querySelectorAll('#stamp-filters .stamp-filter').forEach((b) => {
+      b.classList.toggle('active', (b.dataset.filter || 'all') === filter);
+    });
     const grid = this.$('stamp-grid');
     grid.innerHTML = '';
     Object.values(DINOSAURS).forEach((d) => {
+      const habitat = dinoHabitat(d);
+      if (filter !== 'all' && habitat !== filter) return;
       const have = stamps.includes(d.id);
       const card = document.createElement('button');
       card.type = 'button';
       card.className = `item-card stamp-card${have ? '' : ' locked'}`;
+      card.dataset.habitat = habitat;
       card.innerHTML = `
         <div class="dino-swatch" style="background:linear-gradient(135deg,${hexCss(d.color)},${hexCss(d.accent)});opacity:${have ? 1 : 0.35}"></div>
         <h3>${have ? d.name : '???'}</h3>
         <p>${have ? d.facts : 'Rescue to collect this stamp'}</p>
+        <span class="habitat-chip">${habitat}</span>
       `;
       card.onclick = () => {
         if (!have) {
@@ -302,6 +320,32 @@ export class UI {
     if (!el) return;
     el.classList.toggle('hidden', !on);
     el.classList.toggle('on', !!on);
+  }
+
+  /** Guard radio chatter strip during phase changes */
+  showRadioChatter(line) {
+    const el = this.$('radio-chatter');
+    if (!el) return;
+    el.innerHTML = `<strong>RADIO</strong><span>${line}</span>`;
+    el.classList.remove('hidden');
+    clearTimeout(this._radioTimer);
+    this._radioTimer = setTimeout(() => el.classList.add('hidden'), 2800);
+  }
+
+  /** Perfect rescue / milestone achievement burst */
+  showAchievementToast(title, detail = '') {
+    const el = this.$('achievement-toast');
+    if (!el) {
+      this.toast(title);
+      return;
+    }
+    el.innerHTML = `<strong>${title}</strong>${detail ? `<span>${detail}</span>` : ''}`;
+    el.classList.remove('hidden');
+    el.classList.remove('pop');
+    void el.offsetWidth;
+    el.classList.add('pop');
+    clearTimeout(this._achieveTimer);
+    this._achieveTimer = setTimeout(() => el.classList.add('hidden'), 4200);
   }
 
   /** In-mission paleontology educational tip */

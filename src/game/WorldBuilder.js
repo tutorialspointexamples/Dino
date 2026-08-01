@@ -129,6 +129,58 @@ export function buildWorld(level, scene) {
       swingingVines.push(vine);
     }
     group.userData.swingingVines = swingingVines;
+
+    // Mud geyser pots — bubbling swamp vents kids can spot
+    const mudGeysers = [];
+    for (let i = 0; i < 8; i++) {
+      const pot = new THREE.Group();
+      const rim = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.7, 0.95, 0.35, 10),
+        new THREE.MeshStandardMaterial({ color: 0x3a4a22, roughness: 1 }),
+      );
+      rim.position.y = 0.15;
+      pot.add(rim);
+      const pool = new THREE.Mesh(
+        new THREE.CircleGeometry(0.55, 12),
+        new THREE.MeshStandardMaterial({
+          color: 0x5a6b28,
+          emissive: 0x2f4a14,
+          emissiveIntensity: 0.25,
+          roughness: 0.4,
+        }),
+      );
+      pool.rotation.x = -Math.PI / 2;
+      pool.position.y = 0.32;
+      pot.add(pool);
+      const blobs = [];
+      for (let b = 0; b < 3; b++) {
+        const blob = new THREE.Mesh(
+          new THREE.SphereGeometry(0.12, 6, 6),
+          new THREE.MeshStandardMaterial({
+            color: 0x6b8a3a,
+            transparent: true,
+            opacity: 0.7,
+            roughness: 0.5,
+          }),
+        );
+        blob.userData.phase = rand(0, Math.PI * 2);
+        blob.userData.baseY = 0.35;
+        pot.add(blob);
+        blobs.push(blob);
+      }
+      const a = rand(0, Math.PI * 2);
+      const r = rand(10, 34);
+      pot.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
+      if (Math.abs(pot.position.x) < 4 && pot.position.z > -16 && pot.position.z < 12) {
+        pot.position.x += pot.position.x >= 0 ? 6 : -6;
+      }
+      pot.userData.blobs = blobs;
+      pot.userData.pool = pool;
+      pot.userData.phase = rand(0, Math.PI * 2);
+      group.add(pot);
+      mudGeysers.push(pot);
+    }
+    group.userData.mudGeysers = mudGeysers;
   }
 
   if (biome === 'cave') {
@@ -152,6 +204,33 @@ export function buildWorld(level, scene) {
       crystals.push(crystal);
     }
     group.userData.caveCrystals = crystals;
+
+    // Crystal Cave: rainbow prism light shafts (store shimmer wonder)
+    if (level.id === 'crystal_cave') {
+      const prismBeams = [];
+      const prismColors = [0xff6b6b, 0xffc14d, 0x62d26f, 0x60a5fa, 0xb8a0d8, 0xff8fab];
+      for (let i = 0; i < prismColors.length; i++) {
+        const beam = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.12, 0.55, rand(5, 8), 8),
+          new THREE.MeshBasicMaterial({
+            color: prismColors[i],
+            transparent: true,
+            opacity: 0.28,
+            depthWrite: false,
+          }),
+        );
+        const a = (i / prismColors.length) * Math.PI * 2;
+        beam.position.set(Math.cos(a) * 6, 4.2, Math.sin(a) * 6 - 2);
+        beam.rotation.z = Math.sin(a) * 0.35;
+        beam.rotation.x = 0.15;
+        beam.userData.phase = rand(0, Math.PI * 2);
+        beam.userData.baseOpacity = 0.22 + (i % 3) * 0.04;
+        group.add(beam);
+        prismBeams.push(beam);
+      }
+      group.userData.prismBeams = prismBeams;
+    }
+
     // Store lore: dripping stalactites in rock caves
     const drips = [];
     for (let i = 0; i < 18; i++) {
@@ -351,6 +430,27 @@ export function buildWorld(level, scene) {
       terraces.push(stack);
     }
     group.userData.danxiaTerraces = terraces;
+
+    // Wind-blown sand dust across the red stone ridges
+    const sandDust = [];
+    for (let i = 0; i < 36; i++) {
+      const grit = new THREE.Mesh(
+        new THREE.SphereGeometry(rand(0.05, 0.12), 5, 5),
+        new THREE.MeshBasicMaterial({
+          color: i % 2 ? 0xe8b57a : 0xc45c26,
+          transparent: true,
+          opacity: 0.45,
+          depthWrite: false,
+        }),
+      );
+      grit.position.set(rand(-28, 28), rand(0.4, 3.5), rand(-28, 28));
+      grit.userData.base = grit.position.clone();
+      grit.userData.phase = rand(0, Math.PI * 2);
+      grit.userData.speed = rand(2.5, 5.5);
+      group.add(grit);
+      sandDust.push(grit);
+    }
+    group.userData.sandDust = sandDust;
   }
 
   if (water || biome === 'ocean') {
@@ -572,7 +672,21 @@ export function buildWorld(level, scene) {
   beaconRing.rotation.x = -Math.PI / 2;
   beaconRing.position.set(0, 0.12, -16);
   group.add(beaconRing);
-  group.userData.nestBeacon = { beacon, beaconRing };
+  // Nest incubation glow — warm halo so the safe zone reads clearly
+  const nestIncubator = new THREE.Mesh(
+    new THREE.CircleGeometry(2.8, 28),
+    new THREE.MeshBasicMaterial({
+      color: 0xffe08a,
+      transparent: true,
+      opacity: 0.28,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  nestIncubator.rotation.x = -Math.PI / 2;
+  nestIncubator.position.set(0, 0.08, -16);
+  group.add(nestIncubator);
+  group.userData.nestBeacon = { beacon, beaconRing, nestIncubator };
 
   // Escort collectible eggs for bonus score / learning loop
   const eggs = [];
@@ -622,6 +736,45 @@ export function buildWorld(level, scene) {
     clouds.push(cloud);
   }
   group.userData.clouds = clouds;
+
+  // Ambient pterosaur sky flybys (land / crater biomes) — living Jurassic sky
+  if (!water && biome !== 'ocean' && biome !== 'cave') {
+    const flybys = [];
+    for (let i = 0; i < 3; i++) {
+      const flyer = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.18, 0.7, 4, 6),
+        new THREE.MeshStandardMaterial({ color: 0x8b6a4a, roughness: 0.75 }),
+      );
+      body.rotation.z = Math.PI / 2;
+      flyer.add(body);
+      const wingGeo = new THREE.PlaneGeometry(1.8, 0.55);
+      const wingMat = new THREE.MeshStandardMaterial({
+        color: 0xc4a35a,
+        side: THREE.DoubleSide,
+        roughness: 0.8,
+        transparent: true,
+        opacity: 0.92,
+      });
+      const left = new THREE.Mesh(wingGeo, wingMat);
+      left.position.set(0, 0.05, 0.55);
+      left.userData.side = -1;
+      flyer.add(left);
+      const right = new THREE.Mesh(wingGeo, wingMat.clone());
+      right.position.set(0, 0.05, -0.55);
+      right.userData.side = 1;
+      flyer.add(right);
+      flyer.userData.wings = [left, right];
+      flyer.userData.phase = rand(0, Math.PI * 2);
+      flyer.userData.speed = rand(4.5, 7.5);
+      flyer.userData.radius = rand(22, 34);
+      flyer.userData.height = rand(9, 14);
+      flyer.position.set(rand(-30, 30), flyer.userData.height, rand(-30, 30));
+      group.add(flyer);
+      flybys.push(flyer);
+    }
+    group.userData.skyFlybys = flybys;
+  }
 
   // Roadblocks / route obstacles — denser on boss / swamp routes
   const blockers = [];
