@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#1f6b3a" />
+    <meta name="description" content="Offline 3D dinosaur rescue adventure — protect baby dinos, drive Guard vehicles, collect stamps." />
+    <title>Dinosaur Guard 2 — Rescue Adventure</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="boot-splash" class="boot-splash" aria-live="polite">
+      <p class="brand">DINOSAUR GUARD 2</p>
+      <p class="boot-tag">Loading Jurassic rescue…</p>
+      <div class="boot-bar"><i></i></div>
+    </div>
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Title / Hub -->
+      <div id="screen-title" class="screen">
+        <div class="title-bg"></div>
+        <div class="title-panel">
+          <p class="brand">DINOSAUR GUARD 2</p>
+          <h1>Rescue Adventure</h1>
+          <p class="tagline">Drive the Guard jeep, stop predators, and collect dinosaur stamps!</p>
+          <div class="title-actions">
+            <button id="btn-play" class="btn primary">Start Mission</button>
+            <button id="btn-garage" class="btn">Garage</button>
+            <button id="btn-stamps" class="btn">Stamp Book</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level Select Hub -->
+      <div id="screen-hub" class="screen hidden">
+        <div class="panel wide">
+          <header class="panel-head">
+            <button id="btn-hub-back" class="btn small">Back</button>
+            <h2>Jurassic Map</h2>
+            <span id="hub-progress" class="badge">0/10</span>
+          </header>
+          <div id="level-grid" class="level-grid"></div>
+        </div>
+      </div>
+
+      <!-- Garage -->
+      <div id="screen-garage" class="screen hidden">
+        <div class="panel wide">
+          <header class="panel-head">
+            <button id="btn-garage-back" class="btn small">Back</button>
+            <h2>Guard Garage</h2>
+            <span class="badge">Pick your ride</span>
+          </header>
+          <div id="vehicle-grid" class="card-grid"></div>
+        </div>
+      </div>
+
+      <!-- Stamp Book -->
+      <div id="screen-stamps" class="screen hidden">
+        <div class="panel wide">
+          <header class="panel-head">
+            <button id="btn-stamps-back" class="btn small">Back</button>
+            <h2>Dinosaur Stamp Book</h2>
+            <span id="stamp-count" class="badge">0 stamps</span>
+          </header>
+          <div class="master-meter" id="master-meter" aria-label="Dinosaur Master progress">
+            <div class="master-label">
+              <strong>Dinosaur Master</strong>
+              <span id="master-pct">0%</span>
+            </div>
+            <div class="master-bar"><i id="master-bar"></i></div>
+          </div>
+          <div id="friends-compare" class="friends-compare" aria-label="Compete with friends on stamp progress"></div>
+          <div id="stamp-grid" class="card-grid"></div>
+        </div>
+      </div>
+
+      <!-- Vehicle pick before mission -->
+      <div id="screen-vehicle-pick" class="screen hidden">
+        <div class="panel">
+          <header class="panel-head">
+            <button id="btn-pick-back" class="btn small">Back</button>
+            <h2 id="pick-level-name">Choose Vehicle</h2>
+          </header>
+          <p id="pick-level-desc" class="muted"></p>
+          <p id="pick-level-fact" class="pick-fact" aria-live="polite"></p>
+          <div id="pick-vehicle-grid" class="card-grid"></div>
+          <button id="btn-launch" class="btn primary launch" disabled>Launch Rescue</button>
+        </div>
+      </div>
+
+      <!-- HUD -->
+      <div id="hud" class="hidden">
+        <div class="hud-top">
+          <div class="hud-pill">
+            <span class="pill-label">GUARD</span>
+            <div class="bar"><i id="hp-bar"></i></div>
+          </div>
+          <div class="hud-pill mission" id="mission-text">Save the baby!</div>
+          <div class="hud-pill clock-pill" id="mission-clock-pill" title="Rescue timer">
+            <span class="pill-label">TIME</span>
+            <strong id="mission-clock">0:00</strong>
+          </div>
+          <div class="hud-pill">
+            <span class="pill-label">SCORE</span>
+            <strong id="score">0</strong>
+          </div>
+        </div>
+        <div class="hud-pill predator-hp" id="predator-hud">
+          <span class="pill-label">BOSS</span>
+          <div class="bar danger"><i id="predator-bar"></i></div>
+        </div>
+        <div id="combo-hud" class="combo-hud hidden" aria-live="polite">
+          <strong id="combo-count">x2</strong>
+          <span>COMBO</span>
+        </div>
+        <div id="aim-lock" class="aim-lock hidden" aria-hidden="true">
+          <span class="aim-lock-ring"></span>
+          <span class="aim-lock-label">LOCK</span>
+        </div>
+        <div id="crew-intro" class="crew-intro hidden" aria-live="polite">
+          <strong>Guard Crew Ready</strong>
+          <span id="crew-intro-names"></span>
+        </div>
+        <div id="hp-vignette" class="hp-vignette" aria-hidden="true"></div>
+        <div id="nest-compass" class="nest-compass hidden" aria-hidden="true">
+          <div class="compass-arrow" id="compass-arrow"></div>
+          <span>NEST</span>
+        </div>
+        <div id="mini-map" class="mini-map" aria-label="Mission radar">
+          <canvas id="radar-canvas" width="140" height="140"></canvas>
+          <span class="radar-label">RADAR</span>
+        </div>
+        <div id="danger-banner" class="danger-banner hidden">BABY IN DANGER!</div>
+        <div id="roar-flash" class="roar-flash hidden" aria-hidden="true"></div>
+        <div id="paleo-tip" class="paleo-tip hidden" aria-live="polite"></div>
+        <div id="alarm-ring" class="alarm-ring hidden" aria-hidden="true">ALARM</div>
+        <div id="mission-countdown" class="mission-countdown hidden" aria-live="assertive">3</div>
+        <button id="btn-skip-countdown" class="btn small skip-countdown hidden" type="button">Skip ▶</button>
+        <div id="phase-ribbon" class="phase-ribbon hidden" aria-live="polite">READY</div>
+        <div class="hud-pill baby-hp" id="baby-hud">
+          <span class="pill-label">BABY</span>
+          <div class="bar baby"><i id="baby-bar"></i></div>
+        </div>
+        <div id="crew-callout" class="crew-callout hidden" aria-live="polite">
+          <strong id="crew-callout-name">Captain Rio</strong>
+          <span id="crew-callout-text"></span>
+        </div>
+        <div id="tutorial-tip" class="tutorial-tip hidden"></div>
+          <p class="hint" id="control-hint">WASD / stick to drive · Space / FIRE · Shift / BOOST · 1/2/3 weapons · Esc pause</p>
+        <div class="hud-aim hidden" id="aim-hint">SMART AIM READY — TAP / SPACE TO FIRE</div>
+        <div class="weapon-modes" id="weapon-modes">
+          <button data-mode="auto" class="mode active">Auto Aim</button>
+          <button data-mode="zoom" class="mode">Zoom</button>
+          <button data-mode="scatter" class="mode">Scatter</button>
+        </div>
+        <div class="touch-controls" id="touch-controls">
+          <div class="stick-zone" id="stick-zone">
+            <div class="stick-base"><div class="stick-knob" id="stick-knob"></div></div>
+          </div>
+          <button id="btn-boost" class="boost-btn" type="button" title="Siren boost (Shift)">BOOST</button>
+          <button id="btn-fire" class="fire-btn">FIRE</button>
+        </div>
+        <button id="btn-mute" class="btn small mute" title="Toggle sound">VOL</button>
+        <button id="btn-pause" class="btn small pause" title="Pause">❚❚</button>
+      </div>
+
+      <!-- Pause / Result -->
+      <div id="screen-pause" class="screen hidden">
+        <div class="panel narrow">
+          <h2>Paused</h2>
+          <button id="btn-resume" class="btn primary">Resume</button>
+          <button id="btn-restart" class="btn">Restart Mission</button>
+          <button id="btn-quit" class="btn">Quit to Map</button>
+        </div>
+      </div>
+
+      <div id="screen-result" class="screen hidden">
+        <div class="panel narrow">
+          <h2 id="result-title">Rescue Complete!</h2>
+          <p id="result-msg" class="muted"></p>
+          <div id="result-stars" class="result-stars hidden" aria-label="Mission stars">
+            <span data-star="1">★</span><span data-star="2">★</span><span data-star="3">★</span>
+          </div>
+          <p id="result-perfect" class="result-perfect hidden">PERFECT RESCUE!</p>
+          <p id="result-time" class="result-time muted hidden" aria-live="polite"></p>
+          <p id="result-fact" class="result-fact muted hidden"></p>
+          <div id="result-stamp" class="result-stamp hidden"></div>
+          <p id="result-unlock" class="result-unlock muted hidden"></p>
+          <button id="btn-result-next" class="btn primary hidden">Next Mission</button>
+          <button id="btn-result-retry" class="btn primary hidden">Try Again</button>
+          <button id="btn-result-continue" class="btn">Map</button>
+        </div>
+      </div>
+
+      <div id="stamp-detail" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="stamp-detail-name">
+        <div class="panel narrow stamp-detail-panel">
+          <div id="stamp-detail-swatch" class="stamp-detail-swatch"></div>
+          <h2 id="stamp-detail-name">Dinosaur</h2>
+          <p id="stamp-detail-role" class="badge"></p>
+          <p id="stamp-detail-fact" class="muted"></p>
+          <button id="btn-stamp-detail-close" class="btn primary">Close</button>
+        </div>
+      </div>
+
+      <div id="toast" class="toast hidden"></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
