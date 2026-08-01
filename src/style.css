@@ -1277,6 +1277,15 @@ h2 {
     flex-wrap: wrap;
   }
 
+  .hud-pill.clock-pill {
+    min-width: 52px;
+    padding: 6px 10px;
+  }
+
+  .hud-pill.clock-pill .pill-label {
+    display: none;
+  }
+
   .phase-ribbon {
     top: calc(108px + env(safe-area-inset-top, 0px));
     font-size: 0.75rem;
