@@ -1005,8 +1005,8 @@ async function main() {
     qa.startLevel(0);
     qa.skipCountdown();
     await new Promise((r) => setTimeout(r, 80));
-    g.phase = 'chase';
-    g.phaseT = 1.3;
+    g.phase = 'intro';
+    g.phaseT = 1.25;
     g._updatePhase(0.02);
     const roarRings = g.sparks.filter((s) => s.userData.kind === 'roarRing').length;
     // 2 mother shockwave
